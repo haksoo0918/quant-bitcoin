@@ -71,16 +71,18 @@ set UPBIT_SECRET_KEY=발급받은_업비트_시크릿키
 set BITHUMB_ACCESS_KEY=발급받은_빗썸_액세스키
 set BITHUMB_SECRET_KEY=발급받은_빗썸_시크릿키
 set DISCORD_WEBHOOK_URL=디스코드_웹훅_주소
-
-# 실제 매매 주문을 넣으려면 False로, 모의 테스트를 하려면 True로 입력
-set DRY_RUN=False
 ```
 
-### 3. 모의 실행 (Dry-Run 테스트)
-`run_bot.bat`의 `DRY_RUN`을 `True`로 설정한 후 파일을 더블 클릭하여 실행합니다. 
+### 3. 시스템 제어 및 매매 설정 (`config.py` 수정)
+`config.py` 파일을 열고 필요한 동작 옵션을 설정합니다:
+- **모의 투자 여부**: `DRY_RUN = True` (모의투자/기본값) 또는 `False` (실제 주문 실행)
+- **빗썸 알트코인 전략 가동 여부**: `USE_ALTCOIN_STRATEGY = True` (가동/기본값) 또는 `False` (빗썸 전략 비활성화)
+
+### 4. 모의 실행 (Dry-Run 테스트)
+`config.py`의 `DRY_RUN`을 `True`로 설정한 상태에서 `run_bot.bat` 파일을 더블 클릭하여 실행합니다. 
 실제 주문은 나가지 않으며 연산 과정과 예상 매매 내역이 작업 폴더 내에 생성되는 **`trading_log.txt`** 파일에 기록되고 디스코드로 알림이 발송됩니다.
 
-### 4. 빗썸 로테이션 알고리즘 단독 테스트
+### 5. 빗썸 로테이션 알고리즘 단독 테스트
 요일이나 시장 필터 조건에 관계없이 빗썸에서 현재 시각 기준 거래대금 및 모멘텀 분석을 수행해 유망 알트코인 4개를 선별하는 연산을 직접 수행해 볼 수 있습니다:
 ```bash
 python test_monday.py
