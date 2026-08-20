@@ -25,7 +25,7 @@
 - **주간 리밸런싱**: 월요일 상승장 시 7일 평균 거래대금 상위 10종목 중 14일 수익률 상위 4종목을 각 25%씩 동일 비중 매수
 
 ### ③ 서브 전략(알트코인) 실행 여부 선택 기능 (단일 설정 파일 제어)
-- **목표**: 빗썸 알트코인 전략을 실행할지 여부와 모의 투자 실행 여부를 **[`config.py`](file:///c:/Users/hakso/_work/quant-bitcoin/config.py) 한곳에서 모두 설정**할 수 있도록 지원합니다.
+- **목표**: 빗썸 알트코인 전략을 실행할지 여부와 모의 투자 실행 여부를 **[`src/config.py`](file:///c:/Users/hakso/_work/quant-bitcoin/src/config.py) 한곳에서 모두 설정**할 수 있도록 지원합니다.
 - **상수 정의**:
   - `DRY_RUN`: `True` (모의투자) 또는 `False` (실거래)
   - `USE_ALTCOIN_STRATEGY`: `True` (빗썸 기동) 또는 `False` (빗썸 비활성화)

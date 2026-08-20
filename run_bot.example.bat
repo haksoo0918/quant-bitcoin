@@ -14,7 +14,7 @@ set DISCORD_WEBHOOK_URL=YOUR_DISCORD_WEBHOOK_URL
 :: 2. Execute Program
 cd /d "%~dp0"
 
-python main.py >> trading_log.txt 2>&1
+python src/main.py >> trading_log.txt 2>&1
 
 echo Execution completed. Check trading_log.txt for details.
 pause
