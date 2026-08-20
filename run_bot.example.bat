@@ -3,10 +3,10 @@
 chcp 65001 > nul
 
 :: ==========================================
-:: 퀀트 자동 매매 시스템 로컬 실행 배치 스크립트
+:: 퀀트 자동 매매 시스템 로컬 실행 배치 스크립트 (템플릿)
 :: ==========================================
 
-:: 1. API 키 및 환경 변수 설정 (본인의 키로 변경해 주세요)
+:: 1. API 키 및 환경 변수 설정 (이 파일을 run_bot.bat으로 복사 후 본인의 키로 변경해 주세요)
 set UPBIT_ACCESS_KEY=YOUR_UPBIT_ACCESS_KEY
 set UPBIT_SECRET_KEY=YOUR_UPBIT_SECRET_KEY
 set BITHUMB_ACCESS_KEY=YOUR_BITHUMB_ACCESS_KEY

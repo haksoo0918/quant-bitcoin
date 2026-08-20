@@ -19,3 +19,7 @@ Thumbs.db
 .idea/
 .gemini/
 .agents/
+
+# Personal execution scripts and logs
+run_bot.bat
+trading_log.txt
