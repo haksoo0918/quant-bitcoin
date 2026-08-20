@@ -1,23 +1,35 @@
 # -*- coding: utf-8 -*-
 import os
 
-# 디버깅 및 시뮬레이션을 위한 드라이런(Dry-Run) 모드 설정
-# True일 경우 실제 거래 주문을 거래소에 전송하지 않고 로그만 출력합니다.
-# 환경 변수 DRY_RUN이 "true"이거나 "1"로 설정되어 있으면 True가 됩니다.
-DRY_RUN = os.getenv("DRY_RUN", "False").lower() in ("true", "1")
+# ==========================================
+# [시스템 제어 설정] - 이곳 한 곳에서 모든 설정을 관리합니다.
+# ==========================================
 
-# 업비트 API 키 설정 (GitHub Secrets 연동)
+# 1. 모의 투자 실행 여부 (드라이런)
+# - True: 실제 매매 주문을 넣지 않고 연산과 디스코드 알림만 보냅니다. (안전 모드)
+# - False: 실제 거래소 API를 통해 실제 매매 주문을 실행합니다.
+DRY_RUN = True
+
+# 2. 빗썸 알트코인 전략 실행 여부
+# - True: 업비트(BTC/ETH) 전략과 빗썸(알트코인) 전략을 모두 동시에 실행합니다.
+# - False: 빗썸 연동 및 거래를 완전히 비활성화하고, 업비트 메인 전략만 실행합니다.
+USE_ALTCOIN_STRATEGY = True
+
+
+# ==========================================
+# [보안 정보 설정] - API 키 및 디스코드 주소
+# ==========================================
+# API 키와 디스코드 주소는 보안을 위해 환경 변수(run_bot.bat)로부터 읽어옵니다.
 UPBIT_ACCESS_KEY = os.getenv("UPBIT_ACCESS_KEY", "")
 UPBIT_SECRET_KEY = os.getenv("UPBIT_SECRET_KEY", "")
-
-# 빗썸 API 키 설정 (GitHub Secrets 연동)
 BITHUMB_ACCESS_KEY = os.getenv("BITHUMB_ACCESS_KEY", "")
 BITHUMB_SECRET_KEY = os.getenv("BITHUMB_SECRET_KEY", "")
-
-# 디스코드 웹훅 URL (GitHub Secrets 연동)
 DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL", "")
 
-# --- 전략 운용 상수 (Constants) ---
+
+# ==========================================
+# [전략 세부 운용 상수]
+# ==========================================
 
 # 메인 전략 비중 밴드 범위 (목표 비중 50% 대비 ±10%p 이탈 시 리밸런싱 실행)
 MAIN_RATIO_BAND = 0.10

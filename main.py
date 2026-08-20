@@ -26,7 +26,8 @@ from config import (
     UPBIT_ACCESS_KEY, UPBIT_SECRET_KEY,
     BITHUMB_ACCESS_KEY, BITHUMB_SECRET_KEY,
     MAIN_RATIO_BAND, ETH_ATR_MULTIPLIER, BTC_BUFFER,
-    UPBIT_MIN_ORDER_KRW, BITHUMB_MIN_ORDER_KRW, DRY_RUN
+    UPBIT_MIN_ORDER_KRW, BITHUMB_MIN_ORDER_KRW, DRY_RUN,
+    USE_ALTCOIN_STRATEGY
 )
 from bithumb_api import BithumbClient
 from discord_bot import send_discord_message
@@ -364,216 +365,225 @@ def main():
                 logging.info(f"업비트 {coin} 매수 요청 금액({buy_amount:,.0f}원)이 최소 주문 금액(5,000원) 미만입니다. 스킵합니다.")
 
     # 5. 빗썸 매매 실행 (서브 전략)
-    logging.info("=== [빗썸 매매 제어 프로세스 가동] ===")
-    
-    # 5.1 빗썸 잔고 상세 파싱
-    bithumb_balances_raw = fetch_bithumb_balances(bithumb)
-    bithumb_ticker_data = fetch_bithumb_ticker_all()
-    
     bithumb_krw = 0.0
     bithumb_alts_val = 0.0
     bithumb_alts_balances = {}
     bithumb_alts_avg_prices = {}
-    
-    for asset in bithumb_balances_raw:
-        curr = asset.get("currency")
-        bal = float(asset.get("balance", 0.0)) + float(asset.get("locked", 0.0))
-        avg_buy = float(asset.get("avg_buy_price", 0.0))
-        if bal <= 0:
-            continue
-            
-        if curr == "KRW":
-            bithumb_krw = bal
-        elif curr in ("BTC", "ETH"):
-            # 서브 전략에서 BTC/ETH 제외
-            continue
-        else:
-            coin_info = bithumb_ticker_data.get(curr, {})
-            price = float(coin_info.get("closing_price", 0.0)) if coin_info else 0.0
-            if price > 0:
-                val = bal * price
-                bithumb_alts_val += val
-                bithumb_alts_balances[f"KRW-{curr}"] = bal
-                bithumb_alts_avg_prices[f"KRW-{curr}"] = avg_buy
-                
-    total_bithumb_value = bithumb_krw + bithumb_alts_val
+    total_bithumb_value = 0.0
     bithumb_order_history = []
-    
-    # 5.2 시나리오별 주문 프로세스 실행
-    is_monday = kst_now.weekday() == 0
-    
-    # 하락장(Bear) 시나리오: 전체 청산 (요일 무관)
-    if market_filter_state == "Bear":
-        logging.info("공통 시장 필터가 '하락장'입니다. 빗썸의 모든 알트코인을 매도하여 안전하게 현금화합니다.")
-        for market, bal in bithumb_alts_balances.items():
-            curr = market.replace("KRW-", "")
-            coin_info = bithumb_ticker_data.get(curr, {})
-            price = float(coin_info.get("closing_price", 0.0)) if coin_info else 0.0
-            val = bal * price
-            
-            if val >= BITHUMB_MIN_ORDER_KRW:
-                logging.info(f"[빗썸 하락장 청산] {market} 매도 (수량: {bal:.8f}, 대략 금액: {val:,.0f}원)")
-                if not DRY_RUN:
-                    try:
-                        order_res = bithumb.sell_market_order(market, bal)
-                        logging.info(f"빗썸 매도 성공: {order_res}")
-                        bithumb_order_history.append(f"✅ 빗썸 {curr} 청산: {val:,.0f}원 ({bal:.4f}개)")
-                    except Exception as e:
-                        logging.error(f"빗썸 {curr} 매도 에러: {e}")
-                        bithumb_order_history.append(f"❌ 빗썸 {curr} 청산 실패: {e}")
-                else:
-                    bithumb_order_history.append(f"⚠️ [시뮬레이션] 빗썸 {curr} 청산: {val:,.0f}원 ({bal:.4f}개)")
-                time.sleep(2)
-            else:
-                logging.info(f"빗썸 {market} 청산 보류: 평가액이 최소 주문 금액 미만입니다.")
 
-    # 상승장(Bull) + 월요일 시나리오: 종목 교체 및 25% N분할 리밸런싱 실행
-    elif market_filter_state == "Bull" and is_monday:
-        logging.info("공통 시장 필터가 '상승장'이고 오늘이 월요일입니다. 주간 리밸런싱 및 종목 교체를 진행합니다.")
-        
-        # 1. 거래대금 7일 평균 상위 10개 종목 추출
-        # 빗썸 티커에서 전체 후보군 정렬
-        volume_list = []
-        for coin, info in bithumb_ticker_data.items():
-            if coin in ("date", "BTC", "ETH"):
+    if USE_ALTCOIN_STRATEGY:
+        logging.info("=== [빗썸 매매 제어 프로세스 가동] ===")
+        bithumb_balances_raw = fetch_bithumb_balances(bithumb)
+        bithumb_ticker_data = fetch_bithumb_ticker_all()
+
+        bithumb_krw = 0.0
+        bithumb_alts_val = 0.0
+        bithumb_alts_balances = {}
+        bithumb_alts_avg_prices = {}
+
+        for asset in bithumb_balances_raw:
+            curr = asset.get("currency")
+            bal = float(asset.get("balance", 0.0)) + float(asset.get("locked", 0.0))
+            avg_buy = float(asset.get("avg_buy_price", 0.0))
+            if bal <= 0:
                 continue
-            acc_value = float(info.get("acc_trade_value_24H", 0.0))
-            volume_list.append((f"KRW-{coin}", acc_value))
-            
-        volume_list.sort(key=lambda x: x[1], reverse=True)
-        # 상위 30개 후보로 필터링하여 일봉 조회 API 횟수 최적화
-        top_30_candidates = [item[0] for item in volume_list[:30]]
-        
-        altcoin_stats = []
-        logging.info("빗썸 상위 거래 대금 후보군 분석 시작...")
-        for market in top_30_candidates:
-            try:
-                # count=16 (오늘 0, 어제 1 ~ 14일 전 14, 15일 전 15)
-                candles = fetch_bithumb_candles(bithumb, market, count=16)
-                if len(candles) < 16:
-                    continue
-                    
-                df_c = bithumb_candles_to_df(candles)
-                
-                # 7일 평균 거래 대금 (index -8 ~ -2)
-                avg_val_7d = df_c['value'].iloc[-8:-1].mean()
-                
-                # 14일 상대 모멘텀 수익률 (오늘 close / 14일전 close - 1)
-                curr_p = df_c['close'].iloc[-1]
-                p_14d_ago = df_c['close'].iloc[-15]
-                ret_14d = (curr_p - p_14d_ago) / p_14d_ago
-                
-                altcoin_stats.append({
-                    "market": market,
-                    "avg_value_7d": avg_val_7d,
-                    "return_14d": ret_14d,
-                    "price": curr_p
-                })
-                time.sleep(0.05)
-            except Exception as e:
-                logging.warning(f"빗썸 {market} 지표 연산 중 에러 발생: {e}")
-                
-        # 7일 평균 거래 대금 기준 정렬 및 상위 10개 추출
-        altcoin_stats.sort(key=lambda x: x['avg_value_7d'], reverse=True)
-        top_10_by_volume = altcoin_stats[:10]
-        
-        # 상위 10개 중 최근 14일 수익률 상위 4개 종목 최종 선정
-        top_10_by_volume.sort(key=lambda x: x['return_14d'], reverse=True)
-        target_coins_stats = top_10_by_volume[:4]
-        target_coins = [x['market'] for x in target_coins_stats]
-        
-        logging.info("=== [최종 선정 서브 전략 4대 알트코인] ===")
-        for i, coin_stat in enumerate(target_coins_stats):
-            logging.info(f"{i+1}위: {coin_stat['market']} | 14일 수익률: {coin_stat['return_14d']*100:.2f}% | 7일 평균거래액: {coin_stat['avg_value_7d']/1e8:.2f}억")
-            
-        # 종목당 목표 보유 가치 (총자산의 25%)
-        target_coin_value = 0.25 * total_bithumb_value
-        logging.info(f"빗썸 총자산 평가액: {total_bithumb_value:,.0f}원 | 목표 종목당 비중(25%): {target_coin_value:,.0f}원")
-        
-        # A. 선매도: 미선정 종목 일괄 청산 및 비중 초과 목표 종목 부분 매도
-        # 미선정 종목 매도
-        for market, bal in bithumb_alts_balances.items():
-            curr = market.replace("KRW-", "")
-            if market not in target_coins:
+
+            if curr == "KRW":
+                bithumb_krw = bal
+            elif curr in ("BTC", "ETH"):
+                # 서브 전략에서 BTC/ETH 제외
+                continue
+            else:
+                coin_info = bithumb_ticker_data.get(curr, {})
+                price = float(coin_info.get("closing_price", 0.0)) if coin_info else 0.0
+                if price > 0:
+                    val = bal * price
+                    bithumb_alts_val += val
+                    bithumb_alts_balances[f"KRW-{curr}"] = bal
+                    bithumb_alts_avg_prices[f"KRW-{curr}"] = avg_buy
+
+        total_bithumb_value = bithumb_krw + bithumb_alts_val
+        bithumb_order_history = []
+
+        # 5.2 시나리오별 주문 프로세스 실행
+        is_monday = kst_now.weekday() == 0
+
+        # 하락장(Bear) 시나리오: 전체 청산 (요일 무관)
+        if market_filter_state == "Bear":
+            logging.info("공통 시장 필터가 '하락장'입니다. 빗썸의 모든 알트코인을 매도하여 안전하게 현금화합니다.")
+            for market, bal in bithumb_alts_balances.items():
+                curr = market.replace("KRW-", "")
                 coin_info = bithumb_ticker_data.get(curr, {})
                 price = float(coin_info.get("closing_price", 0.0)) if coin_info else 0.0
                 val = bal * price
+
                 if val >= BITHUMB_MIN_ORDER_KRW:
-                    logging.info(f"[빗썸 종목교체 매도] {market} 청산 (금액: {val:,.0f}원)")
+                    logging.info(f"[빗썸 하락장 청산] {market} 매도 (수량: {bal:.8f}, 대략 금액: {val:,.0f}원)")
                     if not DRY_RUN:
                         try:
                             order_res = bithumb.sell_market_order(market, bal)
                             logging.info(f"빗썸 매도 성공: {order_res}")
-                            bithumb_order_history.append(f"✅ 빗썸 {curr} 교체 매도: {val:,.0f}원")
+                            bithumb_order_history.append(f"✅ 빗썸 {curr} 청산: {val:,.0f}원 ({bal:.4f}개)")
                         except Exception as e:
                             logging.error(f"빗썸 {curr} 매도 에러: {e}")
-                            bithumb_order_history.append(f"❌ 빗썸 {curr} 교체 매도 실패: {e}")
+                            bithumb_order_history.append(f"❌ 빗썸 {curr} 청산 실패: {e}")
                     else:
-                        bithumb_order_history.append(f"⚠️ [시뮬레이션] 빗썸 {curr} 교체 매도: {val:,.0f}원")
+                        bithumb_order_history.append(f"⚠️ [시뮬레이션] 빗썸 {curr} 청산: {val:,.0f}원 ({bal:.4f}개)")
                     time.sleep(2)
+                else:
+                    logging.info(f"빗썸 {market} 청산 보류: 평가액이 최소 주문 금액 미만입니다.")
 
-        # 목표 종목 중 비중 초과분 부분 매도
-        for coin_stat in target_coins_stats:
-            market = coin_stat['market']
-            curr = market.replace("KRW-", "")
-            curr_price = coin_stat['price']
-            current_bal = bithumb_alts_balances.get(market, 0.0)
-            current_v = current_bal * curr_price
-            
-            if current_bal > 0 and current_v > target_coin_value:
-                excess_val = current_v - target_coin_value
-                qty_to_sell = excess_val / curr_price
-                if excess_val >= BITHUMB_MIN_ORDER_KRW:
-                    logging.info(f"[빗썸 비중조절 매도] {market} 일부 매도 (금액: {excess_val:,.0f}원)")
-                    if not DRY_RUN:
-                        try:
-                            order_res = bithumb.sell_market_order(market, qty_to_sell)
-                            logging.info(f"빗썸 부분 매도 성공: {order_res}")
-                            bithumb_order_history.append(f"✅ 빗썸 {curr} 비중 축소: {excess_val:,.0f}원")
-                        except Exception as e:
-                            logging.error(f"빗썸 {curr} 매도 에러: {e}")
-                            bithumb_order_history.append(f"❌ 빗썸 {curr} 비중 축소 실패: {e}")
-                    else:
-                        bithumb_order_history.append(f"⚠️ [시뮬레이션] 빗썸 {curr} 비중 축소: {excess_val:,.0f}원")
-                    time.sleep(2)
+        # 상승장(Bull) + 월요일 시나리오: 종목 교체 및 25% N분할 리밸런싱 실행
+        elif market_filter_state == "Bull" and is_monday:
+            logging.info("공통 시장 필터가 '상승장'이고 오늘이 월요일입니다. 주간 리밸런싱 및 종목 교체를 진행합니다.")
 
-        # B. 매매 후 빗썸 원화 잔고 리프레시
-        if not DRY_RUN:
-            try:
-                bithumb_krw = bithumb.get_balance("KRW")
-            except Exception as e:
-                logging.error(f"빗썸 원화 잔고 조회 에러: {e}")
+            # 1. 거래대금 7일 평균 상위 10개 종목 추출
+            # 빗썸 티커에서 전체 후보군 정렬
+            volume_list = []
+            for coin, info in bithumb_ticker_data.items():
+                if coin in ("date", "BTC", "ETH"):
+                    continue
+                acc_value = float(info.get("acc_trade_value_24H", 0.0))
+                volume_list.append((f"KRW-{coin}", acc_value))
 
-        # C. 후매수: 목표 종목 중 비중 부족분 매수
-        for coin_stat in target_coins_stats:
-            market = coin_stat['market']
-            curr = market.replace("KRW-", "")
-            curr_price = coin_stat['price']
-            current_bal = bithumb_alts_balances.get(market, 0.0)
-            current_v = current_bal * curr_price
-            
-            if current_v < target_coin_value:
-                shortage_val = target_coin_value - current_v
-                buy_amount = min(shortage_val, bithumb_krw * 0.995)
-                if buy_amount >= BITHUMB_MIN_ORDER_KRW:
-                    logging.info(f"[빗썸 비중조절 매수] {market} 매수 진행 (금액: {buy_amount:,.0f}원)")
-                    if not DRY_RUN:
-                        try:
-                            order_res = bithumb.buy_market_order(market, buy_amount)
-                            logging.info(f"빗썸 매수 성공: {order_res}")
-                            bithumb_order_history.append(f"✅ 빗썸 {curr} 추가 매수: {buy_amount:,.0f}원")
+            volume_list.sort(key=lambda x: x[1], reverse=True)
+            # 상위 30개 후보로 필터링하여 일봉 조회 API 횟수 최적화
+            top_30_candidates = [item[0] for item in volume_list[:30]]
+
+            altcoin_stats = []
+            logging.info("빗썸 상위 거래 대금 후보군 분석 시작...")
+            for market in top_30_candidates:
+                try:
+                    # count=16 (오늘 0, 어제 1 ~ 14일 전 14, 15일 전 15)
+                    candles = fetch_bithumb_candles(bithumb, market, count=16)
+                    if len(candles) < 16:
+                        continue
+
+                    df_c = bithumb_candles_to_df(candles)
+
+                    # 7일 평균 거래 대금 (index -8 ~ -2)
+                    avg_val_7d = df_c['value'].iloc[-8:-1].mean()
+
+                    # 14일 상대 모멘텀 수익률 (오늘 close / 14일전 close - 1)
+                    curr_p = df_c['close'].iloc[-1]
+                    p_14d_ago = df_c['close'].iloc[-15]
+                    ret_14d = (curr_p - p_14d_ago) / p_14d_ago
+
+                    altcoin_stats.append({
+                        "market": market,
+                        "avg_value_7d": avg_val_7d,
+                        "return_14d": ret_14d,
+                        "price": curr_p
+                    })
+                    time.sleep(0.05)
+                except Exception as e:
+                    logging.warning(f"빗썸 {market} 지표 연산 중 에러 발생: {e}")
+
+            # 7일 평균 거래 대금 기준 정렬 및 상위 10개 추출
+            altcoin_stats.sort(key=lambda x: x['avg_value_7d'], reverse=True)
+            top_10_by_volume = altcoin_stats[:10]
+
+            # 상위 10개 중 최근 14일 수익률 상위 4개 종목 최종 선정
+            top_10_by_volume.sort(key=lambda x: x['return_14d'], reverse=True)
+            target_coins_stats = top_10_by_volume[:4]
+            target_coins = [x['market'] for x in target_coins_stats]
+
+            logging.info("=== [최종 선정 서브 전략 4대 알트코인] ===")
+            for i, coin_stat in enumerate(target_coins_stats):
+                logging.info(f"{i+1}위: {coin_stat['market']} | 14일 수익률: {coin_stat['return_14d']*100:.2f}% | 7일 평균거래액: {coin_stat['avg_value_7d']/1e8:.2f}억")
+
+            # 종목당 목표 보유 가치 (총자산의 25%)
+            target_coin_value = 0.25 * total_bithumb_value
+            logging.info(f"빗썸 총자산 평가액: {total_bithumb_value:,.0f}원 | 목표 종목당 비중(25%): {target_coin_value:,.0f}원")
+
+            # A. 선매도: 미선정 종목 일괄 청산 및 비중 초과 목표 종목 부분 매도
+            # 미선정 종목 매도
+            for market, bal in bithumb_alts_balances.items():
+                curr = market.replace("KRW-", "")
+                if market not in target_coins:
+                    coin_info = bithumb_ticker_data.get(curr, {})
+                    price = float(coin_info.get("closing_price", 0.0)) if coin_info else 0.0
+                    val = bal * price
+                    if val >= BITHUMB_MIN_ORDER_KRW:
+                        logging.info(f"[빗썸 종목교체 매도] {market} 청산 (금액: {val:,.0f}원)")
+                        if not DRY_RUN:
+                            try:
+                                order_res = bithumb.sell_market_order(market, bal)
+                                logging.info(f"빗썸 매도 성공: {order_res}")
+                                bithumb_order_history.append(f"✅ 빗썸 {curr} 교체 매도: {val:,.0f}원")
+                            except Exception as e:
+                                logging.error(f"빗썸 {curr} 매도 에러: {e}")
+                                bithumb_order_history.append(f"❌ 빗썸 {curr} 교체 매도 실패: {e}")
+                        else:
+                            bithumb_order_history.append(f"⚠️ [시뮬레이션] 빗썸 {curr} 교체 매도: {val:,.0f}원")
+                        time.sleep(2)
+
+            # 목표 종목 중 비중 초과분 부분 매도
+            for coin_stat in target_coins_stats:
+                market = coin_stat['market']
+                curr = market.replace("KRW-", "")
+                curr_price = coin_stat['price']
+                current_bal = bithumb_alts_balances.get(market, 0.0)
+                current_v = current_bal * curr_price
+
+                if current_bal > 0 and current_v > target_coin_value:
+                    excess_val = current_v - target_coin_value
+                    qty_to_sell = excess_val / curr_price
+                    if excess_val >= BITHUMB_MIN_ORDER_KRW:
+                        logging.info(f"[빗썸 비중조절 매도] {market} 일부 매도 (금액: {excess_val:,.0f}원)")
+                        if not DRY_RUN:
+                            try:
+                                order_res = bithumb.sell_market_order(market, qty_to_sell)
+                                logging.info(f"빗썸 부분 매도 성공: {order_res}")
+                                bithumb_order_history.append(f"✅ 빗썸 {curr} 비중 축소: {excess_val:,.0f}원")
+                            except Exception as e:
+                                logging.error(f"빗썸 {curr} 매도 에러: {e}")
+                                bithumb_order_history.append(f"❌ 빗썸 {curr} 비중 축소 실패: {e}")
+                        else:
+                            bithumb_order_history.append(f"⚠️ [시뮬레이션] 빗썸 {curr} 비중 축소: {excess_val:,.0f}원")
+                        time.sleep(2)
+
+            # B. 매매 후 빗썸 원화 잔고 리프레시
+            if not DRY_RUN:
+                try:
+                    bithumb_krw = bithumb.get_balance("KRW")
+                except Exception as e:
+                    logging.error(f"빗썸 원화 잔고 조회 에러: {e}")
+
+            # C. 후매수: 목표 종목 중 비중 부족분 매수
+            for coin_stat in target_coins_stats:
+                market = coin_stat['market']
+                curr = market.replace("KRW-", "")
+                curr_price = coin_stat['price']
+                current_bal = bithumb_alts_balances.get(market, 0.0)
+                current_v = current_bal * curr_price
+
+                if current_v < target_coin_value:
+                    shortage_val = target_coin_value - current_v
+                    buy_amount = min(shortage_val, bithumb_krw * 0.995)
+                    if buy_amount >= BITHUMB_MIN_ORDER_KRW:
+                        logging.info(f"[빗썸 비중조절 매수] {market} 매수 진행 (금액: {buy_amount:,.0f}원)")
+                        if not DRY_RUN:
+                            try:
+                                order_res = bithumb.buy_market_order(market, buy_amount)
+                                logging.info(f"빗썸 매수 성공: {order_res}")
+                                bithumb_order_history.append(f"✅ 빗썸 {curr} 추가 매수: {buy_amount:,.0f}원")
+                                bithumb_krw -= buy_amount
+                            except Exception as e:
+                                logging.error(f"빗썸 {curr} 매수 에러: {e}")
+                                bithumb_order_history.append(f"❌ 빗썸 {curr} 매수 실패: {e}")
+                        else:
+                            bithumb_order_history.append(f"⚠️ [시뮬레이션] 빗썸 {curr} 추가 매수: {buy_amount:,.0f}원")
                             bithumb_krw -= buy_amount
-                        except Exception as e:
-                            logging.error(f"빗썸 {curr} 매수 에러: {e}")
-                            bithumb_order_history.append(f"❌ 빗썸 {curr} 매수 실패: {e}")
-                    else:
-                        bithumb_order_history.append(f"⚠️ [시뮬레이션] 빗썸 {curr} 추가 매수: {buy_amount:,.0f}원")
-                        bithumb_krw -= buy_amount
-                    time.sleep(2)
+                        time.sleep(2)
 
-    # 상승장(Bull)이나 월요일이 아님: 거래 미발생 대기
+        # 상승장(Bull)이나 월요일이 아님: 거래 미발생 대기
+        else:
+            logging.info("공통 시장 필터가 '상승장'이지만 월요일이 아니므로 종목 교체/리밸런싱을 진행하지 않고 홀딩합니다.")
+
     else:
-        logging.info("공통 시장 필터가 '상승장'이지만 월요일이 아니므로 종목 교체/리밸런싱을 진행하지 않고 홀딩합니다.")
+        logging.info("=== [빗썸 매매 제어 프로세스 비활성화] ===")
 
     # 6. 최종 잔고 업데이트 조회 및 디스코드 리포트 발송
     logging.info("=== [최종 포트폴리오 리포트 전송 시작] ===")
@@ -599,44 +609,46 @@ def main():
     total_upbit_fin = upbit_krw_fin + btc_val_fin + eth_val_fin
 
     # 6.2 빗썸 최종 잔고 파싱
-    bithumb_balances_raw = fetch_bithumb_balances(bithumb)
-    bithumb_ticker_fin = fetch_bithumb_ticker_all()
-    
     bithumb_krw_fin = 0.0
     bithumb_alts_val_fin = 0.0
     bithumb_alts_final_list = []
+    total_bithumb_fin = 0.0
     
-    for asset in bithumb_balances_raw:
-        curr = asset.get("currency")
-        bal = float(asset.get("balance", 0.0)) + float(asset.get("locked", 0.0))
-        avg_buy = float(asset.get("avg_buy_price", 0.0))
-        if bal <= 0:
-            continue
-            
-        if curr == "KRW":
-            bithumb_krw_fin = bal
-        elif curr in ("BTC", "ETH"):
-            continue
-        else:
-            coin_info = bithumb_ticker_fin.get(curr, {})
-            price = float(coin_info.get("closing_price", 0.0)) if coin_info else 0.0
-            if price > 0:
-                val = bal * price
-                bithumb_alts_val_fin += val
-                # 수익률 계산
-                ret = 0.0
-                if avg_buy > 0:
-                    ret = ((price - avg_buy) / avg_buy) * 100
-                bithumb_alts_final_list.append({
-                    "currency": curr,
-                    "balance": bal,
-                    "price": price,
-                    "value": val,
-                    "avg_buy": avg_buy,
-                    "return": ret
-                })
+    if USE_ALTCOIN_STRATEGY:
+        bithumb_balances_raw = fetch_bithumb_balances(bithumb)
+        bithumb_ticker_fin = fetch_bithumb_ticker_all()
+        
+        for asset in bithumb_balances_raw:
+            curr = asset.get("currency")
+            bal = float(asset.get("balance", 0.0)) + float(asset.get("locked", 0.0))
+            avg_buy = float(asset.get("avg_buy_price", 0.0))
+            if bal <= 0:
+                continue
                 
-    total_bithumb_fin = bithumb_krw_fin + bithumb_alts_val_fin
+            if curr == "KRW":
+                bithumb_krw_fin = bal
+            elif curr in ("BTC", "ETH"):
+                continue
+            else:
+                coin_info = bithumb_ticker_fin.get(curr, {})
+                price = float(coin_info.get("closing_price", 0.0)) if coin_info else 0.0
+                if price > 0:
+                    val = bal * price
+                    bithumb_alts_val_fin += val
+                    # 수익률 계산
+                    ret = 0.0
+                    if avg_buy > 0:
+                        ret = ((price - avg_buy) / avg_buy) * 100
+                    bithumb_alts_final_list.append({
+                        "currency": curr,
+                        "balance": bal,
+                        "price": price,
+                        "value": val,
+                        "avg_buy": avg_buy,
+                        "return": ret
+                    })
+                    
+        total_bithumb_fin = bithumb_krw_fin + bithumb_alts_val_fin
 
     # 6.3 디스코드 본문 포맷팅
     # 업비트 자산 현황
@@ -663,15 +675,21 @@ def main():
         report.append("• **ETH**: 미보유 (현금화)")
         
     report.append("\n🟢 **서브 전략 (빗썸 - 알트코인)**")
-    report.append(f"• **시장 필터 상태**: `{market_filter_state}` (최근 확정 기준)")
-    report.append(f"• **총 자산 가치**: {total_bithumb_fin:,.0f} 원")
-    report.append(f"• **보유 현금 (KRW)**: {bithumb_krw_fin:,.0f} 원 ({bithumb_krw_fin/total_bithumb_fin*100:.1f}%)")
-    
-    if bithumb_alts_final_list:
-        for alt in bithumb_alts_final_list:
-            report.append(f"• **{alt['currency']}**: {alt['value']:,.0f} 원 ({alt['value']/total_bithumb_fin*100:.1f}%) | 평단 {alt['avg_buy']:,.2f} | 수익률 {alt['return']:+.2f}%")
+    if USE_ALTCOIN_STRATEGY:
+        report.append(f"• **시장 필터 상태**: `{market_filter_state}` (최근 확정 기준)")
+        report.append(f"• **총 자산 가치**: {total_bithumb_fin:,.0f} 원")
+        if total_bithumb_fin > 0:
+            report.append(f"• **보유 현금 (KRW)**: {bithumb_krw_fin:,.0f} 원 ({bithumb_krw_fin/total_bithumb_fin*100:.1f}%)")
+        else:
+            report.append(f"• **보유 현금 (KRW)**: {bithumb_krw_fin:,.0f} 원 (0.0%)")
+        
+        if bithumb_alts_final_list:
+            for alt in bithumb_alts_final_list:
+                report.append(f"• **{alt['currency']}**: {alt['value']:,.0f} 원 ({alt['value']/total_bithumb_fin*100:.1f}%) | 평단 {alt['avg_buy']:,.2f} | 수익률 {alt['return']:+.2f}%")
+        else:
+            report.append("• **알트코인**: 미보유 (현금화)")
     else:
-        report.append("• **알트코인**: 미보유 (현금화)")
+        report.append("• **상태**: 비활성화됨 (Disabled)")
 
     # 6.4 당일 매매 내역 요약 추가
     report.append("\n🛠️ **당일 주문 체결 내역**")
