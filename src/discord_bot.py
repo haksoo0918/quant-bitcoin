@@ -17,7 +17,7 @@ def send_discord_message(content: str):
     
     # 드라이런 상태일 경우 메시지 상단에 표시
     if DRY_RUN:
-        content = f"⚠️ **[테스트 모드 - 실제 주문 미실행]**\n{content}"
+        content = f"📢 **[시그널 알림 - 모바일 주문 가이드]**\n{content}"
 
     payload = {"content": content}
     headers = {"Content-Type": "application/json"}

@@ -13,7 +13,7 @@ DRY_RUN = True
 # 2. 빗썸 알트코인 전략 실행 여부
 # - True: 업비트(BTC/ETH) 전략과 빗썸(알트코인) 전략을 모두 동시에 실행합니다.
 # - False: 빗썸 연동 및 거래를 완전히 비활성화하고, 업비트 메인 전략만 실행합니다.
-USE_ALTCOIN_STRATEGY = False
+USE_ALTCOIN_STRATEGY = True
 
 
 # ==========================================

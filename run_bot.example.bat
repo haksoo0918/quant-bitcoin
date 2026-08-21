@@ -1,6 +1,6 @@
 @echo off
 :: ==========================================
-:: Quant Trading Bot Local Execution Script (Template)
+:: Quant Trading Signal Bot Local Simulation Script (Template)
 :: ==========================================
 
 :: 1. API Keys and Environment Variables
@@ -14,7 +14,7 @@ set DISCORD_WEBHOOK_URL=YOUR_DISCORD_WEBHOOK_URL
 :: 2. Execute Program
 cd /d "%~dp0"
 
-python src/main.py >> trading_log.txt 2>&1
+python src/main.py
 
-echo Execution completed. Check trading_log.txt for details.
+echo Execution completed. Check logs/ directory for details.
 pause

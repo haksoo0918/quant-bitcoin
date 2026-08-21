@@ -32,13 +32,38 @@ from config import (
 from bithumb_api import BithumbClient
 from discord_bot import send_discord_message
 
-# 기본 로깅 설정 (한국어 출력)
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
-
 # KST(한국 시간) 변환 유틸리티
 def get_kst_now():
     utc_now = datetime.datetime.now(datetime.timezone.utc)
     return utc_now + datetime.timedelta(hours=9)
+
+# --- 로깅 설정 일원화 및 분기 처리 ---
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+# 기존에 등록된 모든 핸들러 제거 (중복 출력 방지)
+for h in logger.handlers[:]:
+    logger.removeHandler(h)
+
+formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
+
+# 1. 기본 콘솔(화면) 출력 설정
+stream_handler = logging.StreamHandler(sys.stdout)
+stream_handler.setFormatter(formatter)
+logger.addHandler(stream_handler)
+
+# 2. 깃허브 액션이 아닌 '로컬 실행' 시에만 월별 파일 로그 추가 생성
+if not os.getenv("GITHUB_ACTIONS"):
+    kst_now = get_kst_now()
+    log_dir = "logs"
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+    
+    # 월별로 구분하여 로그 파일 생성 (예: logs/trading_log_2026-08.log)
+    log_filename = os.path.join(log_dir, f"trading_log_{kst_now.strftime('%Y-%m')}.log")
+    file_handler = logging.FileHandler(log_filename, encoding="utf-8")
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
 
 # API 에러 재시도 및 디스코드 경보 데코레이터
 def retry_api_call(retries=3, delay=3):
@@ -324,7 +349,7 @@ def main():
                         logging.error(f"업비트 {coin} 매도 에러: {e}")
                         upbit_order_history.append(f"❌ 업비트 {coin} 매도 실패: {e}")
                 else:
-                    upbit_order_history.append(f"⚠️ [시뮬레이션] 업비트 {coin} 매도: {sell_amount_krw:,.0f}원 ({sell_qty:.6f}개)")
+                    upbit_order_history.append(f"📝 [추천 주문] 업비트 {coin} 매도: {sell_amount_krw:,.0f}원 ({sell_qty:.6f}개)")
                 time.sleep(2)
             else:
                 logging.info(f"업비트 {coin} 매도 요청 금액({sell_amount_krw:,.0f}원)이 최소 주문 금액(5,000원) 미만입니다. 스킵합니다.")
@@ -358,7 +383,7 @@ def main():
                         logging.error(f"업비트 {coin} 매수 에러: {e}")
                         upbit_order_history.append(f"❌ 업비트 {coin} 매수 실패: {e}")
                 else:
-                    upbit_order_history.append(f"⚠️ [시뮬레이션] 업비트 {coin} 매수: {buy_amount:,.0f}원")
+                    upbit_order_history.append(f"📝 [추천 주문] 업비트 {coin} 매수: {buy_amount:,.0f}원")
                     upbit_krw -= buy_amount
                 time.sleep(2)
             else:
@@ -429,7 +454,7 @@ def main():
                             logging.error(f"빗썸 {curr} 매도 에러: {e}")
                             bithumb_order_history.append(f"❌ 빗썸 {curr} 청산 실패: {e}")
                     else:
-                        bithumb_order_history.append(f"⚠️ [시뮬레이션] 빗썸 {curr} 청산: {val:,.0f}원 ({bal:.4f}개)")
+                        bithumb_order_history.append(f"📝 [추천 주문] 빗썸 {curr} 청산: {val:,.0f}원 ({bal:.4f}개)")
                     time.sleep(2)
                 else:
                     logging.info(f"빗썸 {market} 청산 보류: 평가액이 최소 주문 금액 미만입니다.")
@@ -516,7 +541,7 @@ def main():
                                 logging.error(f"빗썸 {curr} 매도 에러: {e}")
                                 bithumb_order_history.append(f"❌ 빗썸 {curr} 교체 매도 실패: {e}")
                         else:
-                            bithumb_order_history.append(f"⚠️ [시뮬레이션] 빗썸 {curr} 교체 매도: {val:,.0f}원")
+                            bithumb_order_history.append(f"📝 [추천 주문] 빗썸 {curr} 교체 매도: {val:,.0f}원")
                         time.sleep(2)
 
             # 목표 종목 중 비중 초과분 부분 매도
@@ -541,7 +566,7 @@ def main():
                                 logging.error(f"빗썸 {curr} 매도 에러: {e}")
                                 bithumb_order_history.append(f"❌ 빗썸 {curr} 비중 축소 실패: {e}")
                         else:
-                            bithumb_order_history.append(f"⚠️ [시뮬레이션] 빗썸 {curr} 비중 축소: {excess_val:,.0f}원")
+                            bithumb_order_history.append(f"📝 [추천 주문] 빗썸 {curr} 비중 축소: {excess_val:,.0f}원")
                         time.sleep(2)
 
             # B. 매매 후 빗썸 원화 잔고 리프레시
@@ -574,7 +599,7 @@ def main():
                                 logging.error(f"빗썸 {curr} 매수 에러: {e}")
                                 bithumb_order_history.append(f"❌ 빗썸 {curr} 매수 실패: {e}")
                         else:
-                            bithumb_order_history.append(f"⚠️ [시뮬레이션] 빗썸 {curr} 추가 매수: {buy_amount:,.0f}원")
+                            bithumb_order_history.append(f"📝 [추천 주문] 빗썸 {curr} 추가 매수: {buy_amount:,.0f}원")
                             bithumb_krw -= buy_amount
                         time.sleep(2)
 
@@ -656,7 +681,7 @@ def main():
     upbit_eth_return = ((eth_price_fin - upbit_balances.get("ETH", {}).get("avg_buy", 0.0)) / upbit_balances.get("ETH", {}).get("avg_buy", 1.0)) * 100 if eth_bal_fin > 0 else 0.0
 
     report = []
-    report.append("📊 **일일 포트폴리오 자동 매매 보고서**")
+    report.append("📊 **일일 포트폴리오 매매 시그널 보고서**")
     report.append(f"⏱️ **실행 일시**: {kst_now.strftime('%Y-%m-%d %H:%M')}")
     report.append("==================================")
     
@@ -692,13 +717,13 @@ def main():
         report.append("• **상태**: 비활성화됨 (Disabled)")
 
     # 6.4 당일 매매 내역 요약 추가
-    report.append("\n🛠️ **당일 주문 체결 내역**")
+    report.append("\n🛠️ **당일 리밸런싱 추천 시그널**")
     all_orders = upbit_order_history + bithumb_order_history
     if all_orders:
         for order in all_orders:
             report.append(f"• {order}")
     else:
-        report.append("• 매매 체결 내역 없음 (홀딩 및 대기)")
+        report.append("• 추천 매매 시그널 없음 (기존 포지션 유지)")
         
     report.append("\n==================================")
     
