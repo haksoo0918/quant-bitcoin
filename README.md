@@ -84,6 +84,21 @@ set DISCORD_WEBHOOK_URL=디스코드_웹훅_주소
 `src/config.py`의 `DRY_RUN`을 `True`로 설정한 상태에서 `run_bot.bat` 파일을 더블 클릭하여 실행합니다. 
 실제 주문은 나가지 않으며 연산 과정과 예상 매매 내역이 검은색 화면에 실시간 출력되는 동시에 **`logs/`** 폴더 내에 월별 로그 파일(예: `logs/trading_log_2026-08.log`)로 기록되며, 디스코드로 시그널 알림이 발송됩니다.
 
+#### 4) 로컬 백테스트 및 파라미터 최적화 실행
+실제 업비트 과거 5년 일봉 데이터를 다운로드하여 전략 수익률을 검증하거나 이동평균 최적 기간을 도출해 볼 수 있습니다. (업비트 API 조회 한도를 준수하며 다운로드한 데이터는 `data/` 디렉토리에 캐싱됩니다.)
+
+* **단일 조건 백테스트 수행 (성과 보고서 및 차트 이미지 자동 생성)**:
+  ```bash
+  python src/backtest.py --btc-sma 200 --eth-sma 150 --days 1500
+  ```
+  * 실행 완료 시 최상위 폴더에 **`backtest_report.md`** 상세 보고서와 **`backtest_result.png`** 자산 변동 추이 차트가 생성됩니다.
+  
+* **전체 이동평균선 조합 파라미터 최적화 (Grid Search)**:
+  ```bash
+  python src/backtest.py --optimize
+  ```
+  * 연산 완료 시 모든 SMA 조합의 성과가 분석되어 누적 수익률이 높은 순서로 정렬된 **`backtest_optimization_report.md`** 보고서가 생성되며, 상위 15개 최적 조합이 콘솔 창에 랭킹 표로 출력됩니다.
+
 ---
 
 ## 📅 GitHub Actions 자동 시그널 연동 방법 (매일 09:05 KST 실행)
