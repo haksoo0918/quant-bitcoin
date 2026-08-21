@@ -27,7 +27,7 @@ from config import (
     BITHUMB_ACCESS_KEY, BITHUMB_SECRET_KEY,
     MAIN_RATIO_BAND, ETH_ATR_MULTIPLIER, BTC_BUFFER,
     UPBIT_MIN_ORDER_KRW, BITHUMB_MIN_ORDER_KRW, DRY_RUN,
-    USE_ALTCOIN_STRATEGY
+    USE_ALTCOIN_STRATEGY, BTC_SMA_LEN, ETH_SMA_LEN
 )
 from bithumb_api import BithumbClient
 from discord_bot import send_discord_message
@@ -187,16 +187,16 @@ def main():
     logging.info("=== [업비트 메인 전략 시그널 계산 시작] ===")
     
     # 2.1 BTC 지표 계산
-    btc_df = fetch_upbit_candles("KRW-BTC", count=230)
-    btc_df['sma_200'] = btc_df['close'].rolling(window=200).mean()
+    btc_df = fetch_upbit_candles("KRW-BTC", count=BTC_SMA_LEN + 30)
+    btc_df['sma'] = btc_df['close'].rolling(window=BTC_SMA_LEN).mean()
     
     # 오늘 시점 (가장 최근 미완성 일봉인 마지막 행 제외, 전일 완료 일봉 기준)
-    btc_sma_200 = btc_df['sma_200'].iloc[-2]
+    btc_sma = btc_df['sma'].iloc[-2]
     btc_current_price = fetch_upbit_current_price("KRW-BTC")
     
     # 2.2 ETH 지표 계산
-    eth_df = fetch_upbit_candles("KRW-ETH", count=200)
-    eth_df['sma_150'] = eth_df['close'].rolling(window=150).mean()
+    eth_df = fetch_upbit_candles("KRW-ETH", count=max(200, ETH_SMA_LEN + 50))
+    eth_df['sma'] = eth_df['close'].rolling(window=ETH_SMA_LEN).mean()
     # True Range (TR) 및 ATR(14) 계산
     prev_close = eth_df['close'].shift(1)
     tr1 = eth_df['high'] - eth_df['low']
@@ -205,7 +205,7 @@ def main():
     eth_df['tr'] = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
     eth_df['atr_14'] = eth_df['tr'].rolling(window=14).mean()
     
-    eth_sma_150 = eth_df['sma_150'].iloc[-2]
+    eth_sma = eth_df['sma'].iloc[-2]
     eth_atr_14 = eth_df['atr_14'].iloc[-2]
     eth_current_price = fetch_upbit_current_price("KRW-ETH")
     
@@ -236,28 +236,28 @@ def main():
     # 2.4 추세 필터 신호 판정
     # BTC 신호
     if not is_holding_btc:
-        btc_target_state = 'hold' if btc_current_price >= btc_sma_200 * (1 + BTC_BUFFER) else 'cash'
+        btc_target_state = 'hold' if btc_current_price >= btc_sma * (1 + BTC_BUFFER) else 'cash'
     else:
-        btc_target_state = 'cash' if btc_current_price < btc_sma_200 * (1 - BTC_BUFFER) else 'hold'
+        btc_target_state = 'cash' if btc_current_price < btc_sma * (1 - BTC_BUFFER) else 'hold'
         
     # ETH 신호
-    eth_upper_band = eth_sma_150 + (eth_atr_14 * ETH_ATR_MULTIPLIER)
-    eth_lower_band = eth_sma_150 - (eth_atr_14 * ETH_ATR_MULTIPLIER)
+    eth_upper_band = eth_sma + (eth_atr_14 * ETH_ATR_MULTIPLIER)
+    eth_lower_band = eth_sma - (eth_atr_14 * ETH_ATR_MULTIPLIER)
     if not is_holding_eth:
         eth_target_state = 'hold' if eth_current_price >= eth_upper_band else 'cash'
     else:
         eth_target_state = 'cash' if eth_current_price < eth_lower_band else 'hold'
 
-    logging.info(f"BTC 현재가: {btc_current_price:,.0f} KRW | SMA(200): {btc_sma_200:,.0f} KRW (버퍼상한: {btc_sma_200 * (1 + BTC_BUFFER):,.0f}, 하한: {btc_sma_200 * (1 - BTC_BUFFER):,.0f})")
-    logging.info(f"ETH 현재가: {eth_current_price:,.0f} KRW | SMA(150): {eth_sma_150:,.0f} KRW (상한밴드: {eth_upper_band:,.0f}, 하한밴드: {eth_lower_band:,.0f})")
+    logging.info(f"BTC 현재가: {btc_current_price:,.0f} KRW | SMA({BTC_SMA_LEN}): {btc_sma:,.0f} KRW (버퍼상한: {btc_sma * (1 + BTC_BUFFER):,.0f}, 하한: {btc_sma * (1 - BTC_BUFFER):,.0f})")
+    logging.info(f"ETH 현재가: {eth_current_price:,.0f} KRW | SMA({ETH_SMA_LEN}): {eth_sma:,.0f} KRW (상한밴드: {eth_upper_band:,.0f}, 하한밴드: {eth_lower_band:,.0f})")
     logging.info(f"판정 결과 - BTC: {btc_target_state} | ETH: {eth_target_state}")
 
     # 3. 빗썸 공통 시장 필터 판정 및 히스테리시스(역순 탐색) 처리
     logging.info("=== [빗썸 공통 시장 필터 계산 시작] ===")
     
     # 오늘 기준 필터 판단
-    btc_upper_limit = btc_sma_200 * (1 + BTC_BUFFER)
-    btc_lower_limit = btc_sma_200 * (1 - BTC_BUFFER)
+    btc_upper_limit = btc_sma * (1 + BTC_BUFFER)
+    btc_lower_limit = btc_sma * (1 - BTC_BUFFER)
     
     if btc_current_price >= btc_upper_limit:
         market_filter_state = "Bull"  # 상승장
@@ -269,12 +269,12 @@ def main():
         market_filter_state = "Bear"  # 매칭되는 과거 상태가 없을 시 보수적 관점에서 하락장 기본값 설정
         
         # 1일 전(index -2)부터 역방향 탐색. 인덱스는 -3, -4 ... 순서로 거슬러 올라감
-        # df 크기가 230이므로 충분히 탐색 가능
+        # df 크기가 충분하므로 탐색 가능
         found_state = False
         for t in range(2, len(btc_df)):
             close_t = btc_df['close'].iloc[-t]
-            # row -t의 시점에서 rolling 200 SMA를 구하려면, 그 행을 기준으로 200일 이전 데이터가 필요
-            sma_t = btc_df['sma_200'].iloc[-t]
+            # row -t의 시점에서 rolling SMA를 구하려면, 그 행을 기준으로 BTC_SMA_LEN일 이전 데이터가 필요
+            sma_t = btc_df['sma'].iloc[-t]
             if pd.isna(sma_t):
                 break
                 
@@ -293,7 +293,7 @@ def main():
                 break
         
         if not found_state:
-            logging.warning("과거 200일 데이터 내에서 버퍼를 벗어난 확실한 상태 기록을 찾지 못했습니다. 기본값인 하락장(Bear) 상태를 유지합니다.")
+            logging.warning(f"과거 {BTC_SMA_LEN}일 데이터 내에서 버퍼를 벗어난 확실한 상태 기록을 찾지 못했습니다. 기본값인 하락장(Bear) 상태를 유지합니다.")
 
     logging.info(f"최종 공통 시장 필터 상태: {market_filter_state}")
 

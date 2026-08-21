@@ -31,6 +31,10 @@ DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL", "")
 # [전략 세부 운용 상수]
 # ==========================================
 
+# 메인 전략 이동평균선(SMA) 기간 설정
+BTC_SMA_LEN = 220
+ETH_SMA_LEN = 50
+
 # 메인 전략 비중 밴드 범위 (목표 비중 50% 대비 ±10%p 이탈 시 리밸런싱 실행)
 MAIN_RATIO_BAND = 0.10
 
