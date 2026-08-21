@@ -111,25 +111,40 @@ set DISCORD_WEBHOOK_URL=디스코드_웹훅_주소
 
 ---
 
-## 📅 GitHub Actions 자동 시그널 연동 방법 (매일 09:05 KST 실행)
+## 📅 실행 환경 및 운영 방법
 
-개인 PC를 켜두지 않고 깃허브 서버를 활용해 매일 아침 자동으로 분석 보고서(시그널)를 디스코드로 받아보는 설정 방법입니다.
+본 시스템은 **GitHub Actions(시그널 방향성 브리핑)**와 **Local PC(실제 자동 주문 체결)**의 이원화된 구조로 운영됩니다.
 
-### 1. 거래소 API 키 재발급
-* **업비트 & 빗썸**: Open API 관리 페이지로 이동하여 API 키를 **[조회(조회하기, 자산조회, 주문조회 등)] 권한만 체크**하여 새로 발급받습니다. (IP 주소를 등록하지 않아도 무관합니다.)
+---
 
-### 2. GitHub Secrets 등록
-본인의 깃허브 저장소(GitHub Repository)로 이동한 뒤 아래 순서대로 보안 변수(Secrets)를 등록합니다.
-1. 저장소 상단 메뉴의 **[Settings]** 클릭
-2. 왼쪽 사이드바의 **[Secrets and variables] -> [Actions]** 클릭
-3. **[New repository secret]** 버튼을 클릭하여 아래 5개의 값을 등록합니다:
-   - `UPBIT_ACCESS_KEY`: 발급받은 업비트 액세스 키 (조회 전용)
-   - `UPBIT_SECRET_KEY`: 발급받은 업비트 시크릿 키 (조회 전용)
-   - `BITHUMB_ACCESS_KEY`: 발급받은 빗썸 액세스 키 (조회 전용)
-   - `BITHUMB_SECRET_KEY`: 발급받은 빗썸 시크릿 키 (조회 전용)
-   - `DISCORD_WEBHOOK_URL`: 리포트를 전송받을 디스코드 웹훅 URL
+### 1. GitHub Actions 자동 시그널 브리핑 (매일 09:05 KST 자동 실행)
 
-### 3. 작동 확인 및 수동 기동
-* 설정 완료 후 매일 오전 09:05 KST에 깃허브 서버가 자동으로 프로그램을 가동하여 디스코드로 매매 지시 시그널을 발송합니다.
-* 작동 상태는 깃허브 저장소의 **[Actions]** 탭에서 실시간으로 성공 여부 및 로그를 확인할 수 있습니다.
-* 수동으로 즉시 가동하여 테스트하고 싶다면, **[Actions]** -> **[Crypto Quantitative Trading Signal Bot]** -> 우측의 **[Run workflow]**를 클릭하시면 됩니다.
+개인 PC를 켜두지 않고 매일 아침 전략 방향성 및 추천 매매 가이드를 디스코드로 무료 수신합니다.
+
+* **API 키 불필요**: 공개 시세 API만 사용하므로 거래소 API 키 등록이나 잔고 조회가 필요 없습니다.
+* **GitHub Secrets 등록**:
+  1. 저장소 상단 메뉴의 **[Settings]** 클릭
+  2. 왼쪽 사이드바의 **[Secrets and variables] -> [Actions]** 클릭
+  3. **[New repository secret]** 버튼 클릭 후 **`DISCORD_WEBHOOK_URL`** 1개만 등록
+* **작동 확인 및 수동 테스트**:
+  * **[Actions]** -> **[Crypto Quantitative Trading Signal Bot]** -> **[Run workflow]**를 클릭하여 즉시 테스트 가능합니다.
+
+---
+
+### 2. 로컬 실제 자동매매 실행 (`run_bot.bat`)
+
+개인 PC에서 실제 주문 권한이 있는 API Key를 연동하여 거래소에 직접 매수/매도 주문을 집행하고 결과를 보고받습니다.
+
+1. **배치 파일 생성**:
+   * `run_bot.example.bat`을 복사하여 **`run_bot.bat`** 생성
+2. **API 키 및 실행 모드 입력**:
+   ```bat
+   set DRY_RUN=false
+   set UPBIT_ACCESS_KEY=실제_업비트_액세스키
+   set UPBIT_SECRET_KEY=실제_업비트_시크릿키
+   set BITHUMB_ACCESS_KEY=실제_빗썸_액세스키
+   set BITHUMB_SECRET_KEY=실제_빗썸_시크릿키
+   set DISCORD_WEBHOOK_URL=디스코드_웹훅_주소
+   ```
+3. **실행**: `run_bot.bat`을 더블 클릭하여 실행하면 실계좌 잔고 조회, 전략 계산, 실제 주문 체결 및 디스코드 체결 리포트가 전송됩니다.
+

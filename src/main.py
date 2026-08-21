@@ -27,7 +27,8 @@ from config import (
     BITHUMB_ACCESS_KEY, BITHUMB_SECRET_KEY,
     MAIN_RATIO_BAND, ETH_ATR_MULTIPLIER, BTC_BUFFER,
     UPBIT_MIN_ORDER_KRW, BITHUMB_MIN_ORDER_KRW, DRY_RUN,
-    USE_ALTCOIN_STRATEGY, BTC_SMA_LEN, ETH_SMA_LEN
+    USE_ALTCOIN_STRATEGY, BTC_SMA_LEN, ETH_SMA_LEN,
+    SIGNAL_ONLY
 )
 from bithumb_api import BithumbClient
 from discord_bot import send_discord_message
@@ -161,9 +162,175 @@ def fetch_bithumb_balances(bithumb_client):
     return bithumb_client.get_balances()
 
 
+def run_signal_only_briefing(kst_now):
+    """
+    GitHub Actions 및 시그널 전용 모드 실행 함수
+    - 거래소 API 키나 계좌 잔고를 일절 조회하지 않고, 공개 시세 데이터만을 수집하여 전략 방향성을 분석합니다.
+    - 방향성 브리핑 메시지를 생성하여 디스코드로 전송합니다.
+    """
+    logging.info("=== [GitHub Actions 시그널 방향성 브리핑 모드 시작] ===")
+    
+    # 1. BTC 지표 및 전략 방향성 계산
+    btc_df = fetch_upbit_candles("KRW-BTC", count=BTC_SMA_LEN + 30)
+    btc_df['sma'] = btc_df['close'].rolling(window=BTC_SMA_LEN).mean()
+    btc_sma = btc_df['sma'].iloc[-2]
+    btc_current_price = fetch_upbit_current_price("KRW-BTC")
+    btc_upper = btc_sma * (1 + BTC_BUFFER)
+    btc_lower = btc_sma * (1 - BTC_BUFFER)
+    
+    if btc_current_price >= btc_upper:
+        btc_status_str = "🟢 **[매수 유지 / 신규 진입]** (상승 추세 돌파)"
+        btc_guide = "BTC 50% 비중 매수 또는 보유 유지"
+    elif btc_current_price < btc_lower:
+        btc_status_str = "🔴 **[매도 / 현금화 관망]** (하락 추세 이탈)"
+        btc_guide = "BTC 전량 매도 및 현금(KRW) 확보"
+    else:
+        btc_status_str = "🔍 **[버퍼 구간 대기]** (기존 포지션 유지)"
+        btc_guide = "기존 보유 상태 유지 (신규 진입 자제)"
+
+    # 2. ETH 지표 및 전략 방향성 계산
+    eth_df = fetch_upbit_candles("KRW-ETH", count=max(200, ETH_SMA_LEN + 50))
+    eth_df['sma'] = eth_df['close'].rolling(window=ETH_SMA_LEN).mean()
+    prev_close = eth_df['close'].shift(1)
+    tr1 = eth_df['high'] - eth_df['low']
+    tr2 = (eth_df['high'] - prev_close).abs()
+    tr3 = (eth_df['low'] - prev_close).abs()
+    eth_df['tr'] = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+    eth_df['atr_14'] = eth_df['tr'].rolling(window=14).mean()
+    
+    eth_sma = eth_df['sma'].iloc[-2]
+    eth_atr_14 = eth_df['atr_14'].iloc[-2]
+    eth_current_price = fetch_upbit_current_price("KRW-ETH")
+    eth_upper_band = eth_sma + (eth_atr_14 * ETH_ATR_MULTIPLIER)
+    eth_lower_band = eth_sma - (eth_atr_14 * ETH_ATR_MULTIPLIER)
+
+    if eth_current_price >= eth_upper_band:
+        eth_status_str = "🟢 **[매수 유지 / 신규 진입]** (상승 채널 돌파)"
+        eth_guide = "ETH 50% 비중 매수 또는 보유 유지"
+    elif eth_current_price < eth_lower_band:
+        eth_status_str = "🔴 **[매도 / 현금화 관망]** (하락 밴드 이탈)"
+        eth_guide = "ETH 전량 매도 및 현금(KRW) 확보"
+    else:
+        eth_status_str = "🔍 **[밴드 내 중립]** (기존 포지션 유지)"
+        eth_guide = "기존 보유 상태 유지 (신규 진입 자제)"
+
+    # 3. 빗썸 공통 시장 필터 (히스테리시스 역순 탐색)
+    if btc_current_price >= btc_upper:
+        market_filter_state = "Bull"
+    elif btc_current_price < btc_lower:
+        market_filter_state = "Bear"
+    else:
+        market_filter_state = "Bear"
+        for t in range(2, len(btc_df)):
+            close_t = btc_df['close'].iloc[-t]
+            sma_t = btc_df['sma'].iloc[-t]
+            if pd.isna(sma_t):
+                break
+            upper_t = sma_t * (1 + BTC_BUFFER)
+            lower_t = sma_t * (1 - BTC_BUFFER)
+            if close_t >= upper_t:
+                market_filter_state = "Bull"
+                break
+            elif close_t < lower_t:
+                market_filter_state = "Bear"
+                break
+
+    # 4. 빗썸 서브 전략 알트코인 분석
+    bithumb_report_lines = []
+    if USE_ALTCOIN_STRATEGY:
+        if market_filter_state == "Bull":
+            bithumb_report_lines.append("• **공통 시장 필터**: 🟢 `Bull (상승장)`")
+            bithumb_guide = "선정 알트코인 보유 유지"
+            if kst_now.weekday() == 0:  # 월요일
+                try:
+                    ticker_data = fetch_bithumb_ticker_all()
+                    bithumb_client = BithumbClient()
+                    volume_list = []
+                    for coin, info in ticker_data.items():
+                        if coin in ("date", "BTC", "ETH"):
+                            continue
+                        acc_val = float(info.get("acc_trade_value_24H", 0.0))
+                        volume_list.append((f"KRW-{coin}", acc_val))
+                    volume_list.sort(key=lambda x: x[1], reverse=True)
+                    top_30 = [item[0] for item in volume_list[:30]]
+                    
+                    altcoin_stats = []
+                    for market in top_30:
+                        try:
+                            candles = fetch_bithumb_candles(bithumb_client, market, count=16)
+                            if len(candles) < 16:
+                                continue
+                            df_c = bithumb_candles_to_df(candles)
+                            avg_val_7d = df_c['value'].iloc[-8:-1].mean()
+                            curr_p = df_c['close'].iloc[-1]
+                            p_14d_ago = df_c['close'].iloc[-15]
+                            ret_14d = (curr_p - p_14d_ago) / p_14d_ago
+                            altcoin_stats.append({
+                                "market": market,
+                                "return_14d": ret_14d,
+                                "avg_val_7d": avg_val_7d
+                            })
+                            time.sleep(0.05)
+                        except Exception:
+                            pass
+                    altcoin_stats.sort(key=lambda x: x['avg_val_7d'], reverse=True)
+                    top_10 = altcoin_stats[:10]
+                    top_10.sort(key=lambda x: x['return_14d'], reverse=True)
+                    top_4 = top_10[:4]
+                    
+                    bithumb_report_lines.append("• **주간 리밸런싱**: 🚀 **[월요일 추천 알트코인 (각 25% 균등 매수)]**")
+                    for i, c in enumerate(top_4):
+                        bithumb_report_lines.append(f"  - {i+1}위: **{c['market']}** (14일 수익률: {c['return_14d']*100:+.2f}%)")
+                    bithumb_guide = f"선정된 4개 종목({', '.join([c['market'].replace('KRW-', '') for c in top_4])}) 각 25% 균등 매수"
+                except Exception as e:
+                    logging.warning(f"빗썸 추천 종목 선정 중 예외: {e}")
+                    bithumb_report_lines.append("• **주간 리밸런싱**: ⚠️ 추천 종목 분석 일시 지연")
+            else:
+                bithumb_report_lines.append("• **주간 리밸런싱**: 월요일이 아니므로 종목 교체 없음 (기존 선정 종목 유지)")
+        else:
+            bithumb_report_lines.append("• **공통 시장 필터**: 🔴 `Bear (하락장)`")
+            bithumb_report_lines.append("• **전략 방향성**: 🔴 **[전량 현금화 관망]** (알트코인 매수 금지)")
+            bithumb_guide = "보유 알트코인 전량 매도 및 100% 현금(KRW) 보유"
+    else:
+        bithumb_report_lines.append("• **상태**: 비활성화됨 (Disabled)")
+        bithumb_guide = "서브 전략 미사용"
+
+    # 5. 디스코드 메시지 구성
+    report = []
+    report.append("📢 **[GitHub Actions] 퀀트 전략 일일 방향성 시그널 브리핑**")
+    report.append(f"⏱️ **기준 일시**: {kst_now.strftime('%Y-%m-%d %H:%M')} KST")
+    report.append("==================================")
+    report.append("\n🔵 **메인 전략 (업비트 - BTC & ETH)**")
+    report.append(f"• **BTC (220일 SMA)**: {btc_current_price:,.0f} 원")
+    report.append(f"  - 기준 이평: {btc_sma:,.0f} 원 (상한: {btc_upper:,.0f} / 하한: {btc_lower:,.0f})")
+    report.append(f"  - 전략 방향성: {btc_status_str}")
+    report.append(f"• **ETH (50일 SMA + 1.5 ATR)**: {eth_current_price:,.0f} 원")
+    report.append(f"  - 기준 이평: {eth_sma:,.0f} 원 (상한밴드: {eth_upper_band:,.0f} / 하한밴드: {eth_lower_band:,.0f})")
+    report.append(f"  - 전략 방향성: {eth_status_str}")
+    
+    report.append("\n🟢 **서브 전략 (빗썸 - 알트코인)**")
+    report.extend(bithumb_report_lines)
+    
+    report.append("\n💡 **모바일 직접 매매 가이드 요약**")
+    report.append(f"• **업비트**: {btc_guide} / {eth_guide}")
+    report.append(f"• **빗썸**: {bithumb_guide}")
+    report.append("==================================")
+    
+    send_discord_message("\n".join(report))
+    logging.info("GitHub Actions 시그널 브리핑 디스코드 전송 완료.")
+
+
 def main():
     kst_now = get_kst_now()
     logging.info(f"퀀트 매매 시스템 기동 - 실행 시각 (KST): {kst_now.strftime('%Y-%m-%d %H:%M:%S')}")
+    
+    # 깃허브 액션 및 시그널 전용 모드 분기
+    if SIGNAL_ONLY:
+        run_signal_only_briefing(kst_now)
+        return
+
+    # 로컬 실거래 자동매매 모드
+    logging.info("=== [로컬 실거래 자동매매 모드 가동] ===")
     
     # 디스코드 채널 전송용 로그 버퍼
     action_logs = []
@@ -681,8 +848,11 @@ def main():
     upbit_eth_return = ((eth_price_fin - upbit_balances.get("ETH", {}).get("avg_buy", 0.0)) / upbit_balances.get("ETH", {}).get("avg_buy", 1.0)) * 100 if eth_bal_fin > 0 else 0.0
 
     report = []
-    report.append("📊 **일일 포트폴리오 매매 시그널 보고서**")
-    report.append(f"⏱️ **실행 일시**: {kst_now.strftime('%Y-%m-%d %H:%M')}")
+    if DRY_RUN:
+        report.append("⚡ **[로컬 모의매매] 모의 주문 체결 및 포트폴리오 잔고 보고서**")
+    else:
+        report.append("⚡ **[로컬 자동매매] 실거래 주문 체결 및 포트폴리오 잔고 보고서**")
+    report.append(f"⏱️ **실행 일시**: {kst_now.strftime('%Y-%m-%d %H:%M')} KST")
     report.append("==================================")
     
     report.append("\n🔵 **메인 전략 (업비트 - BTC & ETH)**")
@@ -717,7 +887,7 @@ def main():
         report.append("• **상태**: 비활성화됨 (Disabled)")
 
     # 6.4 당일 매매 내역 요약 추가
-    report.append("\n🛠️ **당일 리밸런싱 추천 시그널**")
+    report.append("\n🛠️ **당일 실거래 체결 내역**" if not DRY_RUN else "\n🛠️ **당일 모의 매매 체결 내역**")
     all_orders = upbit_order_history + bithumb_order_history
     if all_orders:
         for order in all_orders:

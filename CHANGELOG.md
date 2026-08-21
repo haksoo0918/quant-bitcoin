@@ -5,6 +5,21 @@
 
 ---
 
+## [1.2.0] - 2026-08-21
+
+### Added (추가됨)
+- **실행 환경 이원화 아키텍처 구축 (GitHub Actions vs Local PC)**:
+  - **GitHub Actions**: 거래소 API Key 및 잔고 조회 없이 공개 시세 API 기반으로 시장 방향성과 모바일 매매 가이드를 브리핑하는 **시그널 전용 모드 (`SIGNAL_ONLY`)** 추가.
+  - **Local PC (`run_bot.bat`)**: 실제 주문 권한 API Key를 연동하여 실계좌 잔고 조회, 전략 판단, 실제 매수/매도 주문 집행을 수행하는 **실제 자동매매 모드 (`LIVE_TRADING`)** 분리.
+- **디스코드 알림 메시지 포맷 완전 분리**:
+  - GitHub Actions: `📢 [GitHub Actions] 퀀트 전략 일일 방향성 시그널 브리핑` (지표 현황, 전략 방향성, 모바일 가이드)
+  - Local PC: `⚡ [로컬 자동매매] 실거래 주문 체결 및 포트폴리오 잔고 보고서` (실계좌 자산, 보유 코인 수익률, 당일 주문 체결 내역)
+
+### Changed (변경됨)
+- `src/config.py`: `IS_GITHUB_ACTIONS`, `SIGNAL_ONLY`, `DRY_RUN` 환경 감지 및 모드 분기 로직 고도화.
+- `.github/workflows/main.yml`: 워크플로우 실행 환경에서 불필요한 거래소 API Key 환경변수를 제거하고 `DISCORD_WEBHOOK_URL` 1개로 단일화.
+- `run_bot.example.bat`: 로컬 실거래 자동매매 템플릿으로 갱신.
+
 ## [1.1.2] - 2026-08-21
 
 ### Changed (변경됨)

@@ -2,15 +2,23 @@
 import os
 
 # ==========================================
-# [시스템 제어 설정] - 이곳 한 곳에서 모든 설정을 관리합니다.
+# [시스템 제어 및 환경 설정]
 # ==========================================
 
-# 1. 모의 투자 실행 여부 (드라이런)
-# - True: 실제 매매 주문을 넣지 않고 연산과 디스코드 알림만 보냅니다. (안전 모드)
-# - False: 실제 거래소 API를 통해 실제 매매 주문을 실행합니다.
-DRY_RUN = True
+# 1. 깃허브 액션 환경 감지
+IS_GITHUB_ACTIONS = os.getenv("GITHUB_ACTIONS", "").lower() == "true"
 
-# 2. 빗썸 알트코인 전략 실행 여부
+# 2. 시그널 브리핑 전용 모드 여부
+# - GitHub Actions에서는 자동으로 True가 되어 API 키 및 잔고 조회 없이 순수 방향성 시그널만 발송합니다.
+# - 로컬에서도 SIGNAL_ONLY=true 환경변수로 방향성 시그널만 테스트할 수 있습니다.
+SIGNAL_ONLY = IS_GITHUB_ACTIONS or (os.getenv("SIGNAL_ONLY", "false").lower() == "true")
+
+# 3. 모의 투자 실행 여부 (드라이런)
+# - SIGNAL_ONLY 모드일 때는 주문을 실행하지 않으므로 항상 True로 처리됩니다.
+# - 로컬 실거래 실행 시에는 기본 False로 작동하며, DRY_RUN=true 설정 시 안전 모의 매매로 동작합니다.
+DRY_RUN = True if SIGNAL_ONLY else (os.getenv("DRY_RUN", "false").lower() == "true")
+
+# 4. 빗썸 알트코인 전략 실행 여부
 # - True: 업비트(BTC/ETH) 전략과 빗썸(알트코인) 전략을 모두 동시에 실행합니다.
 # - False: 빗썸 연동 및 거래를 완전히 비활성화하고, 업비트 메인 전략만 실행합니다.
 USE_ALTCOIN_STRATEGY = True

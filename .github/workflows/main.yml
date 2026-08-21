@@ -26,10 +26,6 @@ jobs:
 
     - name: Run Quantitative Signal Logic
       env:
-        UPBIT_ACCESS_KEY: ${{ secrets.UPBIT_ACCESS_KEY }}
-        UPBIT_SECRET_KEY: ${{ secrets.UPBIT_SECRET_KEY }}
-        BITHUMB_ACCESS_KEY: ${{ secrets.BITHUMB_ACCESS_KEY }}
-        BITHUMB_SECRET_KEY: ${{ secrets.BITHUMB_SECRET_KEY }}
         DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
       run: |
         python src/main.py

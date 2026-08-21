@@ -12,12 +12,8 @@ def send_discord_message(content: str):
     """
     if not DISCORD_WEBHOOK_URL:
         logging.warning("디스코드 웹훅 URL이 설정되지 않았습니다. 메시지 전송을 건너뜁니다.")
-        print(f"[Discord Bypass] {content}")
+        print(f"[Discord Bypass]\n{content}")
         return False
-    
-    # 드라이런 상태일 경우 메시지 상단에 표시
-    if DRY_RUN:
-        content = f"📢 **[시그널 알림 - 모바일 주문 가이드]**\n{content}"
 
     payload = {"content": content}
     headers = {"Content-Type": "application/json"}
