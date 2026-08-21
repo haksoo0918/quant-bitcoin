@@ -5,6 +5,12 @@
 
 ---
 
+## [1.2.1] - 2026-08-21
+
+### Added (추가됨)
+- 백테스트 성과 보고서(`backtest_report_YYYYMMDD_HHMMSS.md`), 차트 이미지(`backtest_result_YYYYMMDD_HHMMSS.png`), 최적화 보고서(`backtest_optimization_report_YYYYMMDD_HHMMSS.md`) 생성 시 실행 일시 타임스탬프를 파일명에 자동 포함하도록 파일 명명 규칙 개선.
+- 마크다운 보고서 내부의 차트 이미지 링크를 동적 타임스탬프 파일명과 자동 연동하도록 보완.
+
 ## [1.2.0] - 2026-08-21
 
 ### Added (추가됨)

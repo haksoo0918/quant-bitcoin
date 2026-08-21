@@ -411,10 +411,13 @@ def calculate_metrics(history, bh_history):
         "bh_mdd": round(bh_mdd, 2)
     }
 
-def save_plot(portfolio_history, bh_history):
+def save_plot(portfolio_history, bh_history, timestamp_str=None):
     """
-    Matplotlib을 사용하여 누적 자산 곡선을 벤치마크와 비교하여 이미지(backtest_result.png)로 저장합니다.
+    Matplotlib을 사용하여 누적 자산 곡선을 벤치마크와 비교하여 이미지(backtest_result_YYYYMMDD_HHMMSS.png)로 저장합니다.
     """
+    if not timestamp_str:
+        timestamp_str = get_kst_now().strftime("%Y%m%d_%H%M%S")
+
     dates = [x[0][:10] for x in portfolio_history]
     values = [x[1] for x in portfolio_history]
     bh_values = [x[1] for x in bh_history]
@@ -440,15 +443,22 @@ def save_plot(portfolio_history, bh_history):
     plt.legend(fontsize=11)
     
     plt.tight_layout()
-    out_path = os.path.join(OUTPUT_DIR, "backtest_result.png")
+    plot_filename = f"backtest_result_{timestamp_str}.png"
+    out_path = os.path.join(OUTPUT_DIR, plot_filename)
     plt.savefig(out_path, dpi=150)
     plt.close()
     print(f"[시각화] 누적 자산 곡선 차트를 '{out_path}'에 저장했습니다.")
+    return plot_filename
 
-def save_markdown_report(metrics, btc_sma, eth_sma, trade_logs, no_rebalance=False):
+def save_markdown_report(metrics, btc_sma, eth_sma, trade_logs, no_rebalance=False, timestamp_str=None, plot_filename=None):
     """
-    백테스트 결과 성과 분석 보고서를 'backtest_report.md' 마크다운 문서로 작성합니다.
+    백테스트 결과 성과 분석 보고서를 'backtest_report_YYYYMMDD_HHMMSS.md' 마크다운 문서로 작성합니다.
     """
+    if not timestamp_str:
+        timestamp_str = get_kst_now().strftime("%Y%m%d_%H%M%S")
+    if not plot_filename:
+        plot_filename = f"backtest_result_{timestamp_str}.png"
+
     report = []
     report.append(f"# 📊 업비트 KRW 시세 기반 퀀트 전략 백테스트 보고서")
     report.append(f"⏱️ **작성 일시**: {get_kst_now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -473,7 +483,7 @@ def save_markdown_report(metrics, btc_sma, eth_sma, trade_logs, no_rebalance=Fal
     report.append(f"\n> 💡 **주요 성과 요약**: 단순 보유 대비 **{outperformance:+.2f}%p**의 초과 수익률을 기록하였으며, 최대 낙폭(MDD) 방어 측면에서 벤치마크 대비 **{mdd_defense:.2f}%p** 만큼의 낙폭 축소 효과(자산 방어)를 달성하였습니다.")
     
     report.append(f"\n## 2. 자산 가치 변동 추이 차트")
-    report.append(f"![Equity Curve](backtest_result.png)")
+    report.append(f"![Equity Curve]({plot_filename})")
     
     report.append(f"\n## 3. 백테스트 기간 중 매매 거래 내역 (총 {len(trade_logs)}건)")
     if trade_logs:
@@ -491,7 +501,8 @@ def save_markdown_report(metrics, btc_sma, eth_sma, trade_logs, no_rebalance=Fal
         report.append("- 백테스트 기간 중 신호 변화에 따른 매매 거래가 발생하지 않았습니다.")
         
     # 파일 쓰기
-    out_path = os.path.join(OUTPUT_DIR, "backtest_report.md")
+    report_filename = f"backtest_report_{timestamp_str}.md"
+    out_path = os.path.join(OUTPUT_DIR, report_filename)
     with open(out_path, "w", encoding="utf-8") as f:
         f.write("\n".join(report))
     print(f"백테스트 마크다운 성과 분석 보고서를 '{out_path}'에 저장했습니다.")
@@ -541,7 +552,9 @@ def run_optimization(btc_df, eth_df, initial_capital=10000000.0, no_rebalance=Fa
     print("--------------------------------------------------------------------------------")
     
     # 랭킹 결과를 파일로도 기록 저장
-    report_filename = "backtest_optimization_report_no_rebalance.md" if no_rebalance else "backtest_optimization_report.md"
+    timestamp_str = get_kst_now().strftime("%Y%m%d_%H%M%S")
+    prefix = "backtest_optimization_report_no_rebalance" if no_rebalance else "backtest_optimization_report"
+    report_filename = f"{prefix}_{timestamp_str}.md"
     report_path = os.path.join(OUTPUT_DIR, report_filename)
     report = []
     report.append(f"# 🏆 퀀트 전략 이동평균선 파라미터 최적화 보고서 ({'리밸런싱 미실행' if no_rebalance else '리밸런싱 실행'})")
@@ -602,8 +615,9 @@ def main():
             print("-------------------------------------------------------")
             
             # 성과 지표 기록 및 플로팅
-            save_plot(p_hist, bh_hist)
-            save_markdown_report(metrics, args.btc_sma, args.eth_sma, logs, args.no_rebalance)
+            ts = get_kst_now().strftime("%Y%m%d_%H%M%S")
+            plot_file = save_plot(p_hist, bh_hist, timestamp_str=ts)
+            save_markdown_report(metrics, args.btc_sma, args.eth_sma, logs, args.no_rebalance, timestamp_str=ts, plot_filename=plot_file)
             
         except Exception as e:
             print(f"시뮬레이션 연산 중 오류 발생: {e}")
