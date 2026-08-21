@@ -93,7 +93,7 @@ def fetch_and_cache_candles(market, days_needed):
     print(f"[{market}] {len(df)}일의 데이터를 {cache_file} 파일로 캐시 저장 완료.")
     return df
 
-def run_simulation(btc_df, eth_df, btc_sma_len, eth_sma_len, initial_capital=10000000.0):
+def run_simulation(btc_df, eth_df, btc_sma_len, eth_sma_len, initial_capital=10000000.0, no_rebalance=False):
     """
     지정한 파라미터 조건으로 백테스트 시뮬레이션을 수행합니다.
     """
@@ -126,7 +126,99 @@ def run_simulation(btc_df, eth_df, btc_sma_len, eth_sma_len, initial_capital=100
     if start_idx >= len(merged_df):
         raise ValueError("이동평균 기간에 비해 제공된 과거 데이터가 부족합니다.")
         
-    # 초기 상태 값 세팅
+    # 벤치마크(Buy & Hold 50:50) 초기 매수 수량 고정
+    btc_start_price = merged_df.loc[start_idx, 'open_btc']
+    eth_start_price = merged_df.loc[start_idx, 'open_eth']
+    bh_btc_qty = (initial_capital * 0.5 * (1 - FEE_RATE)) / btc_start_price
+    bh_eth_qty = (initial_capital * 0.5 * (1 - FEE_RATE)) / eth_start_price
+    bh_start_cash = initial_capital - (bh_btc_qty * btc_start_price / (1 - FEE_RATE)) - (bh_eth_qty * eth_start_price / (1 - FEE_RATE))
+
+    if no_rebalance:
+        # 독립 운용 모드 초기화
+        cash_btc = initial_capital * 0.5
+        cash_eth = initial_capital * 0.5
+        btc_qty = 0.0
+        eth_qty = 0.0
+        
+        btc_signal = 'cash'
+        eth_signal = 'cash'
+        
+        portfolio_history = []
+        bh_history = []
+        trade_logs = []
+        
+        for i in range(start_idx, len(merged_df)):
+            row = merged_df.iloc[i]
+            prev_row = merged_df.iloc[i - 1]
+            date_str = row['date']
+            
+            btc_p = row['open_btc']
+            eth_p = row['open_eth']
+            
+            # 어제 완료 봉 기준 지표 로드
+            btc_sma = prev_row['sma_btc']
+            btc_close_prev = prev_row['close_btc']
+            eth_sma = prev_row['sma_eth']
+            eth_atr = prev_row['atr_14']
+            eth_close_prev = prev_row['close_eth']
+            
+            # BTC 신호
+            btc_upper = btc_sma * (1 + BTC_BUFFER)
+            btc_lower = btc_sma * (1 - BTC_BUFFER)
+            if btc_signal == 'cash':
+                if btc_close_prev >= btc_upper:
+                    btc_signal = 'hold'
+            else:
+                if btc_close_prev < btc_lower:
+                    btc_signal = 'cash'
+                    
+            # ETH 신호
+            eth_upper = eth_sma + (eth_atr * ETH_ATR_MULTIPLIER)
+            eth_lower = eth_sma - (eth_atr * ETH_ATR_MULTIPLIER)
+            if eth_signal == 'cash':
+                if eth_close_prev >= eth_upper:
+                    eth_signal = 'hold'
+            else:
+                if eth_close_prev < eth_lower:
+                    eth_signal = 'cash'
+                    
+            # BTC 거래 집행 (독립)
+            if btc_signal == 'hold' and btc_qty * btc_p < UPBIT_MIN_ORDER_KRW:
+                buy_amount = cash_btc * 0.999
+                if buy_amount >= UPBIT_MIN_ORDER_KRW:
+                    btc_qty = (buy_amount * (1 - FEE_RATE)) / btc_p
+                    cash_btc -= buy_amount
+                    trade_logs.append(f"{date_str[:10]} | [매수] 업비트 BTC: {buy_amount:,.0f}원 ({btc_qty:.6f}개) | 수수료: {buy_amount * FEE_RATE:,.0f}원")
+            elif btc_signal == 'cash' and btc_qty * btc_p >= UPBIT_MIN_ORDER_KRW:
+                sell_amount = btc_qty * btc_p
+                cash_received = sell_amount * (1 - FEE_RATE)
+                cash_btc += cash_received
+                trade_logs.append(f"{date_str[:10]} | [매도] 업비트 BTC: {sell_amount:,.0f}원 ({btc_qty:.6f}개) | 수수료: {sell_amount * FEE_RATE:,.0f}원")
+                btc_qty = 0.0
+                
+            # ETH 거래 집행 (독립)
+            if eth_signal == 'hold' and eth_qty * eth_p < UPBIT_MIN_ORDER_KRW:
+                buy_amount = cash_eth * 0.999
+                if buy_amount >= UPBIT_MIN_ORDER_KRW:
+                    eth_qty = (buy_amount * (1 - FEE_RATE)) / eth_p
+                    cash_eth -= buy_amount
+                    trade_logs.append(f"{date_str[:10]} | [매수] 업비트 ETH: {buy_amount:,.0f}원 ({eth_qty:.6f}개) | 수수료: {buy_amount * FEE_RATE:,.0f}원")
+            elif eth_signal == 'cash' and eth_qty * eth_p >= UPBIT_MIN_ORDER_KRW:
+                sell_amount = eth_qty * eth_p
+                cash_received = sell_amount * (1 - FEE_RATE)
+                cash_eth += cash_received
+                trade_logs.append(f"{date_str[:10]} | [매도] 업비트 ETH: {sell_amount:,.0f}원 ({eth_qty:.6f}개) | 수수료: {sell_amount * FEE_RATE:,.0f}원")
+                eth_qty = 0.0
+                
+            total_value = (cash_btc + btc_qty * btc_p) + (cash_eth + eth_qty * eth_p)
+            portfolio_history.append((date_str, total_value))
+            
+            bh_val = bh_start_cash + (bh_btc_qty * btc_p) + (bh_eth_qty * eth_p)
+            bh_history.append((date_str, bh_val))
+            
+        return portfolio_history, bh_history, trade_logs
+
+    # 기존 리밸런싱 모드 초기화
     cash = initial_capital
     btc_qty = 0.0
     eth_qty = 0.0
@@ -347,14 +439,15 @@ def save_plot(portfolio_history, bh_history):
     plt.close()
     print("[시각화] 누적 자산 곡선 차트를 'backtest_result.png'에 저장했습니다.")
 
-def save_markdown_report(metrics, btc_sma, eth_sma, trade_logs):
+def save_markdown_report(metrics, btc_sma, eth_sma, trade_logs, no_rebalance=False):
     """
     백테스트 결과 성과 분석 보고서를 'backtest_report.md' 마크다운 문서로 작성합니다.
     """
     report = []
     report.append(f"# 📊 업비트 KRW 시세 기반 퀀트 전략 백테스트 보고서")
     report.append(f"⏱️ **작성 일시**: {get_kst_now().strftime('%Y-%m-%d %H:%M:%S')}")
-    report.append(f"🔍 **백테스트 대상 전략**: 메인 전략 (BTC & ETH 50:50 자동 비중 조절 및 추세 추종)")
+    strategy_desc = "메인 전략 (BTC & ETH 50:50 독립 운용 - 리밸런싱 미실행)" if no_rebalance else "메인 전략 (BTC & ETH 50:50 자동 비중 조절 및 추세 추종)"
+    report.append(f"🔍 **백테스트 대상 전략**: {strategy_desc}")
     report.append(f"⚙️ **전략 파라미터**: BTC 이동평균: **{btc_sma}일** (버퍼 ±2%) | ETH 이동평균: **{eth_sma}일** (ATR배수 1.5배)")
     
     report.append(f"\n## 1. 종합 성과 분석 결과")
@@ -396,7 +489,7 @@ def save_markdown_report(metrics, btc_sma, eth_sma, trade_logs):
         f.write("\n".join(report))
     print("백테스트 마크다운 성과 분석 보고서를 'backtest_report.md'에 저장했습니다.")
 
-def run_optimization(btc_df, eth_df, initial_capital=10000000.0):
+def run_optimization(btc_df, eth_df, initial_capital=10000000.0, no_rebalance=False):
     """
     이동평균 기간 조합을 변경해 가며 모든 백테스트 조합을 연산하고, 랭킹을 출력하는 파라미터 최적화 모드입니다.
     """
@@ -404,7 +497,7 @@ def run_optimization(btc_df, eth_df, initial_capital=10000000.0):
     eth_sma_candidates = [50, 80, 100, 120, 150, 160, 180, 200]
     
     print("\n=======================================================")
-    print("🚀 전략 파라미터 최적화(Grid Search) 연산을 개시합니다.")
+    print(f"🚀 전략 파라미터 최적화(Grid Search) 연산을 개시합니다. ({'리밸런싱 미실행' if no_rebalance else '리밸런싱 실행'})")
     print(f"  - BTC SMA 후보군: {btc_sma_candidates}")
     print(f"  - ETH SMA 후보군: {eth_sma_candidates}")
     print(f"  - 총 연산 조합 수: {len(btc_sma_candidates) * len(eth_sma_candidates)}개")
@@ -415,7 +508,7 @@ def run_optimization(btc_df, eth_df, initial_capital=10000000.0):
     for b_sma in btc_sma_candidates:
         for e_sma in eth_sma_candidates:
             try:
-                p_hist, bh_hist, _ = run_simulation(btc_df, eth_df, b_sma, e_sma, initial_capital)
+                p_hist, bh_hist, _ = run_simulation(btc_df, eth_df, b_sma, e_sma, initial_capital, no_rebalance)
                 metrics = calculate_metrics(p_hist, bh_hist)
                 results.append({
                     "btc_sma": b_sma,
@@ -432,7 +525,7 @@ def run_optimization(btc_df, eth_df, initial_capital=10000000.0):
     results_df = pd.DataFrame(results)
     results_df = results_df.sort_values(by='total_return', ascending=False).reset_index(drop=True)
     
-    print("\n🏆 **전략 파라미터 연산 수익률 랭킹 상위 15개 조합**")
+    print(f"\n🏆 **전략 파라미터 연산 수익률 랭킹 상위 15개 조합 ({'리밸런싱 미실행' if no_rebalance else '리밸런싱 실행'})**")
     print("--------------------------------------------------------------------------------")
     print("| 순위 | BTC SMA | ETH SMA | 누적 수익률 | CAGR (연평균) | MDD (최대 낙폭) |")
     print("--------------------------------------------------------------------------------")
@@ -441,8 +534,9 @@ def run_optimization(btc_df, eth_df, initial_capital=10000000.0):
     print("--------------------------------------------------------------------------------")
     
     # 랭킹 결과를 파일로도 기록 저장
+    report_filename = "backtest_optimization_report_no_rebalance.md" if no_rebalance else "backtest_optimization_report.md"
     report = []
-    report.append("# 🏆 퀀트 전략 이동평균선 파라미터 최적화 보고서")
+    report.append(f"# 🏆 퀀트 전략 이동평균선 파라미터 최적화 보고서 ({'리밸런싱 미실행' if no_rebalance else '리밸런싱 실행'})")
     report.append(f"⏱️ **연산 일시**: {get_kst_now().strftime('%Y-%m-%d %H:%M:%S')}")
     report.append(f"\n모든 이동평균선(SMA) 조합에 따른 연산 결과 전체 랭킹 테이블입니다.")
     report.append(f"\n| 순위 | BTC SMA 기간 | ETH SMA 기간 | 누적 수익률 | CAGR (연평균) | MDD (최대 낙폭) |")
@@ -450,9 +544,9 @@ def run_optimization(btc_df, eth_df, initial_capital=10000000.0):
     for idx, row in results_df.iterrows():
         report.append(f"| {idx+1} | {int(row['btc_sma'])}일 | {int(row['eth_sma'])}일 | {row['total_return']:+.2f}% | {row['cagr']:.2f}% | {row['mdd']:.2f}% |")
         
-    with open("backtest_optimization_report.md", "w", encoding="utf-8") as f:
+    with open(report_filename, "w", encoding="utf-8") as f:
         f.write("\n".join(report))
-    print("\n최적화 보고서가 'backtest_optimization_report.md'에 저장되었습니다.")
+    print(f"\n최적화 보고서가 '{report_filename}'에 저장되었습니다.")
 
 def main():
     parser = argparse.ArgumentParser(description="Upbit KRW Quant Strategy Backtester")
@@ -461,6 +555,7 @@ def main():
     parser.add_argument("--days", type=int, default=1500, help="Number of historical days to backtest (default: 1500)")
     parser.add_argument("--optimize", action="store_true", help="Run parameter optimization grid search")
     parser.add_argument("--capital", type=float, default=10000000.0, help="Initial capital in KRW (default: 10,000,000)")
+    parser.add_argument("--no-rebalance", action="store_true", help="Run simulation without portfolio rebalancing (independent assets)")
     
     args = parser.parse_args()
     
@@ -475,17 +570,18 @@ def main():
         return
         
     if args.optimize:
-        run_optimization(btc_df, eth_df, args.capital)
+        run_optimization(btc_df, eth_df, args.capital, args.no_rebalance)
     else:
         print(f"\n=======================================================")
         print(f"📈 퀀트 전략 백테스트 시뮬레이션을 시작합니다. ({args.days}일)")
         print(f"  - BTC SMA: {args.btc_sma}일 (버퍼 ±2%)")
         print(f"  - ETH SMA: {args.eth_sma}일 (ATR 1.5배)")
+        print(f"  - 리밸런싱 실행 여부: {'미실행 (BTC/ETH 독립 자산 운용)' if args.no_rebalance else '실행 (50:50 비중 조절)'}")
         print(f"  - 초기 자산: {args.capital:,.0f} KRW")
         print("=======================================================")
         
         try:
-            p_hist, bh_hist, logs = run_simulation(btc_df, eth_df, args.btc_sma, args.eth_sma, args.capital)
+            p_hist, bh_hist, logs = run_simulation(btc_df, eth_df, args.btc_sma, args.eth_sma, args.capital, args.no_rebalance)
             metrics = calculate_metrics(p_hist, bh_hist)
             
             # 최종 지표 콘솔 요약 출력
@@ -499,7 +595,7 @@ def main():
             
             # 성과 지표 기록 및 플로팅
             save_plot(p_hist, bh_hist)
-            save_markdown_report(metrics, args.btc_sma, args.eth_sma, logs)
+            save_markdown_report(metrics, args.btc_sma, args.eth_sma, logs, args.no_rebalance)
             
         except Exception as e:
             print(f"시뮬레이션 연산 중 오류 발생: {e}")

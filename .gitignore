@@ -25,3 +25,9 @@ run_bot.bat
 trading_log.txt
 logs/
 data/
+
+# Backtest reports and output artifacts
+backtest_report.md
+backtest_optimization_report.md
+backtest_optimization_report_no_rebalance.md
+backtest_result.png
