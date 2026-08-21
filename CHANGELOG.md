@@ -5,6 +5,18 @@
 
 ---
 
+## [1.1.2] - 2026-08-21
+
+### Changed (변경됨)
+- 백테스트 산출물(마크다운 보고서 및 차트 이미지)의 저장 위치를 프로젝트 루트에서 `backtest/` 디렉토리로 구조화 및 분리.
+- `.gitignore` 설정을 `backtest/*.md`, `backtest/*.png` 패턴으로 간소화하여 불필요한 백테스트 부산물의 Git 추적 방지.
+
+### Fixed (수정됨)
+- GitHub Actions 워크플로우(`.github/workflows/main.yml`)의 실행 액션 버전(`actions/checkout@v4.2.2`, `actions/setup-python@v5.6.0`)을 업데이트하여 Node.js 20 Deprecation 경고 해소.
+
+### Documentation (문서화)
+- `README.md` 내 최적화 파라미터(BTC 220일, ETH 50일 SMA) 및 `backtest/` 폴더 경로 설명 동기화.
+
 ## [1.1.1] - 2026-08-21
 
 ### Fixed (수정됨)
