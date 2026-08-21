@@ -15,11 +15,13 @@ quant-bitcoin/
 ├── requirements.txt              # 파이썬 의존성 패키지 목록
 ├── PRD.md                        # 상품 요구사항 정의서
 ├── CHANGELOG.md                  # 버전 변경 이력 문서
+├── backtest/                     # 백테스트 실행 결과물 저장 폴더 (보고서, 차트 이미지)
 └── src/                          # 소스 코드 폴더
     ├── config.py                 # 전역 상수 및 시스템 제어 설정 파일
     ├── discord_bot.py            # 디스코드 리포트 메시지 포맷팅 및 전송 봇
     ├── bithumb_api.py            # 빗썸 v1 REST API 연동 클라이언트 클래스
     ├── test_monday.py            # 빗썸 월요일 상승장 종목 선정 로직 독립 테스트 스크립트
+    ├── backtest.py               # 과거 데이터 기반 퀀트 전략 백테스트 연산 스크립트
     └── main.py                   # 메인 오케스트레이터 및 시그널 계산/리포팅 로직
 ```
 
@@ -91,7 +93,7 @@ set DISCORD_WEBHOOK_URL=디스코드_웹훅_주소
   ```bash
   python src/backtest.py --btc-sma 200 --eth-sma 150 --days 1500
   ```
-  * 실행 완료 시 최상위 폴더에 **`backtest_report.md`** 상세 보고서와 **`backtest_result.png`** 자산 변동 추이 차트가 생성됩니다.
+  * 실행 완료 시 **`backtest/`** 폴더에 **`backtest_report.md`** 상세 보고서와 **`backtest_result.png`** 자산 변동 추이 차트가 생성됩니다.
   * **리밸런싱 미적용 모드 (독립 자산 운용)**: `--no-rebalance` 옵션을 추가하면 비중 조절 거래 없이 두 자산을 독립 운용하는 시뮬레이션을 수행합니다.
     ```bash
     python src/backtest.py --btc-sma 220 --eth-sma 50 --no-rebalance
@@ -101,8 +103,8 @@ set DISCORD_WEBHOOK_URL=디스코드_웹훅_주소
   ```bash
   python src/backtest.py --optimize
   ```
-  * 연산 완료 시 모든 SMA 조합의 성과가 분석되어 누적 수익률이 높은 순서로 정렬된 **`backtest_optimization_report.md`** 보고서가 생성되며, 상위 15개 최적 조합이 콘솔 창에 랭킹 표로 출력됩니다.
-  * **리밸런싱 미적용 최적화**: `--no-rebalance` 옵션을 함께 추가하면 리밸런싱 없는 독립 자산 기준의 최적 파라미터 조합 랭킹 보고서인 **`backtest_optimization_report_no_rebalance.md`**가 생성됩니다.
+  * 연산 완료 시 모든 SMA 조합의 성과가 분석되어 누적 수익률이 높은 순서로 정렬된 **`backtest/backtest_optimization_report.md`** 보고서가 생성되며, 상위 15개 최적 조합이 콘솔 창에 랭킹 표로 출력됩니다.
+  * **리밸런싱 미적용 최적화**: `--no-rebalance` 옵션을 함께 추가하면 리밸런싱 없는 독립 자산 기준의 최적 파라미터 조합 랭킹 보고서인 **`backtest/backtest_optimization_report_no_rebalance.md`**가 생성됩니다.
     ```bash
     python src/backtest.py --optimize --no-rebalance
     ```

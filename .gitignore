@@ -26,8 +26,6 @@ trading_log.txt
 logs/
 data/
 
-# Backtest reports and output artifacts
-backtest_report.md
-backtest_optimization_report.md
-backtest_optimization_report_no_rebalance.md
-backtest_result.png
+# Backtest reports and output artifacts (backtest/ 폴더 내 결과물)
+backtest/*.md
+backtest/*.png

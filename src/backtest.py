@@ -17,11 +17,16 @@ if sys.stdout and sys.stdout.encoding != 'utf-8':
     except AttributeError:
         pass
 
+# 백테스트 결과물 저장 경로 (보고서, 차트 이미지)
+OUTPUT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "backtest")
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+
 # 전략 고정 상수
-BTC_BUFFER = 0.02          # BTC 200 SMA ±2% 버퍼
+BTC_BUFFER = 0.02          # BTC SMA ±2% 버퍼
 ETH_ATR_MULTIPLIER = 1.5   # ETH ATR 채널 승수
 UPBIT_MIN_ORDER_KRW = 5000 # 업비트 최소 주문 금액
 FEE_RATE = 0.0005          # 업비트 일반 주문 수수료율 (0.05%)
+
 
 def get_kst_now():
     utc_now = datetime.datetime.now(datetime.timezone.utc)
@@ -435,9 +440,10 @@ def save_plot(portfolio_history, bh_history):
     plt.legend(fontsize=11)
     
     plt.tight_layout()
-    plt.savefig("backtest_result.png", dpi=150)
+    out_path = os.path.join(OUTPUT_DIR, "backtest_result.png")
+    plt.savefig(out_path, dpi=150)
     plt.close()
-    print("[시각화] 누적 자산 곡선 차트를 'backtest_result.png'에 저장했습니다.")
+    print(f"[시각화] 누적 자산 곡선 차트를 '{out_path}'에 저장했습니다.")
 
 def save_markdown_report(metrics, btc_sma, eth_sma, trade_logs, no_rebalance=False):
     """
@@ -485,9 +491,10 @@ def save_markdown_report(metrics, btc_sma, eth_sma, trade_logs, no_rebalance=Fal
         report.append("- 백테스트 기간 중 신호 변화에 따른 매매 거래가 발생하지 않았습니다.")
         
     # 파일 쓰기
-    with open("backtest_report.md", "w", encoding="utf-8") as f:
+    out_path = os.path.join(OUTPUT_DIR, "backtest_report.md")
+    with open(out_path, "w", encoding="utf-8") as f:
         f.write("\n".join(report))
-    print("백테스트 마크다운 성과 분석 보고서를 'backtest_report.md'에 저장했습니다.")
+    print(f"백테스트 마크다운 성과 분석 보고서를 '{out_path}'에 저장했습니다.")
 
 def run_optimization(btc_df, eth_df, initial_capital=10000000.0, no_rebalance=False):
     """
@@ -535,6 +542,7 @@ def run_optimization(btc_df, eth_df, initial_capital=10000000.0, no_rebalance=Fa
     
     # 랭킹 결과를 파일로도 기록 저장
     report_filename = "backtest_optimization_report_no_rebalance.md" if no_rebalance else "backtest_optimization_report.md"
+    report_path = os.path.join(OUTPUT_DIR, report_filename)
     report = []
     report.append(f"# 🏆 퀀트 전략 이동평균선 파라미터 최적화 보고서 ({'리밸런싱 미실행' if no_rebalance else '리밸런싱 실행'})")
     report.append(f"⏱️ **연산 일시**: {get_kst_now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -544,9 +552,9 @@ def run_optimization(btc_df, eth_df, initial_capital=10000000.0, no_rebalance=Fa
     for idx, row in results_df.iterrows():
         report.append(f"| {idx+1} | {int(row['btc_sma'])}일 | {int(row['eth_sma'])}일 | {row['total_return']:+.2f}% | {row['cagr']:.2f}% | {row['mdd']:.2f}% |")
         
-    with open(report_filename, "w", encoding="utf-8") as f:
+    with open(report_path, "w", encoding="utf-8") as f:
         f.write("\n".join(report))
-    print(f"\n최적화 보고서가 '{report_filename}'에 저장되었습니다.")
+    print(f"\n최적화 보고서가 '{report_path}'에 저장되었습니다.")
 
 def main():
     parser = argparse.ArgumentParser(description="Upbit KRW Quant Strategy Backtester")
