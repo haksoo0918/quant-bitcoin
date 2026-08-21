@@ -60,38 +60,79 @@ quant-bitcoin/
 
 ---
 
-## 🚀 사용 및 실행 방법
+## 🚀 실행 환경 및 사용 방법
 
-이 프로젝트는 **GitHub Actions 기반의 '조회 전용 시그널 알림 봇'** 환경을 기본으로 구동하도록 설계되어 있습니다. 거래소 API의 '조회' 권한만 사용하므로 고정 IP 등록 제약 없이 100% 무료로 24시간 가동할 수 있습니다.
+본 시스템은 **GitHub Actions(클라우드 시그널 브리핑)**와 **Local PC(로컬 시그널 확인, 모의매매, 실거래 자동매매)**로 명확히 구분되어 구동됩니다.
 
-### 1. 로컬 환경 테스트 및 검증 (선택 사항)
-프로그램을 로컬 PC에서 사전에 테스트해 보고 싶을 때 진행합니다.
+---
+
+### 1. GitHub Actions 자동 시그널 브리핑 (매일 09:05 KST 자동 실행)
+
+개인 PC를 켜둘 필요 없이 깃허브 서버에서 매일 아침 전략 방향성 및 추천 매매 가이드를 디스코드로 무료 수신합니다.
+
+* **API 키 불필요**: 공개 시세 API만 사용하므로 거래소 API 키 등록이나 잔고 조회가 필요 없습니다.
+* **GitHub Secrets 등록**:
+  1. 저장소 상단 메뉴의 **[Settings]** 클릭
+  2. 왼쪽 사이드바의 **[Secrets and variables] -> [Actions]** 클릭
+  3. **[New repository secret]** 버튼 클릭 후 **`DISCORD_WEBHOOK_URL`** 1개만 등록
+* **작동 확인 및 수동 테스트**:
+  * **[Actions]** -> **[Crypto Quantitative Trading Signal Bot]** -> **[Run workflow]**를 클릭하여 즉시 테스트 가능합니다.
+
+---
+
+### 2. 로컬 PC 실행 방법 (`run_bot.bat`)
+
+로컬 환경에서는 목적에 따라 **① 방향성 시그널만 확인**, **② 모의 매매(Dry-Run) 시뮬레이션**, **③ 실제 거래소 매수/매도 주문 집행(Live Trading)** 중 원하는 모드를 자유롭게 실행할 수 있습니다.
 
 #### 1) 로컬 패키지 설치
 ```bash
 python -m pip install -r requirements.txt
 ```
 
-#### 2) 실행 배치 파일(`run_bot.bat`) 수정
-`run_bot.bat` 파일을 열고 본인의 API 키와 디스코드 웹훅 주소를 입력합니다:
-```batch
-set UPBIT_ACCESS_KEY=발급받은_업비트_액세스키
-set UPBIT_SECRET_KEY=발급받은_업비트_시크릿키
-set BITHUMB_ACCESS_KEY=발급받은_빗썸_액세스키
-set BITHUMB_SECRET_KEY=발급받은_빗썸_시크릿키
-set DISCORD_WEBHOOK_URL=디스코드_웹훅_주소
-```
+#### 2) 배치 파일 준비
+`run_bot.example.bat`을 복사하여 **`run_bot.bat`** 파일을 생성합니다.
 
-#### 3) 모의 실행 (Dry-Run 테스트)
-`src/config.py`의 `DRY_RUN`을 `True`로 설정한 상태에서 `run_bot.bat` 파일을 더블 클릭하여 실행합니다. 
-실제 주문은 나가지 않으며 연산 과정과 예상 매매 내역이 검은색 화면에 실시간 출력되는 동시에 **`logs/`** 폴더 내에 월별 로그 파일(예: `logs/trading_log_2026-08.log`)로 기록되며, 디스코드로 시그널 알림이 발송됩니다.
+#### 3) 목적별 실행 모드 설정
 
-#### 4) 로컬 백테스트 및 파라미터 최적화 실행
-실제 업비트 과거 5년 일봉 데이터를 다운로드하여 전략 수익률을 검증하거나 이동평균 최적 기간을 도출해 볼 수 있습니다. (업비트 API 조회 한도를 준수하며 다운로드한 데이터는 `data/` 디렉토리에 캐싱됩니다.)
+* **모드 A. 로컬에서 전략 방향성(시그널)만 확인 (API 키 불필요)**:
+  - 거래소 API 키 없이 즉시 공개 시세를 바탕으로 오늘의 전략 방향성과 모바일 매매 가이드만 확인합니다.
+  ```bat
+  set SIGNAL_ONLY=true
+  set DISCORD_WEBHOOK_URL=디스코드_웹훅_주소 (선택 사항)
+  ```
+  *(콘솔 창 및 디스코드에 `📢 [GitHub Actions] 퀀트 전략 일일 방향성 시그널 브리핑` 포맷으로 출력)*
+
+* **모드 B. 로컬 모의 매매 테스트 (Dry-Run)**:
+  - 실제 주문을 넣지 않고 가상 계좌 잔고를 바탕으로 리밸런싱 주문 시뮬레이션 및 디스코드 보고서를 확인합니다.
+  ```bat
+  set SIGNAL_ONLY=false
+  set DRY_RUN=true
+  set DISCORD_WEBHOOK_URL=디스코드_웹훅_주소 (선택 사항)
+  ```
+  *(콘솔 창 및 디스코드에 `⚡ [로컬 모의매매] 모의 주문 체결 및 포트폴리오 잔고 보고서` 포맷으로 출력)*
+
+* **모드 C. 실제 자동 매수/매도 주문 집행 (Live Trading)**:
+  - 실계좌 잔고를 조회하여 비중 이탈 시 거래소에 실제 시장가 주문을 집행하고 실거래 보고서를 전송합니다.
+  ```bat
+  set SIGNAL_ONLY=false
+  set DRY_RUN=false
+  set UPBIT_ACCESS_KEY=실제_업비트_액세스키
+  set UPBIT_SECRET_KEY=실제_업비트_시크릿키
+  set BITHUMB_ACCESS_KEY=실제_빗썸_액세스키
+  set BITHUMB_SECRET_KEY=실제_빗썸_시크릿키
+  set DISCORD_WEBHOOK_URL=디스코드_웹훅_주소
+  ```
+  *(거래소 실제 체결 후 `⚡ [로컬 자동매매] 실거래 주문 체결 및 포트폴리오 잔고 보고서` 전송)*
+
+---
+
+### 3. 로컬 백테스트 및 파라미터 최적화 실행
+
+실제 업비트 과거 일봉 데이터를 다운로드하여 전략 수익률을 검증하거나 이동평균 최적 기간을 도출할 수 있습니다. (다운로드한 데이터는 `data/` 디렉토리에 캐싱됩니다.)
 
 * **단일 조건 백테스트 수행 (성과 보고서 및 차트 이미지 자동 생성)**:
   ```bash
-  python src/backtest.py --btc-sma 200 --eth-sma 150 --days 1500
+  python src/backtest.py --btc-sma 220 --eth-sma 50 --days 1500
   ```
   * 실행 완료 시 **`backtest/`** 폴더에 **`backtest_report.md`** 상세 보고서와 **`backtest_result.png`** 자산 변동 추이 차트가 생성됩니다.
   * **리밸런싱 미적용 모드 (독립 자산 운용)**: `--no-rebalance` 옵션을 추가하면 비중 조절 거래 없이 두 자산을 독립 운용하는 시뮬레이션을 수행합니다.
@@ -108,43 +149,4 @@ set DISCORD_WEBHOOK_URL=디스코드_웹훅_주소
     ```bash
     python src/backtest.py --optimize --no-rebalance
     ```
-
----
-
-## 📅 실행 환경 및 운영 방법
-
-본 시스템은 **GitHub Actions(시그널 방향성 브리핑)**와 **Local PC(실제 자동 주문 체결)**의 이원화된 구조로 운영됩니다.
-
----
-
-### 1. GitHub Actions 자동 시그널 브리핑 (매일 09:05 KST 자동 실행)
-
-개인 PC를 켜두지 않고 매일 아침 전략 방향성 및 추천 매매 가이드를 디스코드로 무료 수신합니다.
-
-* **API 키 불필요**: 공개 시세 API만 사용하므로 거래소 API 키 등록이나 잔고 조회가 필요 없습니다.
-* **GitHub Secrets 등록**:
-  1. 저장소 상단 메뉴의 **[Settings]** 클릭
-  2. 왼쪽 사이드바의 **[Secrets and variables] -> [Actions]** 클릭
-  3. **[New repository secret]** 버튼 클릭 후 **`DISCORD_WEBHOOK_URL`** 1개만 등록
-* **작동 확인 및 수동 테스트**:
-  * **[Actions]** -> **[Crypto Quantitative Trading Signal Bot]** -> **[Run workflow]**를 클릭하여 즉시 테스트 가능합니다.
-
----
-
-### 2. 로컬 실제 자동매매 실행 (`run_bot.bat`)
-
-개인 PC에서 실제 주문 권한이 있는 API Key를 연동하여 거래소에 직접 매수/매도 주문을 집행하고 결과를 보고받습니다.
-
-1. **배치 파일 생성**:
-   * `run_bot.example.bat`을 복사하여 **`run_bot.bat`** 생성
-2. **API 키 및 실행 모드 입력**:
-   ```bat
-   set DRY_RUN=false
-   set UPBIT_ACCESS_KEY=실제_업비트_액세스키
-   set UPBIT_SECRET_KEY=실제_업비트_시크릿키
-   set BITHUMB_ACCESS_KEY=실제_빗썸_액세스키
-   set BITHUMB_SECRET_KEY=실제_빗썸_시크릿키
-   set DISCORD_WEBHOOK_URL=디스코드_웹훅_주소
-   ```
-3. **실행**: `run_bot.bat`을 더블 클릭하여 실행하면 실계좌 잔고 조회, 전략 계산, 실제 주문 체결 및 디스코드 체결 리포트가 전송됩니다.
 
