@@ -28,4 +28,4 @@ jobs:
       env:
         DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
       run: |
-        python src/main.py
+        python src/main.py --signal-only

@@ -80,49 +80,62 @@ quant-bitcoin/
 
 ---
 
-### 2. 로컬 PC 실행 방법 (`run_bot.bat`)
+### 2. 로컬 PC 실행 방법 (CLI 인자 및 `.env` 환경 설정)
 
-로컬 환경에서는 목적에 따라 **① 방향성 시그널만 확인**, **② 모의 매매(Dry-Run) 시뮬레이션**, **③ 실제 거래소 매수/매도 주문 집행(Live Trading)** 중 원하는 모드를 자유롭게 실행할 수 있습니다.
+로컬 환경에서는 API Key를 **`.env`** 파일에 안전하게 보관하고, 실행 옵션은 **CLI 명령어 인자(Arguments)**로 직관적으로 제어합니다.
 
-#### 1) 로컬 패키지 설치
+#### 1) 환경 변수 설정 (`.env`)
+프로젝트 루트의 `.env.example`을 복사하여 **`.env`** 파일을 생성하고 API Key 및 웹훅 주소를 입력합니다.
 ```bash
-python -m pip install -r requirements.txt
+cp .env.example .env
 ```
+```env
+UPBIT_ACCESS_KEY=실제_업비트_액세스키
+UPBIT_SECRET_KEY=실제_업비트_시크릿키
+BITHUMB_ACCESS_KEY=실제_빗썸_액세스키
+BITHUMB_SECRET_KEY=실제_빗썸_시크릿키
+DISCORD_WEBHOOK_URL=디스코드_웹훅_주소
+```
+*( `.env` 파일은 `.gitignore`에 등록되어 있어 GitHub에 업로드되지 않습니다. )*
 
-#### 2) 배치 파일 준비
-`run_bot.example.bat`을 복사하여 **`run_bot.bat`** 파일을 생성합니다.
-
-#### 3) 목적별 실행 모드 설정
+#### 2) 목적별 CLI 실행 명령어
 
 * **모드 A. 로컬에서 전략 방향성(시그널)만 확인 (API 키 불필요)**:
   - 거래소 API 키 없이 즉시 공개 시세를 바탕으로 오늘의 전략 방향성과 모바일 매매 가이드만 확인합니다.
-  ```bat
-  set SIGNAL_ONLY=true
-  set DISCORD_WEBHOOK_URL=디스코드_웹훅_주소 (선택 사항)
+  ```bash
+  python src/main.py --signal-only
+  # 또는 약칭: python src/main.py -s
   ```
   *(콘솔 창 및 디스코드에 `📢 [GitHub Actions] 퀀트 전략 일일 방향성 시그널 브리핑` 포맷으로 출력)*
 
 * **모드 B. 로컬 모의 매매 테스트 (Dry-Run)**:
   - 실제 주문을 넣지 않고 가상 계좌 잔고를 바탕으로 리밸런싱 주문 시뮬레이션 및 디스코드 보고서를 확인합니다.
-  ```bat
-  set SIGNAL_ONLY=false
-  set DRY_RUN=true
-  set DISCORD_WEBHOOK_URL=디스코드_웹훅_주소 (선택 사항)
+  ```bash
+  python src/main.py --dry-run
+  # 또는 약칭: python src/main.py -d
   ```
   *(콘솔 창 및 디스코드에 `⚡ [로컬 모의매매] 모의 주문 체결 및 포트폴리오 잔고 보고서` 포맷으로 출력)*
 
 * **모드 C. 실제 자동 매수/매도 주문 집행 (Live Trading)**:
-  - 실계좌 잔고를 조회하여 비중 이탈 시 거래소에 실제 시장가 주문을 집행하고 실거래 보고서를 전송합니다.
-  ```bat
-  set SIGNAL_ONLY=false
-  set DRY_RUN=false
-  set UPBIT_ACCESS_KEY=실제_업비트_액세스키
-  set UPBIT_SECRET_KEY=실제_업비트_시크릿키
-  set BITHUMB_ACCESS_KEY=실제_빗썸_액세스키
-  set BITHUMB_SECRET_KEY=실제_빗썸_시크릿키
-  set DISCORD_WEBHOOK_URL=디스코드_웹훅_주소
+  - `.env`에 설정된 실계좌 잔고를 조회하여 비중 이탈 시 거래소에 실제 시장가 주문을 집행하고 실거래 보고서를 전송합니다.
+  ```bash
+  python src/main.py --live
+  # 또는 약칭: python src/main.py -l
   ```
   *(거래소 실제 체결 후 `⚡ [로컬 자동매매] 실거래 주문 체결 및 포트폴리오 잔고 보고서` 전송)*
+
+* **부가 옵션: 빗썸 알트코인 제외 (업비트 메인만 단독 실행)**:
+  ```bash
+  python src/main.py --live --no-alt
+  ```
+
+* **윈도우 배치 파일 실행 (`run_bot.bat`)**:
+  더블클릭 실행을 원할 경우 `run_bot.example.bat`을 복사하여 `run_bot.bat`으로 사용하거나, 터미널에서 인자를 넘겨 바로 실행할 수 있습니다:
+  ```bat
+  run_bot.bat --signal-only
+  run_bot.bat --dry-run
+  run_bot.bat --live
+  ```
 
 ---
 

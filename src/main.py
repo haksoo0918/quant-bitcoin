@@ -18,6 +18,7 @@ import time
 import datetime
 import logging
 import functools
+import argparse
 import requests
 import pandas as pd
 import numpy as np
@@ -141,8 +142,8 @@ def fetch_bithumb_candles(bithumb_client, market, count=16):
     return bithumb_client.get_ohlcv(market, count=count)
 
 @retry_api_call(retries=3, delay=3)
-def fetch_upbit_balances(upbit_client):
-    if DRY_RUN and not (UPBIT_ACCESS_KEY and UPBIT_SECRET_KEY):
+def fetch_upbit_balances(upbit_client, is_dry_run=False):
+    if is_dry_run and not (UPBIT_ACCESS_KEY and UPBIT_SECRET_KEY):
         logging.info("[드라이런] 가상의 업비트 잔고 정보를 설정합니다.")
         return [
             {"currency": "KRW", "balance": "10000000", "locked": "0"},
@@ -152,8 +153,8 @@ def fetch_upbit_balances(upbit_client):
     return upbit_client.get_balances()
 
 @retry_api_call(retries=3, delay=3)
-def fetch_bithumb_balances(bithumb_client):
-    if DRY_RUN and not (BITHUMB_ACCESS_KEY and BITHUMB_SECRET_KEY):
+def fetch_bithumb_balances(bithumb_client, is_dry_run=False):
+    if is_dry_run and not (BITHUMB_ACCESS_KEY and BITHUMB_SECRET_KEY):
         logging.info("[드라이런] 가상의 빗썸 잔고 정보를 설정합니다.")
         return [
             {"currency": "KRW", "balance": "5000000", "locked": "0"},
@@ -162,13 +163,13 @@ def fetch_bithumb_balances(bithumb_client):
     return bithumb_client.get_balances()
 
 
-def run_signal_only_briefing(kst_now):
+def run_signal_only_briefing(kst_now, use_alt_strategy=USE_ALTCOIN_STRATEGY):
     """
     GitHub Actions 및 시그널 전용 모드 실행 함수
     - 거래소 API 키나 계좌 잔고를 일절 조회하지 않고, 공개 시세 데이터만을 수집하여 전략 방향성을 분석합니다.
     - 방향성 브리핑 메시지를 생성하여 디스코드로 전송합니다.
     """
-    logging.info("=== [GitHub Actions 시그널 방향성 브리핑 모드 시작] ===")
+    logging.info("=== [시그널 방향성 브리핑 모드 가동] ===")
     
     # 1. BTC 지표 및 전략 방향성 계산
     btc_df = fetch_upbit_candles("KRW-BTC", count=BTC_SMA_LEN + 30)
@@ -237,7 +238,7 @@ def run_signal_only_briefing(kst_now):
 
     # 4. 빗썸 서브 전략 알트코인 분석
     bithumb_report_lines = []
-    if USE_ALTCOIN_STRATEGY:
+    if use_alt_strategy:
         if market_filter_state == "Bull":
             bithumb_report_lines.append("• **공통 시장 필터**: 🟢 `Bull (상승장)`")
             bithumb_guide = "선정 알트코인 보유 유지"
@@ -320,17 +321,12 @@ def run_signal_only_briefing(kst_now):
     logging.info("GitHub Actions 시그널 브리핑 디스코드 전송 완료.")
 
 
-def main():
-    kst_now = get_kst_now()
-    logging.info(f"퀀트 매매 시스템 기동 - 실행 시각 (KST): {kst_now.strftime('%Y-%m-%d %H:%M:%S')}")
-    
-    # 깃허브 액션 및 시그널 전용 모드 분기
-    if SIGNAL_ONLY:
-        run_signal_only_briefing(kst_now)
-        return
-
-    # 로컬 실거래 자동매매 모드
-    logging.info("=== [로컬 실거래 자동매매 모드 가동] ===")
+def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STRATEGY):
+    """
+    로컬 실거래 또는 모의매매 실행 함수
+    """
+    mode_label = "모의매매(Dry-Run)" if is_dry_run else "실거래 자동매매"
+    logging.info(f"=== [로컬 {mode_label} 모드 가동] ===")
     
     # 디스코드 채널 전송용 로그 버퍼
     action_logs = []
@@ -339,13 +335,13 @@ def main():
     upbit = None
     if UPBIT_ACCESS_KEY and UPBIT_SECRET_KEY:
         upbit = pyupbit.Upbit(UPBIT_ACCESS_KEY, UPBIT_SECRET_KEY)
-    elif not DRY_RUN:
+    elif not is_dry_run:
         logging.error("업비트 API 키가 설정되지 않았습니다. 프로그램을 안전 종료합니다.")
         send_discord_message("🚨 **[비상] 업비트 API 키 누락으로 프로그램 종료**")
         sys.exit(1)
 
-    bithumb = BithumbClient()
-    if not (BITHUMB_ACCESS_KEY and BITHUMB_SECRET_KEY) and not DRY_RUN:
+    bithumb = BithumbClient(dry_run=is_dry_run)
+    if not (BITHUMB_ACCESS_KEY and BITHUMB_SECRET_KEY) and not is_dry_run:
         logging.error("빗썸 API 키가 설정되지 않았습니다. 프로그램을 안전 종료합니다.")
         send_discord_message("🚨 **[비상] 빗썸 API 키 누락으로 프로그램 종료**")
         sys.exit(1)
@@ -377,7 +373,7 @@ def main():
     eth_current_price = fetch_upbit_current_price("KRW-ETH")
     
     # 2.3 잔고 현황 조회
-    upbit_balances_raw = fetch_upbit_balances(upbit)
+    upbit_balances_raw = fetch_upbit_balances(upbit, is_dry_run=is_dry_run)
     
     # 계좌 잔고 파싱
     upbit_balances = {}
@@ -503,7 +499,7 @@ def main():
             sell_amount_krw = sell_qty * price
             if sell_amount_krw >= UPBIT_MIN_ORDER_KRW:
                 logging.info(f"[업비트 매도] KRW-{coin} 매도 진행 (수량: {sell_qty:.8f}, 금액: {sell_amount_krw:,.0f}원)")
-                if not DRY_RUN and upbit is not None:
+                if not is_dry_run and upbit is not None:
                     try:
                         # 소수점 오차로 잔여 수량이 부족할 우려를 방지하기 위해 전량 매도인 경우 잔고 전체 지정
                         if target_v == 0.0:
@@ -522,7 +518,7 @@ def main():
                 logging.info(f"업비트 {coin} 매도 요청 금액({sell_amount_krw:,.0f}원)이 최소 주문 금액(5,000원) 미만입니다. 스킵합니다.")
 
     # 4.2 매매 후 업비트 원화 잔고 리프레시
-    if not DRY_RUN and upbit is not None:
+    if not is_dry_run and upbit is not None:
         try:
             upbit_krw = upbit.get_balance("KRW")
         except Exception as e:
@@ -540,7 +536,7 @@ def main():
             buy_amount = min(diff_v, upbit_krw * 0.995)
             if buy_amount >= UPBIT_MIN_ORDER_KRW:
                 logging.info(f"[업비트 매수] KRW-{coin} 매수 진행 (금액: {buy_amount:,.0f}원)")
-                if not DRY_RUN and upbit is not None:
+                if not is_dry_run and upbit is not None:
                     try:
                         order_res = upbit.buy_market_order(f"KRW-{coin}", buy_amount)
                         logging.info(f"매수 주문 성공: {order_res}")
@@ -564,9 +560,9 @@ def main():
     total_bithumb_value = 0.0
     bithumb_order_history = []
 
-    if USE_ALTCOIN_STRATEGY:
+    if use_alt_strategy:
         logging.info("=== [빗썸 매매 제어 프로세스 가동] ===")
-        bithumb_balances_raw = fetch_bithumb_balances(bithumb)
+        bithumb_balances_raw = fetch_bithumb_balances(bithumb, is_dry_run=is_dry_run)
         bithumb_ticker_data = fetch_bithumb_ticker_all()
 
         bithumb_krw = 0.0
@@ -612,7 +608,7 @@ def main():
 
                 if val >= BITHUMB_MIN_ORDER_KRW:
                     logging.info(f"[빗썸 하락장 청산] {market} 매도 (수량: {bal:.8f}, 대략 금액: {val:,.0f}원)")
-                    if not DRY_RUN:
+                    if not is_dry_run:
                         try:
                             order_res = bithumb.sell_market_order(market, bal)
                             logging.info(f"빗썸 매도 성공: {order_res}")
@@ -699,7 +695,7 @@ def main():
                     val = bal * price
                     if val >= BITHUMB_MIN_ORDER_KRW:
                         logging.info(f"[빗썸 종목교체 매도] {market} 청산 (금액: {val:,.0f}원)")
-                        if not DRY_RUN:
+                        if not is_dry_run:
                             try:
                                 order_res = bithumb.sell_market_order(market, bal)
                                 logging.info(f"빗썸 매도 성공: {order_res}")
@@ -724,7 +720,7 @@ def main():
                     qty_to_sell = excess_val / curr_price
                     if excess_val >= BITHUMB_MIN_ORDER_KRW:
                         logging.info(f"[빗썸 비중조절 매도] {market} 일부 매도 (금액: {excess_val:,.0f}원)")
-                        if not DRY_RUN:
+                        if not is_dry_run:
                             try:
                                 order_res = bithumb.sell_market_order(market, qty_to_sell)
                                 logging.info(f"빗썸 부분 매도 성공: {order_res}")
@@ -737,7 +733,7 @@ def main():
                         time.sleep(2)
 
             # B. 매매 후 빗썸 원화 잔고 리프레시
-            if not DRY_RUN:
+            if not is_dry_run:
                 try:
                     bithumb_krw = bithumb.get_balance("KRW")
                 except Exception as e:
@@ -756,7 +752,7 @@ def main():
                     buy_amount = min(shortage_val, bithumb_krw * 0.995)
                     if buy_amount >= BITHUMB_MIN_ORDER_KRW:
                         logging.info(f"[빗썸 비중조절 매수] {market} 매수 진행 (금액: {buy_amount:,.0f}원)")
-                        if not DRY_RUN:
+                        if not is_dry_run:
                             try:
                                 order_res = bithumb.buy_market_order(market, buy_amount)
                                 logging.info(f"빗썸 매수 성공: {order_res}")
@@ -781,7 +777,7 @@ def main():
     logging.info("=== [최종 포트폴리오 리포트 전송 시작] ===")
     
     # 6.1 최신 잔고 정보 업데이트
-    upbit_balances_raw = fetch_upbit_balances(upbit)
+    upbit_balances_raw = fetch_upbit_balances(upbit, is_dry_run=is_dry_run)
     upbit_balances = {}
     for asset in upbit_balances_raw:
         curr = asset.get("currency")
@@ -806,8 +802,8 @@ def main():
     bithumb_alts_final_list = []
     total_bithumb_fin = 0.0
     
-    if USE_ALTCOIN_STRATEGY:
-        bithumb_balances_raw = fetch_bithumb_balances(bithumb)
+    if use_alt_strategy:
+        bithumb_balances_raw = fetch_bithumb_balances(bithumb, is_dry_run=is_dry_run)
         bithumb_ticker_fin = fetch_bithumb_ticker_all()
         
         for asset in bithumb_balances_raw:
@@ -848,7 +844,7 @@ def main():
     upbit_eth_return = ((eth_price_fin - upbit_balances.get("ETH", {}).get("avg_buy", 0.0)) / upbit_balances.get("ETH", {}).get("avg_buy", 1.0)) * 100 if eth_bal_fin > 0 else 0.0
 
     report = []
-    if DRY_RUN:
+    if is_dry_run:
         report.append("⚡ **[로컬 모의매매] 모의 주문 체결 및 포트폴리오 잔고 보고서**")
     else:
         report.append("⚡ **[로컬 자동매매] 실거래 주문 체결 및 포트폴리오 잔고 보고서**")
@@ -870,7 +866,7 @@ def main():
         report.append("• **ETH**: 미보유 (현금화)")
         
     report.append("\n🟢 **서브 전략 (빗썸 - 알트코인)**")
-    if USE_ALTCOIN_STRATEGY:
+    if use_alt_strategy:
         report.append(f"• **시장 필터 상태**: `{market_filter_state}` (최근 확정 기준)")
         report.append(f"• **총 자산 가치**: {total_bithumb_fin:,.0f} 원")
         if total_bithumb_fin > 0:
@@ -887,7 +883,7 @@ def main():
         report.append("• **상태**: 비활성화됨 (Disabled)")
 
     # 6.4 당일 매매 내역 요약 추가
-    report.append("\n🛠️ **당일 실거래 체결 내역**" if not DRY_RUN else "\n🛠️ **당일 모의 매매 체결 내역**")
+    report.append("\n🛠️ **당일 실거래 체결 내역**" if not is_dry_run else "\n🛠️ **당일 모의 매매 체결 내역**")
     all_orders = upbit_order_history + bithumb_order_history
     if all_orders:
         for order in all_orders:
@@ -902,6 +898,71 @@ def main():
     send_discord_message(full_report_text)
     
     logging.info("매매 및 잔고 리포팅이 무사히 완료되었습니다.")
+
+
+def main():
+    kst_now = get_kst_now()
+    logging.info(f"퀀트 매매 시스템 기동 - 실행 시각 (KST): {kst_now.strftime('%Y-%m-%d %H:%M:%S')}")
+    
+    # CLI 인자 파서 정의
+    parser = argparse.ArgumentParser(
+        description="암호화폐 퀀트 매매 봇 (Upbit BTC/ETH 듀얼 모멘텀 + Bithumb 알트코인 모멘텀)",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+실행 예시:
+  python src/main.py --signal-only      # 시그널 방향성 브리핑만 실행 (API 키 불필요)
+  python src/main.py --dry-run          # 로컬 모의 매매 시뮬레이션
+  python src/main.py --live             # 로컬 실거래 자동 매수/매도 주문 집행
+  python src/main.py --live --no-alt    # 빗썸 알트코인 제외하고 업비트 메인만 실거래
+        """
+    )
+    
+    mode_group = parser.add_mutually_exclusive_group()
+    mode_group.add_argument("--mode", "-m", choices=["signal", "dry-run", "live"], default=None,
+                            help="실행 모드 지정 (signal: 시그널 브리핑, dry-run: 모의매매, live: 실거래)")
+    mode_group.add_argument("--signal-only", "-s", action="store_true",
+                            help="시그널 브리핑 전용 모드 (API 키 및 잔고 조회 없이 방향성 분석만 수행)")
+    mode_group.add_argument("--dry-run", "-d", action="store_true",
+                            help="모의 매매(Dry-Run) 모드 (실제 주문 없이 가상 체결 및 리포팅)")
+    mode_group.add_argument("--live", "-l", action="store_true",
+                            help="실거래(Live Trading) 모드 (실제 계좌 잔고 조회 및 거래소 주문 집행)")
+    
+    parser.add_argument("--no-alt", action="store_true",
+                        help="빗썸 알트코인 서브 전략 비활성화 (업비트 BTC/ETH 메인 전략만 실행)")
+    
+    args, unknown = parser.parse_known_args()
+    
+    # 1. 실행 모드 판별
+    if args.signal_only:
+        exec_mode = "signal"
+    elif args.live:
+        exec_mode = "live"
+    elif args.dry_run:
+        exec_mode = "dry-run"
+    elif args.mode:
+        exec_mode = args.mode
+    elif os.getenv("GITHUB_ACTIONS", "").lower() == "true" or SIGNAL_ONLY:
+        exec_mode = "signal"
+    else:
+        # 로컬 기본값: API 키가 누락되었으면 안전하게 signal 모드로, 설정되어 있으면 dry-run 모드로 실행
+        if not (UPBIT_ACCESS_KEY and UPBIT_SECRET_KEY):
+            logging.info("API Key가 설정되어 있지 않아 기본 [시그널 브리핑 모드]로 가동합니다.")
+            exec_mode = "signal"
+        else:
+            logging.info("실거래 옵션(--live)이 지정되지 않아 안전을 위해 기본 [모의 매매(Dry-Run) 모드]로 가동합니다.")
+            exec_mode = "dry-run"
+            
+    # 알트코인 서브 전략 활성화 여부
+    use_alt = USE_ALTCOIN_STRATEGY and (not args.no_alt)
+    
+    logging.info(f"선택된 실행 모드: [{exec_mode.upper()}] | 빗썸 알트코인 전략: [{'활성' if use_alt else '비활성'}]")
+    
+    # 2. 모드별 실행 분기
+    if exec_mode == "signal":
+        run_signal_only_briefing(kst_now, use_alt_strategy=use_alt)
+    else:
+        is_dry_run = (exec_mode == "dry-run")
+        run_live_trading(kst_now, is_dry_run=is_dry_run, use_alt_strategy=use_alt)
 
 if __name__ == "__main__":
     try:

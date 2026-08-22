@@ -13,9 +13,10 @@ from config import BITHUMB_ACCESS_KEY, BITHUMB_SECRET_KEY, DRY_RUN
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
 class BithumbClient:
-    def __init__(self, access_key=None, secret_key=None):
+    def __init__(self, access_key=None, secret_key=None, dry_run=None):
         self.access_key = access_key or BITHUMB_ACCESS_KEY
         self.secret_key = secret_key or BITHUMB_SECRET_KEY
+        self.dry_run = dry_run if dry_run is not None else DRY_RUN
         self.base_url = "https://api.bithumb.com"
 
     def _get_headers(self, params=None):
@@ -116,7 +117,7 @@ class BithumbClient:
             "ord_type": "price"
         }
         
-        if DRY_RUN:
+        if self.dry_run:
             logging.info(f"[드라이런] 빗썸 시장가 매수 주문 모의 실행: {market} - {price} KRW")
             return {"uuid": f"dryrun-buy-{uuid.uuid4()}", "side": "bid", "ord_type": "price", "price": str(price), "state": "done"}
 
@@ -142,7 +143,7 @@ class BithumbClient:
             "ord_type": "market"
         }
         
-        if DRY_RUN:
+        if self.dry_run:
             logging.info(f"[드라이런] 빗썸 시장가 매도 주문 모의 실행: {market} - {volume} 수량")
             return {"uuid": f"dryrun-sell-{uuid.uuid4()}", "side": "ask", "ord_type": "market", "volume": str(volume), "state": "done"}
 

@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
 import os
+from dotenv import load_dotenv
+
+# .env 파일이 프로젝트 루트에 존재할 경우 자동 로드
+load_dotenv()
 
 # ==========================================
 # [시스템 제어 및 환경 설정]
