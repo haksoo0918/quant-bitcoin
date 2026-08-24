@@ -1,10 +1,10 @@
 {
-  "updated_at": "2026-08-24T09:45:34.402754+00:00",
-  "updated_at_formatted": "2026-08-24 09:45:34 KST",
+  "updated_at": "2026-08-24T10:45:05.375636+00:00",
+  "updated_at_formatted": "2026-08-24 10:45:05 KST",
   "mode": "signal",
   "upbit": {
     "btc": {
-      "current_price": 105894000.0,
+      "current_price": 105915000.0,
       "sma": 104260995.45454545,
       "sma_len": 220,
       "upper_buffer": 106346215.36363636,
@@ -14,7 +14,7 @@
       "guide": "기존 보유 상태 유지 (신규 진입 자제)"
     },
     "eth": {
-      "current_price": 3353000.0,
+      "current_price": 3344000.0,
       "sma": 2764200.0,
       "sma_len": 50,
       "atr_14": 127500.0,
@@ -34,9 +34,9 @@
       {
         "market": "KRW-ACE",
         "currency": "ACE",
-        "return_14d": 0.896969696969697,
+        "return_14d": 0.9878787878787879,
         "avg_val_7d": 23228983220.28889,
-        "price": 313.0
+        "price": 328.0
       },
       {
         "market": "KRW-ENA",
@@ -48,16 +48,16 @@
       {
         "market": "KRW-TRUMP",
         "currency": "TRUMP",
-        "return_14d": 0.6793893129770993,
+        "return_14d": 0.6307251908396947,
         "avg_val_7d": 20231918511.698574,
-        "price": 3520.0
+        "price": 3418.0
       },
       {
         "market": "KRW-XRP",
         "currency": "XRP",
-        "return_14d": 0.4088397790055249,
+        "return_14d": 0.39779005524861877,
         "avg_val_7d": 247211556644.60254,
-        "price": 2040.0
+        "price": 2024.0
       }
     ],
     "guide": "선정된 4개 종목(ACE, ENA, TRUMP, XRP) 각 25% 균등 매수"
