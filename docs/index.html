@@ -98,7 +98,7 @@
     }
 
     /* ==========================================================================
-       Global Styles
+       Global Styles & Resets
        ========================================================================== */
     * {
       box-sizing: border-box;
@@ -122,7 +122,12 @@
       padding: 16px;
     }
 
-    /* SVG Icon Utility */
+    /* Utility & Helpers */
+    .hidden {
+      display: none !important;
+    }
+
+    /* SVG Icon Classes */
     .icon {
       display: inline-block;
       width: 18px;
@@ -137,6 +142,11 @@
 
     .icon-sm { width: 14px; height: 14px; }
     .icon-lg { width: 22px; height: 22px; }
+    
+    .icon-cyan { color: var(--accent-cyan); }
+    .icon-green { color: var(--accent-green); }
+    .icon-indigo { color: var(--accent-indigo); }
+    .icon-external { margin-left: 2px; }
 
     /* Header */
     header {
@@ -211,7 +221,7 @@
       opacity: 0.9;
     }
 
-    /* Live Update Time Bar */
+    /* Live Update Status Bar */
     .status-bar {
       display: flex;
       justify-content: space-between;
@@ -224,6 +234,12 @@
       font-size: 0.8rem;
       color: var(--text-secondary);
       box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    }
+
+    .status-updated-time {
+      display: flex;
+      align-items: center;
+      gap: 4px;
     }
 
     .live-badge {
@@ -338,7 +354,6 @@
       border-radius: 14px;
       padding: 18px;
       box-shadow: var(--card-shadow);
-      /* 애니메이션 제거: 고정 UI 유지 */
     }
 
     .card-header {
@@ -462,6 +477,33 @@
       margin-bottom: 14px;
     }
 
+    .filter-title {
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .filter-subtitle {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-left: 6px;
+    }
+
+    .alt-strategy-desc {
+      font-size: 0.84rem;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+    }
+
+    .alt-recommend-header {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--accent-cyan);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
     .alt-list {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -479,10 +521,19 @@
       align-items: center;
     }
 
+    .alt-item-empty {
+      grid-column: 1 / -1;
+    }
+
     .alt-coin-name {
       font-weight: 700;
       font-size: 0.9rem;
       color: var(--text-primary);
+    }
+
+    .alt-sub-text {
+      font-size: 0.72rem;
+      color: var(--text-muted);
     }
 
     .alt-return {
@@ -499,6 +550,12 @@
       padding: 16px;
       margin-bottom: 20px;
       box-shadow: var(--card-shadow);
+    }
+
+    .stats-card-desc {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      font-weight: 500;
     }
 
     .stats-grid {
@@ -535,6 +592,20 @@
       color: var(--accent-cyan);
     }
 
+    .stat-val-cyan {
+      color: var(--accent-cyan);
+    }
+
+    .stat-val-green {
+      color: var(--accent-green);
+    }
+
+    .stat-sub {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
     /* Footer */
     footer {
       text-align: center;
@@ -542,6 +613,10 @@
       color: var(--text-muted);
       margin-top: 30px;
       line-height: 1.6;
+    }
+
+    .footer-links {
+      margin-top: 6px;
     }
 
     footer a {
@@ -593,7 +668,7 @@
       <div class="header-actions">
         <!-- Theme Toggle Button -->
         <button id="btn-theme" class="btn" title="라이트 / 다크 테마 전환">
-          <svg id="theme-icon-sun" class="icon" viewBox="0 0 24 24" style="display: none;">
+          <svg id="theme-icon-sun" class="icon hidden" viewBox="0 0 24 24">
             <circle cx="12" cy="12" r="4"/>
             <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
           </svg>
@@ -615,7 +690,7 @@
         </button>
 
         <!-- PWA Install Button -->
-        <button id="btn-install" class="btn btn-primary" style="display: none;" title="스마트폰 홈 화면에 앱 설치">
+        <button id="btn-install" class="btn btn-primary hidden" title="스마트폰 홈 화면에 앱 설치">
           <svg class="icon" viewBox="0 0 24 24">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
             <polyline points="7 10 12 15 17 10"/>
@@ -632,7 +707,7 @@
         <div class="dot-pulse"></div>
         <span id="live-text">자동 업데이트 가동 중</span>
       </div>
-      <div id="updated-time" style="display: flex; align-items: center; gap: 4px;">
+      <div id="updated-time" class="status-updated-time">
         <svg class="icon icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         <span>기준 일시: 로딩 중...</span>
       </div>
@@ -658,7 +733,7 @@
 
     <!-- Strategy Section: Upbit -->
     <div class="section-title">
-      <svg class="icon" viewBox="0 0 24 24" style="color: var(--accent-cyan);"><path d="m3 3 7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/><path d="m13 13 6 6"/></svg>
+      <svg class="icon icon-cyan" viewBox="0 0 24 24"><path d="m3 3 7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/><path d="m13 13 6 6"/></svg>
       <span>업비트 메인 전략 (50:50 듀얼 모멘텀)</span>
     </div>
 
@@ -738,25 +813,25 @@
 
     <!-- Strategy Section: Bithumb -->
     <div class="section-title">
-      <svg class="icon" viewBox="0 0 24 24" style="color: var(--accent-green);"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+      <svg class="icon icon-green" viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
       <span>빗썸 서브 전략 (알트코인 상대 모멘텀)</span>
     </div>
 
     <div class="alt-card">
       <div class="alt-header">
         <div>
-          <strong style="font-size: 1rem;">공통 시장 필터</strong>
-          <span style="font-size: 0.8rem; color: var(--text-secondary); margin-left: 6px;">(업비트 BTC 220 SMA ±2%)</span>
+          <strong class="filter-title">공통 시장 필터</strong>
+          <span class="filter-subtitle">(업비트 BTC 220 SMA ±2%)</span>
         </div>
         <div id="bithumb-filter-badge" class="status-pill status-bull">Bull (상승장)</div>
       </div>
 
-      <div style="font-size: 0.84rem; color: var(--text-secondary); margin-bottom: 12px;" id="bithumb-strategy-desc">
+      <div class="alt-strategy-desc" id="bithumb-strategy-desc">
         하락장 시 모든 알트코인을 전량 현금화하며, 월요일 상승장 시 상위 4개 종목을 각 25%씩 동일 비중 매수합니다.
       </div>
 
       <div id="alt-recommend-box">
-        <div style="font-size: 0.8rem; font-weight: 700; color: var(--accent-cyan); margin-bottom: 6px; display: flex; align-items: center; gap: 4px;">
+        <div class="alt-recommend-header">
           <svg class="icon icon-sm" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
           <span>주간 추천 알트코인 (거래대금 상위 10선 중 14일 수익률 TOP 4)</span>
         </div>
@@ -768,29 +843,29 @@
 
     <!-- Historical Backtest Summary -->
     <div class="section-title">
-      <svg class="icon" viewBox="0 0 24 24" style="color: var(--accent-indigo);"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      <svg class="icon icon-indigo" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
       <span>역사적 백테스트 검증 성과 (최근 4.3년)</span>
     </div>
 
     <div class="stats-card">
-      <div style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 500;">
+      <div class="stats-card-desc">
         1,500일 일봉 백테스트 (2022.04 ~ 현재) 시뮬레이션 결과
       </div>
       <div class="stats-grid">
         <div class="stat-box">
           <div class="stat-label">전략 연평균 성장률 (CAGR)</div>
           <div class="stat-val">+30.36%</div>
-          <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">단순보유: +8.44%</div>
+          <div class="stat-sub">단순보유: +8.44%</div>
         </div>
         <div class="stat-box">
           <div class="stat-label">최대 낙폭 방어 (MDD)</div>
-          <div class="stat-val" style="color: var(--accent-cyan);">-28.07%</div>
-          <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">단순보유: -59.09%</div>
+          <div class="stat-val stat-val-cyan">-28.07%</div>
+          <div class="stat-sub">단순보유: -59.09%</div>
         </div>
         <div class="stat-box">
           <div class="stat-label">전략 누적 수익률</div>
-          <div class="stat-val" style="color: var(--accent-green);">+214.42%</div>
-          <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">초과 성과: +172.51%p</div>
+          <div class="stat-val stat-val-green">+214.42%</div>
+          <div class="stat-sub">초과 성과: +172.51%p</div>
         </div>
       </div>
     </div>
@@ -799,10 +874,10 @@
     <footer>
       <div>Crypto Quantitative Trading Bot • PWA Dashboard</div>
       <div>GitHub Actions 자동화로 매일 09:05 KST 최신 시그널을 계산합니다.</div>
-      <div style="margin-top: 6px;">
+      <div class="footer-links">
         <a href="https://github.com/haksoo0918/quant-bitcoin" target="_blank" rel="noopener">
           <span>GitHub 저장소 바로가기</span>
-          <svg class="icon icon-sm" viewBox="0 0 24 24" style="margin-left: 2px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          <svg class="icon icon-sm icon-external" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
         </a>
       </div>
     </footer>
@@ -827,13 +902,13 @@
 
       if (theme === 'dark') {
         if (metaTheme) metaTheme.setAttribute('content', '#090d16');
-        if (sunIcon) sunIcon.style.display = 'inline-block';
-        if (moonIcon) moonIcon.style.display = 'none';
+        if (sunIcon) sunIcon.classList.remove('hidden');
+        if (moonIcon) moonIcon.classList.add('hidden');
         if (themeText) themeText.textContent = '라이트모드';
       } else {
         if (metaTheme) metaTheme.setAttribute('content', '#f8fafc');
-        if (sunIcon) sunIcon.style.display = 'none';
-        if (moonIcon) moonIcon.style.display = 'inline-block';
+        if (sunIcon) sunIcon.classList.add('hidden');
+        if (moonIcon) moonIcon.classList.remove('hidden');
         if (themeText) themeText.textContent = '다크모드';
       }
     }
@@ -947,14 +1022,14 @@
             <div class="alt-item">
               <div>
                 <div class="alt-coin-name">${i+1}위: ${c.currency || c.market.replace('KRW-', '')}</div>
-                <div style="font-size: 0.72rem; color: var(--text-muted);">25% 균등 매수</div>
+                <div class="alt-sub-text">25% 균등 매수</div>
               </div>
               <div class="alt-return">${c.return_14d >= 0 ? '+' : ''}${(c.return_14d * 100).toFixed(2)}%</div>
             </div>
           `).join('');
         } else {
           altListEl.innerHTML = `
-            <div class="alt-item" style="grid-column: 1 / -1;">
+            <div class="alt-item alt-item-empty">
               <span class="alt-coin-name">${b.market_filter === 'Bull' ? '월요일이 아니므로 기존 선정 종목을 유지합니다.' : '하락장이므로 모든 알트코인을 전량 현금화합니다.'}</span>
             </div>
           `;
@@ -1028,7 +1103,7 @@
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredPrompt = e;
-      btnInstall.style.display = 'inline-flex';
+      btnInstall.classList.remove('hidden');
     });
 
     btnInstall.addEventListener('click', async () => {
@@ -1036,7 +1111,7 @@
       deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
       if (outcome === 'accepted') {
-        btnInstall.style.display = 'none';
+        btnInstall.classList.add('hidden');
       }
       deferredPrompt = null;
     });
