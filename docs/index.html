@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -7,50 +7,113 @@
   
   <!-- PWA Meta Tags -->
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#0b0f19">
+  <meta name="theme-color" id="meta-theme-color" content="#f8fafc">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="QuantCoin">
   <link rel="apple-touch-icon" href="icons/icon.svg">
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 
+  <!-- Google Fonts: Noto Sans KR -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
   <style>
-    :root {
+    /* ==========================================================================
+       CSS Variables & Themes (Light Mode Default)
+       ========================================================================== */
+    :root, [data-theme="light"] {
+      --bg-primary: #f8fafc;
+      --bg-secondary: #f1f5f9;
+      --bg-card: #ffffff;
+      --bg-card-sub: #f8fafc;
+      --border-color: #e2e8f0;
+      --border-card: #e2e8f0;
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+      
+      --accent-cyan: #0284c7;
+      --accent-indigo: #4f46e5;
+      --accent-green: #16a34a;
+      --accent-red: #dc2626;
+      --accent-amber: #d97706;
+
+      --pill-bull-bg: #dcfce7;
+      --pill-bull-text: #15803d;
+      --pill-bull-border: #86efac;
+
+      --pill-bear-bg: #fee2e2;
+      --pill-bear-text: #b91c1c;
+      --pill-bear-border: #fca5a5;
+
+      --pill-buffer-bg: #fef3c7;
+      --pill-buffer-text: #b45309;
+      --pill-buffer-border: #fde68a;
+
+      --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+      --banner-bg: linear-gradient(135deg, #ffffff, #f0fdf4);
+      --banner-border: #bbf7d0;
+
+      --guide-box-bg: #f8fafc;
+      --guide-box-border: #cbd5e1;
+    }
+
+    [data-theme="dark"] {
       --bg-primary: #090d16;
       --bg-secondary: #111827;
-      --bg-card: rgba(17, 24, 39, 0.85);
-      --bg-card-hover: rgba(30, 41, 59, 0.9);
+      --bg-card: rgba(17, 24, 39, 0.9);
+      --bg-card-sub: rgba(15, 23, 42, 0.8);
       --border-color: rgba(51, 65, 85, 0.6);
+      --border-card: rgba(51, 65, 85, 0.6);
       --text-primary: #f8fafc;
       --text-secondary: #94a3b8;
       --text-muted: #64748b;
+      
       --accent-cyan: #38bdf8;
       --accent-indigo: #6366f1;
       --accent-green: #10b981;
       --accent-red: #ef4444;
       --accent-amber: #f59e0b;
-      --radius-lg: 16px;
-      --radius-md: 12px;
-      --shadow-glow: 0 0 25px rgba(56, 189, 248, 0.15);
+
+      --pill-bull-bg: rgba(16, 185, 129, 0.18);
+      --pill-bull-text: #34d399;
+      --pill-bull-border: rgba(16, 185, 129, 0.35);
+
+      --pill-bear-bg: rgba(239, 68, 68, 0.18);
+      --pill-bear-text: #f87171;
+      --pill-bear-border: rgba(239, 68, 68, 0.35);
+
+      --pill-buffer-bg: rgba(245, 158, 11, 0.18);
+      --pill-buffer-text: #fbbf24;
+      --pill-buffer-border: rgba(245, 158, 11, 0.35);
+
+      --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      --banner-bg: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.9));
+      --banner-border: rgba(56, 189, 248, 0.4);
+
+      --guide-box-bg: rgba(30, 41, 59, 0.5);
+      --guide-box-border: var(--accent-cyan);
     }
 
+    /* ==========================================================================
+       Global Styles
+       ========================================================================== */
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
       -webkit-tap-highlight-color: transparent;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans KR", sans-serif;
+      font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
     body {
       background-color: var(--bg-primary);
-      background-image: 
-        radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.1) 0px, transparent 50%),
-        radial-gradient(at 100% 100%, rgba(99, 102, 241, 0.1) 0px, transparent 50%);
-      background-attachment: fixed;
       color: var(--text-primary);
       min-height: 100vh;
       padding-bottom: 40px;
+      transition: background-color 0.25s ease, color 0.25s ease;
     }
 
     .container {
@@ -58,6 +121,22 @@
       margin: 0 auto;
       padding: 16px;
     }
+
+    /* SVG Icon Utility */
+    .icon {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      stroke-width: 2;
+      stroke: currentColor;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      vertical-align: middle;
+    }
+
+    .icon-sm { width: 14px; height: 14px; }
+    .icon-lg { width: 22px; height: 22px; }
 
     /* Header */
     header {
@@ -76,27 +155,28 @@
     }
 
     .logo-img {
-      width: 42px;
-      height: 42px;
+      width: 40px;
+      height: 40px;
       border-radius: 10px;
-      filter: drop-shadow(0 2px 8px rgba(56, 189, 248, 0.4));
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
 
     .logo-text h1 {
       font-size: 1.25rem;
-      font-weight: 700;
-      background: linear-gradient(135deg, #38bdf8, #818cf8);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      font-weight: 800;
+      color: var(--text-primary);
+      letter-spacing: -0.5px;
     }
 
     .logo-text p {
       font-size: 0.78rem;
       color: var(--text-secondary);
+      font-weight: 500;
     }
 
     .header-actions {
       display: flex;
+      align-items: center;
       gap: 8px;
     }
 
@@ -110,19 +190,20 @@
       color: var(--text-primary);
       background: var(--bg-card);
       border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
+      border-radius: 10px;
       cursor: pointer;
-      transition: all 0.2s ease;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      transition: background-color 0.15s ease, border-color 0.15s ease;
     }
 
     .btn:hover {
-      background: var(--bg-card-hover);
+      background: var(--bg-secondary);
       border-color: var(--accent-cyan);
-      box-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
     }
 
     .btn-primary {
-      background: linear-gradient(135deg, #0284c7, #4f46e5);
+      background: var(--accent-cyan);
+      color: #ffffff;
       border: none;
     }
 
@@ -135,13 +216,14 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background: rgba(15, 23, 42, 0.6);
+      background: var(--bg-card);
       border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
+      border-radius: 12px;
       padding: 10px 14px;
       margin-bottom: 16px;
       font-size: 0.8rem;
       color: var(--text-secondary);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
     }
 
     .live-badge {
@@ -149,7 +231,7 @@
       align-items: center;
       gap: 6px;
       color: var(--accent-green);
-      font-weight: 600;
+      font-weight: 700;
     }
 
     .dot-pulse {
@@ -157,24 +239,24 @@
       height: 8px;
       background-color: var(--accent-green);
       border-radius: 50%;
-      box-shadow: 0 0 8px var(--accent-green);
+      box-shadow: 0 0 6px var(--accent-green);
       animation: pulse 2s infinite;
     }
 
     @keyframes pulse {
       0% { transform: scale(0.95); opacity: 0.8; }
-      50% { transform: scale(1.3); opacity: 1; box-shadow: 0 0 12px var(--accent-green); }
+      50% { transform: scale(1.3); opacity: 1; }
       100% { transform: scale(0.95); opacity: 0.8; }
     }
 
     /* Master Action Banner */
     .action-banner {
-      background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.9));
-      border: 1px solid rgba(56, 189, 248, 0.4);
-      border-radius: var(--radius-lg);
+      background: var(--banner-bg);
+      border: 1px solid var(--banner-border);
+      border-radius: 14px;
       padding: 18px;
       margin-bottom: 20px;
-      box-shadow: var(--shadow-glow);
+      box-shadow: var(--card-shadow);
     }
 
     .action-banner h2 {
@@ -182,10 +264,10 @@
       color: var(--accent-cyan);
       display: flex;
       align-items: center;
-      gap: 6px;
-      margin-bottom: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+      gap: 8px;
+      margin-bottom: 12px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
     }
 
     .action-grid {
@@ -201,8 +283,9 @@
     }
 
     .action-item {
-      background: rgba(15, 23, 42, 0.8);
-      border-radius: var(--radius-md);
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
       padding: 12px;
       border-left: 4px solid var(--accent-cyan);
     }
@@ -212,10 +295,10 @@
     }
 
     .action-label {
-      font-size: 0.75rem;
-      color: var(--text-muted);
+      font-size: 0.76rem;
+      color: var(--text-secondary);
       margin-bottom: 4px;
-      font-weight: 600;
+      font-weight: 700;
     }
 
     .action-value {
@@ -226,12 +309,13 @@
 
     /* Section Title */
     .section-title {
-      font-size: 1.1rem;
-      font-weight: 700;
+      font-size: 1.05rem;
+      font-weight: 800;
       margin: 24px 0 12px 0;
       display: flex;
       align-items: center;
       gap: 8px;
+      letter-spacing: -0.3px;
     }
 
     /* Strategy Cards */
@@ -250,16 +334,11 @@
 
     .card {
       background: var(--bg-card);
-      backdrop-filter: blur(12px);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-card);
+      border-radius: 14px;
       padding: 18px;
-      transition: transform 0.2s ease, border-color 0.2s ease;
-    }
-
-    .card:hover {
-      border-color: rgba(56, 189, 248, 0.4);
-      transform: translateY(-2px);
+      box-shadow: var(--card-shadow);
+      /* 애니메이션 제거: 고정 UI 유지 */
     }
 
     .card-header {
@@ -274,16 +353,17 @@
       align-items: center;
       gap: 8px;
       font-size: 1.1rem;
-      font-weight: 700;
+      font-weight: 800;
     }
 
     .coin-badge {
       font-size: 0.72rem;
       padding: 3px 8px;
       border-radius: 6px;
-      background: rgba(56, 189, 248, 0.15);
+      background: var(--bg-secondary);
       color: var(--accent-cyan);
-      font-weight: 600;
+      font-weight: 700;
+      border: 1px solid var(--border-color);
     }
 
     .status-pill {
@@ -297,21 +377,21 @@
     }
 
     .status-bull {
-      background: rgba(16, 185, 129, 0.2);
-      color: #34d399;
-      border: 1px solid rgba(16, 185, 129, 0.4);
+      background: var(--pill-bull-bg);
+      color: var(--pill-bull-text);
+      border: 1px solid var(--pill-bull-border);
     }
 
     .status-bear {
-      background: rgba(239, 68, 68, 0.2);
-      color: #f87171;
-      border: 1px solid rgba(239, 68, 68, 0.4);
+      background: var(--pill-bear-bg);
+      color: var(--pill-bear-text);
+      border: 1px solid var(--pill-bear-border);
     }
 
     .status-buffer, .status-neutral {
-      background: rgba(245, 158, 11, 0.2);
-      color: #fbbf24;
-      border: 1px solid rgba(245, 158, 11, 0.4);
+      background: var(--pill-buffer-bg);
+      color: var(--pill-buffer-text);
+      border: 1px solid var(--pill-buffer-border);
     }
 
     .price-display {
@@ -319,9 +399,9 @@
     }
 
     .price-main {
-      font-size: 1.5rem;
+      font-size: 1.55rem;
       font-weight: 800;
-      color: #ffffff;
+      color: var(--text-primary);
       letter-spacing: -0.5px;
     }
 
@@ -329,15 +409,16 @@
       font-size: 0.78rem;
       color: var(--text-secondary);
       margin-top: 2px;
+      font-weight: 500;
     }
 
-    /* Gauge / Channel visualizer */
+    /* Channel box */
     .channel-box {
-      background: rgba(15, 23, 42, 0.8);
-      border-radius: var(--radius-md);
+      background: var(--bg-card-sub);
+      border-radius: 10px;
       padding: 10px 12px;
       margin-bottom: 12px;
-      border: 1px solid rgba(51, 65, 85, 0.4);
+      border: 1px solid var(--border-color);
     }
 
     .channel-row {
@@ -346,46 +427,32 @@
       font-size: 0.76rem;
       color: var(--text-secondary);
       margin-bottom: 4px;
+      font-weight: 500;
     }
 
     .channel-row .val {
-      font-weight: 600;
+      font-weight: 700;
       color: var(--text-primary);
-    }
-
-    /* Progress bar */
-    .gauge-bar-bg {
-      height: 8px;
-      background: #1e293b;
-      border-radius: 4px;
-      position: relative;
-      margin: 8px 0;
-      overflow: hidden;
-    }
-
-    .gauge-fill {
-      height: 100%;
-      background: linear-gradient(90deg, #6366f1, #38bdf8);
-      border-radius: 4px;
-      transition: width 0.4s ease;
     }
 
     .card-footer-guide {
       font-size: 0.82rem;
-      color: #cbd5e1;
-      background: rgba(30, 41, 59, 0.5);
+      color: var(--text-primary);
+      background: var(--guide-box-bg);
       border-radius: 8px;
       padding: 8px 10px;
-      border-left: 3px solid var(--accent-cyan);
+      border-left: 3px solid var(--guide-box-border);
+      font-weight: 500;
     }
 
     /* Altcoin Sub-Strategy Card */
     .alt-card {
       background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-card);
+      border-radius: 14px;
       padding: 18px;
       margin-bottom: 20px;
+      box-shadow: var(--card-shadow);
     }
 
     .alt-header {
@@ -403,9 +470,9 @@
     }
 
     .alt-item {
-      background: rgba(15, 23, 42, 0.8);
+      background: var(--bg-card-sub);
       border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
+      border-radius: 10px;
       padding: 10px 12px;
       display: flex;
       justify-content: space-between;
@@ -419,18 +486,19 @@
     }
 
     .alt-return {
-      font-weight: 700;
+      font-weight: 800;
       font-size: 0.82rem;
       color: var(--accent-green);
     }
 
-    /* Backtest Stats Accordion */
+    /* Backtest Stats */
     .stats-card {
-      background: rgba(17, 24, 39, 0.6);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-lg);
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: 14px;
       padding: 16px;
       margin-bottom: 20px;
+      box-shadow: var(--card-shadow);
     }
 
     .stats-grid {
@@ -447,21 +515,22 @@
     }
 
     .stat-box {
-      background: rgba(15, 23, 42, 0.8);
-      border-radius: var(--radius-md);
+      background: var(--bg-card-sub);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
       padding: 12px;
       text-align: center;
     }
 
     .stat-label {
       font-size: 0.72rem;
-      color: var(--text-muted);
+      color: var(--text-secondary);
       margin-bottom: 4px;
       font-weight: 600;
     }
 
     .stat-val {
-      font-size: 1.15rem;
+      font-size: 1.2rem;
       font-weight: 800;
       color: var(--accent-cyan);
     }
@@ -478,6 +547,7 @@
     footer a {
       color: var(--accent-cyan);
       text-decoration: none;
+      font-weight: 600;
     }
 
     footer a:hover {
@@ -486,14 +556,19 @@
 
     /* Loading Spinner */
     .spinner {
-      border: 2px solid rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(0, 0, 0, 0.1);
       width: 14px;
       height: 14px;
       border-radius: 50%;
-      border-left-color: var(--accent-cyan);
+      border-left-color: currentColor;
       animation: spin 1s linear infinite;
       display: inline-block;
       vertical-align: middle;
+    }
+
+    [data-theme="dark"] .spinner {
+      border-color: rgba(255, 255, 255, 0.1);
+      border-left-color: var(--accent-cyan);
     }
 
     @keyframes spin {
@@ -516,12 +591,36 @@
         </div>
       </div>
       <div class="header-actions">
+        <!-- Theme Toggle Button -->
+        <button id="btn-theme" class="btn" title="라이트 / 다크 테마 전환">
+          <svg id="theme-icon-sun" class="icon" viewBox="0 0 24 24" style="display: none;">
+            <circle cx="12" cy="12" r="4"/>
+            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+          </svg>
+          <svg id="theme-icon-moon" class="icon" viewBox="0 0 24 24">
+            <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+          </svg>
+          <span id="theme-text">다크모드</span>
+        </button>
+
+        <!-- Live Refresh Button -->
         <button id="btn-refresh" class="btn" title="실시간 시세 및 지표 새로고침">
-          <span id="refresh-icon">🔄</span>
+          <svg id="refresh-icon" class="icon" viewBox="0 0 24 24">
+            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+            <path d="M21 3v5h-5"/>
+            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+            <path d="M8 16H3v5"/>
+          </svg>
           <span>새로고침</span>
         </button>
-        <button id="btn-install" class="btn btn-primary" style="display: none;">
-          <span>📲</span>
+
+        <!-- PWA Install Button -->
+        <button id="btn-install" class="btn btn-primary" style="display: none;" title="스마트폰 홈 화면에 앱 설치">
+          <svg class="icon" viewBox="0 0 24 24">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
           <span>앱 설치</span>
         </button>
       </div>
@@ -533,12 +632,18 @@
         <div class="dot-pulse"></div>
         <span id="live-text">자동 업데이트 가동 중</span>
       </div>
-      <div id="updated-time">기준 일시: 로딩 중...</div>
+      <div id="updated-time" style="display: flex; align-items: center; gap: 4px;">
+        <svg class="icon icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span>기준 일시: 로딩 중...</span>
+      </div>
     </div>
 
     <!-- Master Action Banner -->
     <div class="action-banner">
-      <h2>💡 오늘의 종합 매매 행동 가이드</h2>
+      <h2>
+        <svg class="icon" viewBox="0 0 24 24"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
+        <span>오늘의 종합 매매 행동 가이드</span>
+      </h2>
       <div class="action-grid">
         <div class="action-item">
           <div class="action-label">🔵 업비트 메인 (BTC / ETH)</div>
@@ -553,7 +658,7 @@
 
     <!-- Strategy Section: Upbit -->
     <div class="section-title">
-      <span>🔵</span>
+      <svg class="icon" viewBox="0 0 24 24" style="color: var(--accent-cyan);"><path d="m3 3 7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/><path d="m13 13 6 6"/></svg>
       <span>업비트 메인 전략 (50:50 듀얼 모멘텀)</span>
     </div>
 
@@ -633,7 +738,7 @@
 
     <!-- Strategy Section: Bithumb -->
     <div class="section-title">
-      <span>🟢</span>
+      <svg class="icon" viewBox="0 0 24 24" style="color: var(--accent-green);"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
       <span>빗썸 서브 전략 (알트코인 상대 모멘텀)</span>
     </div>
 
@@ -651,8 +756,9 @@
       </div>
 
       <div id="alt-recommend-box">
-        <div style="font-size: 0.8rem; font-weight: 700; color: var(--accent-cyan); margin-bottom: 6px;">
-          🚀 주간 추천 알트코인 (거래대금 상위 10선 중 14일 수익률 TOP 4)
+        <div style="font-size: 0.8rem; font-weight: 700; color: var(--accent-cyan); margin-bottom: 6px; display: flex; align-items: center; gap: 4px;">
+          <svg class="icon icon-sm" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          <span>주간 추천 알트코인 (거래대금 상위 10선 중 14일 수익률 TOP 4)</span>
         </div>
         <div id="alt-list" class="alt-list">
           <div class="alt-item"><span class="alt-coin-name">알트코인 목록 로딩 중...</span></div>
@@ -662,12 +768,12 @@
 
     <!-- Historical Backtest Summary -->
     <div class="section-title">
-      <span>📈</span>
+      <svg class="icon" viewBox="0 0 24 24" style="color: var(--accent-indigo);"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
       <span>역사적 백테스트 검증 성과 (최근 4.3년)</span>
     </div>
 
     <div class="stats-card">
-      <div style="font-size: 0.8rem; color: var(--text-secondary);">
+      <div style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 500;">
         1,500일 일봉 백테스트 (2022.04 ~ 현재) 시뮬레이션 결과
       </div>
       <div class="stats-grid">
@@ -678,7 +784,7 @@
         </div>
         <div class="stat-box">
           <div class="stat-label">최대 낙폭 방어 (MDD)</div>
-          <div class="stat-val" style="color: #38bdf8;">-28.07%</div>
+          <div class="stat-val" style="color: var(--accent-cyan);">-28.07%</div>
           <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">단순보유: -59.09%</div>
         </div>
         <div class="stat-box">
@@ -694,25 +800,75 @@
       <div>Crypto Quantitative Trading Bot • PWA Dashboard</div>
       <div>GitHub Actions 자동화로 매일 09:05 KST 최신 시그널을 계산합니다.</div>
       <div style="margin-top: 6px;">
-        <a href="https://github.com/haksoo0918/quant-bitcoin" target="_blank" rel="noopener">GitHub 저장소 바로가기</a>
+        <a href="https://github.com/haksoo0918/quant-bitcoin" target="_blank" rel="noopener">
+          <span>GitHub 저장소 바로가기</span>
+          <svg class="icon icon-sm" viewBox="0 0 24 24" style="margin-left: 2px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        </a>
       </div>
     </footer>
 
   </div>
 
   <script>
+    // ==========================================================================
+    // Theme Switcher Logic (Light Mode Default)
+    // ==========================================================================
+    const currentTheme = localStorage.getItem('quant_theme') || 'light';
+    applyTheme(currentTheme);
+
+    function applyTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('quant_theme', theme);
+
+      const metaTheme = document.getElementById('meta-theme-color');
+      const sunIcon = document.getElementById('theme-icon-sun');
+      const moonIcon = document.getElementById('theme-icon-moon');
+      const themeText = document.getElementById('theme-text');
+
+      if (theme === 'dark') {
+        if (metaTheme) metaTheme.setAttribute('content', '#090d16');
+        if (sunIcon) sunIcon.style.display = 'inline-block';
+        if (moonIcon) moonIcon.style.display = 'none';
+        if (themeText) themeText.textContent = '라이트모드';
+      } else {
+        if (metaTheme) metaTheme.setAttribute('content', '#f8fafc');
+        if (sunIcon) sunIcon.style.display = 'none';
+        if (moonIcon) moonIcon.style.display = 'inline-block';
+        if (themeText) themeText.textContent = '다크모드';
+      }
+    }
+
+    const btnTheme = document.getElementById('btn-theme');
+    if (btnTheme) {
+      btnTheme.addEventListener('click', () => {
+        const activeTheme = document.documentElement.getAttribute('data-theme') || 'light';
+        const nextTheme = activeTheme === 'dark' ? 'light' : 'dark';
+        applyTheme(nextTheme);
+      });
+    }
+
+    // ==========================================================================
     // Format Currency Helper
+    // ==========================================================================
     function formatKRW(val) {
       if (val === undefined || val === null || isNaN(val)) return '-';
       return Math.round(val).toLocaleString('ko-KR') + ' 원';
     }
 
+    // ==========================================================================
     // Render Data to DOM
+    // ==========================================================================
     function renderStatus(data) {
       if (!data) return;
 
       // Update time
-      document.getElementById('updated-time').textContent = `기준 일시: ${data.updated_at_formatted || data.updated_at}`;
+      const timeEl = document.getElementById('updated-time');
+      if (timeEl) {
+        timeEl.innerHTML = `
+          <svg class="icon icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span>기준 일시: ${data.updated_at_formatted || data.updated_at}</span>
+        `;
+      }
 
       // Guides
       if (data.guides) {
@@ -845,7 +1001,15 @@
       await Promise.all([loadStatusData(), fetchLiveUpbitPrices()]);
       setTimeout(() => {
         btnRefresh.disabled = false;
-        btnRefresh.innerHTML = '<span>🔄</span> <span>새로고침</span>';
+        btnRefresh.innerHTML = `
+          <svg class="icon" viewBox="0 0 24 24">
+            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+            <path d="M21 3v5h-5"/>
+            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+            <path d="M8 16H3v5"/>
+          </svg>
+          <span>새로고침</span>
+        `;
       }, 500);
     });
 
