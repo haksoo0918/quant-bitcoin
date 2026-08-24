@@ -482,7 +482,7 @@ def save_markdown_report(metrics, btc_sma, eth_sma, trade_logs, no_rebalance=Fal
     # 성과 평가 코멘트 추가
     outperformance = metrics['total_return'] - metrics['bh_total_return']
     mdd_defense = metrics['bh_mdd'] - metrics['mdd']
-    report.append(f"\n> 💡 **주요 성과 요약**: 단순 보유 대비 **{outperformance:+.2f}%p**의 초과 수익률을 기록하였으며, 최대 낙폭(MDD) 방어 측면에서 벤치마크 대비 **{mdd_defense:.2f}%p** 만큼의 낙폭 축소 효과(자산 방어)를 달성하였습니다.")
+    report.append(f"\n> 💡 **주요 성과 요약**: 단순 보유 대비 **{outperformance:+.2f}%p** 의 초과 수익률을 기록하였으며, 최대 낙폭(MDD) 방어 측면에서 벤치마크 대비 **{mdd_defense:.2f}%p** 만큼의 낙폭 축소 효과(자산 방어)를 달성하였습니다.")
     
     report.append(f"\n## 2. 자산 가치 변동 추이 차트")
     report.append(f"![Equity Curve]({plot_filename})")

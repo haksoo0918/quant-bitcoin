@@ -60,9 +60,9 @@ quant-bitcoin/
   * 하락장 판정: `현재가 < 220일 SMA * 0.98`
   * 버퍼 구간(Standby): 가격이 버퍼 범위 내에 있을 경우, 과거 일봉 데이터를 역순으로 탐색하여 최근에 결정된 시장 상태를 현재 상태로 계승(유지)합니다.
 * **매일 점검 (09:05 KST)**:
-  * 공통 시장 필터가 **하락장**일 경우, 요일에 상관없이 보유한 모든 알트코인을 즉시 전량 시장가 매도하여 안전하게 현금화(KRW)합니다.
+  * 공통 시장 필터가 **하락장** 일 경우, 요일에 상관없이 보유한 모든 알트코인을 즉시 전량 시장가 매도하여 안전하게 현금화(KRW)합니다.
 * **주간 리밸런싱 (매주 월요일 09:05 KST)**:
-  * 공통 시장 필터가 **상승장**일 때만 실행합니다.
+  * 공통 시장 필터가 **상승장** 일 때만 실행합니다.
   * 종목 선정 단계:
     1. 최근 7일 평균 거래대금 상위 10개 종목 추출
     2. 선별된 10개 종목 중 최근 14일 수익률(상대 모멘텀) 상위 4개 종목 최종 선정
@@ -72,7 +72,7 @@ quant-bitcoin/
 
 ## 🚀 실행 환경 및 사용 방법
 
-본 시스템은 **GitHub Actions(클라우드 시그널 브리핑)**와 **Local PC(로컬 시그널 확인, 모의매매, 실거래 자동매매)**로 명확히 구분되어 구동됩니다.
+본 시스템은 **GitHub Actions(클라우드 시그널 브리핑)** 와 **Local PC(로컬 시그널 확인, 모의매매, 실거래 자동매매)** 로 명확히 구분되어 구동됩니다.
 
 ---
 
@@ -86,19 +86,19 @@ quant-bitcoin/
   2. 왼쪽 사이드바의 **[Secrets and variables] -> [Actions]** 클릭
   3. **[New repository secret]** 버튼 클릭 후 **`DISCORD_WEBHOOK_URL`** 1개만 등록
 * **작동 확인 및 수동 테스트**:
-  * **[Actions]** -> **[Crypto Quantitative Trading Signal Bot]** -> **[Run workflow]**를 클릭하여 즉시 테스트 가능합니다.
+  * **[Actions]** -> **[Crypto Quantitative Trading Signal Bot]** -> **[Run workflow]** 를 클릭하여 즉시 테스트 가능합니다.
 
 ---
 
 ### 2. PWA 웹 대시보드 & GitHub Pages 연동
 
-별도의 유료 웹 서버 없이 **GitHub Pages** 무료 호스팅을 통해 모바일 및 PC 브라우저에서 실시간 전략 상태 대시보드를 열람하고, 모바일 홈 화면에 **PWA 앱(바로가기)**으로 설치하여 편리하게 이용할 수 있습니다.
+별도의 유료 웹 서버 없이 **GitHub Pages** 무료 호스팅을 통해 모바일 및 PC 브라우저에서 실시간 전략 상태 대시보드를 열람하고, 모바일 홈 화면에 **PWA 앱(바로가기)** 으로 설치하여 편리하게 이용할 수 있습니다.
 
 #### 1) GitHub Pages 활성화 방법
 1. 저장소 상단 메뉴의 **[Settings]** 클릭
 2. 왼쪽 사이드바의 **[Pages]** 클릭
 3. **Build and deployment** -> **Source** 항목에서 **Deploy from a branch** 선택
-4. **Branch**를 **`main`**, 폴더를 **`/docs`**로 설정한 후 **[Save]** 클릭
+4. **Branch** 를 **`main`**, 폴더를 **`/docs`** 로 설정한 후 **[Save]** 클릭
 5. 수 분 내로 `https://<사용자아이디>.github.io/<저장소이름>/` 주소로 웹 대시보드가 오픈됩니다.
 
 #### 2) 대시보드 주요 기능
@@ -112,7 +112,7 @@ quant-bitcoin/
 
 ### 3. 로컬 PC 실행 방법 (CLI 인자 및 `.env` 환경 설정)
 
-로컬 환경에서는 API Key를 **`.env`** 파일에 안전하게 보관하고, 실행 옵션은 **CLI 명령어 인자(Arguments)**로 직관적으로 제어합니다.
+로컬 환경에서는 API Key를 **`.env`** 파일에 안전하게 보관하고, 실행 옵션은 **CLI 명령어 인자(Arguments)** 로 직관적으로 제어합니다.
 
 #### 1) 환경 변수 설정 (`.env`)
 프로젝트 루트의 `.env.example`을 복사하여 **`.env`** 파일을 생성하고 API Key 및 웹훅 주소를 입력합니다.
@@ -195,7 +195,7 @@ DISCORD_WEBHOOK_URL=디스코드_웹훅_주소
   python src/backtest.py --optimize
   ```
   * 연산 완료 시 모든 SMA 조합의 성과가 분석되어 누적 수익률이 높은 순서로 정렬된 **`backtest/backtest_optimization_report_YYYYMMDD_HHMMSS.md`** 보고서가 생성되며, 상위 15개 최적 조합이 콘솔 창에 랭킹 표로 출력됩니다.
-  * **리밸런싱 미적용 최적화**: `--no-rebalance` 옵션을 함께 추가하면 리밸런싱 없는 독립 자산 기준의 최적 파라미터 조합 랭킹 보고서인 **`backtest/backtest_optimization_report_no_rebalance_YYYYMMDD_HHMMSS.md`**가 생성됩니다.
+  * **리밸런싱 미적용 최적화**: `--no-rebalance` 옵션을 함께 추가하면 리밸런싱 없는 독립 자산 기준의 최적 파라미터 조합 랭킹 보고서인 **`backtest/backtest_optimization_report_no_rebalance_YYYYMMDD_HHMMSS.md`** 가 생성됩니다.
     ```bash
     python src/backtest.py --optimize --no-rebalance
     ```
