@@ -615,6 +615,12 @@
       line-height: 1.6;
     }
 
+    .footer-data-source {
+      margin: 4px 0;
+      font-size: 0.74rem;
+      color: var(--text-secondary);
+    }
+
     .footer-links {
       margin-top: 6px;
     }
@@ -879,20 +885,20 @@
       </h2>
       <div class="action-grid">
         <div class="action-item">
-          <div class="action-label">🔵 업비트 메인 (BTC / ETH)</div>
+          <div class="action-label">🔵 메인 전략 (BTC / ETH)</div>
           <div id="guide-upbit" class="action-value">데이터를 불러오는 중...</div>
         </div>
         <div class="action-item bithumb">
-          <div class="action-label">🟢 빗썸 서브 (알트코인)</div>
+          <div class="action-label">🟢 서브 알트코인 전략</div>
           <div id="guide-bithumb" class="action-value">데이터를 불러오는 중...</div>
         </div>
       </div>
     </div>
 
-    <!-- Strategy Section: Upbit -->
+    <!-- Strategy Section: Main -->
     <div class="section-title">
       <svg class="icon icon-cyan" viewBox="0 0 24 24"><path d="m3 3 7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/><path d="m13 13 6 6"/></svg>
-      <span>업비트 메인 전략 (50:50 듀얼 모멘텀)</span>
+      <span>메인 전략 (50:50 듀얼 모멘텀)</span>
     </div>
 
     <div class="card-grid">
@@ -969,17 +975,17 @@
 
     </div>
 
-    <!-- Strategy Section: Bithumb -->
+    <!-- Strategy Section: Sub Altcoin -->
     <div class="section-title">
       <svg class="icon icon-green" viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
-      <span>빗썸 서브 전략 (알트코인 상대 모멘텀)</span>
+      <span>서브 알트코인 전략 (상대 모멘텀)</span>
     </div>
 
     <div class="alt-card">
       <div class="alt-header">
         <div>
           <strong class="filter-title">공통 시장 필터</strong>
-          <span class="filter-subtitle">(업비트 BTC 220 SMA ±2%)</span>
+          <span class="filter-subtitle">(업비트 BTC 220 SMA ±2% 기준)</span>
         </div>
         <div id="bithumb-filter-badge" class="status-pill status-bull">Bull (상승장)</div>
       </div>
@@ -1031,6 +1037,9 @@
     <!-- Footer -->
     <footer>
       <div>Crypto Quantitative Trading Bot • PWA Dashboard</div>
+      <div class="footer-data-source">
+        시세 및 이동평균선 등 전략 분석 지표는 <strong>업비트(Upbit)</strong> 및 <strong>빗썸(Bithumb)</strong> 공개 REST API 시세를 기준으로 산출됩니다.
+      </div>
       <div>GitHub Actions 자동화로 매일 09:05 KST 최신 시그널을 계산합니다.</div>
       <div class="footer-links">
         <a href="https://github.com/haksoo0918/quant-bitcoin" target="_blank" rel="noopener">
