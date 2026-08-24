@@ -1216,10 +1216,7 @@
             const displayName = getCoinDisplayName(rawSym);
             return `
               <div class="alt-item">
-                <div>
-                  <div class="alt-coin-name">${i+1}위: ${displayName}</div>
-                  <div class="alt-sub-text">25% 균등 매수</div>
-                </div>
+                <div class="alt-coin-name">${i+1}위: ${displayName}</div>
                 <div class="alt-return">${c.return_14d >= 0 ? '+' : ''}${(c.return_14d * 100).toFixed(2)}%</div>
               </div>
             `;
