@@ -34,6 +34,7 @@ from config import (
 )
 from bithumb_api import BithumbClient
 from discord_bot import send_discord_message
+from indicators import calculate_btc_indicators, calculate_eth_indicators
 
 # KST(한국 시간) 변환 유틸리티
 def get_kst_now():
@@ -188,68 +189,45 @@ def run_signal_only_briefing(kst_now, use_alt_strategy=USE_ALTCOIN_STRATEGY):
     
     # 1. BTC 지표 및 전략 방향성 계산
     btc_df = fetch_upbit_candles("KRW-BTC", count=BTC_SMA_LEN + 30)
-    btc_df['sma'] = btc_df['close'].rolling(window=BTC_SMA_LEN).mean()
-    btc_sma = btc_df['sma'].iloc[-2]
     btc_current_price = fetch_upbit_current_price("KRW-BTC")
-    btc_upper = btc_sma * (1 + BTC_BUFFER)
-    btc_lower = btc_sma * (1 - BTC_BUFFER)
+    btc_df.iloc[-1, btc_df.columns.get_loc('close')] = btc_current_price
+    btc_ind = calculate_btc_indicators(btc_df, sma_len=BTC_SMA_LEN, buffer_rate=BTC_BUFFER)
     
-    if btc_current_price >= btc_upper:
-        btc_status_str = "🟢 **[매수 유지 / 신규 진입]** (상승 추세 돌파)"
+    btc_sma = btc_ind["sma"]
+    btc_upper = btc_ind["upper_buffer"]
+    btc_lower = btc_ind["lower_buffer"]
+    market_filter_state = btc_ind["market_filter_state"]
+    
+    if btc_ind["status"] == "bull":
+        btc_status_str = f"🟢 **[매수 유지 / 신규 진입]** ({btc_ind['status_label']})"
         btc_guide = "BTC 50% 비중 매수 또는 보유 유지"
-    elif btc_current_price < btc_lower:
-        btc_status_str = "🔴 **[매도 / 현금화 관망]** (하락 추세 이탈)"
+    elif btc_ind["status"] == "bear":
+        btc_status_str = f"🔴 **[매도 / 현금화 관망]** ({btc_ind['status_label']})"
         btc_guide = "BTC 전량 매도 및 현금(KRW) 확보"
     else:
-        btc_status_str = "🔍 **[버퍼 구간 대기]** (기존 포지션 유지)"
+        btc_status_str = f"🔍 **[버퍼 구간 대기]** ({btc_ind['status_label']})"
         btc_guide = "기존 보유 상태 유지 (신규 진입 자제)"
 
     # 2. ETH 지표 및 전략 방향성 계산
     eth_df = fetch_upbit_candles("KRW-ETH", count=max(200, ETH_SMA_LEN + 50))
-    eth_df['sma'] = eth_df['close'].rolling(window=ETH_SMA_LEN).mean()
-    prev_close = eth_df['close'].shift(1)
-    tr1 = eth_df['high'] - eth_df['low']
-    tr2 = (eth_df['high'] - prev_close).abs()
-    tr3 = (eth_df['low'] - prev_close).abs()
-    eth_df['tr'] = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
-    eth_df['atr_14'] = eth_df['tr'].rolling(window=14).mean()
-    
-    eth_sma = eth_df['sma'].iloc[-2]
-    eth_atr_14 = eth_df['atr_14'].iloc[-2]
     eth_current_price = fetch_upbit_current_price("KRW-ETH")
-    eth_upper_band = eth_sma + (eth_atr_14 * ETH_ATR_MULTIPLIER)
-    eth_lower_band = eth_sma - (eth_atr_14 * ETH_ATR_MULTIPLIER)
+    eth_df.iloc[-1, eth_df.columns.get_loc('close')] = eth_current_price
+    eth_ind = calculate_eth_indicators(eth_df, sma_len=ETH_SMA_LEN, atr_len=14, atr_multiplier=ETH_ATR_MULTIPLIER)
+    
+    eth_sma = eth_ind["sma"]
+    eth_atr_14 = eth_ind["atr_14"]
+    eth_upper_band = eth_ind["upper_band"]
+    eth_lower_band = eth_ind["lower_band"]
 
-    if eth_current_price >= eth_upper_band:
-        eth_status_str = "🟢 **[매수 유지 / 신규 진입]** (상승 채널 돌파)"
+    if eth_ind["status"] == "bull":
+        eth_status_str = f"🟢 **[매수 유지 / 신규 진입]** ({eth_ind['status_label']})"
         eth_guide = "ETH 50% 비중 매수 또는 보유 유지"
-    elif eth_current_price < eth_lower_band:
-        eth_status_str = "🔴 **[매도 / 현금화 관망]** (하락 밴드 이탈)"
+    elif eth_ind["status"] == "bear":
+        eth_status_str = f"🔴 **[매도 / 현금화 관망]** ({eth_ind['status_label']})"
         eth_guide = "ETH 전량 매도 및 현금(KRW) 확보"
     else:
-        eth_status_str = "🔍 **[밴드 내 중립]** (기존 포지션 유지)"
+        eth_status_str = f"🔍 **[밴드 내 중립]** ({eth_ind['status_label']})"
         eth_guide = "기존 보유 상태 유지 (신규 진입 자제)"
-
-    # 3. 빗썸 공통 시장 필터 (히스테리시스 역순 탐색)
-    if btc_current_price >= btc_upper:
-        market_filter_state = "Bull"
-    elif btc_current_price < btc_lower:
-        market_filter_state = "Bear"
-    else:
-        market_filter_state = "Bear"
-        for t in range(2, len(btc_df)):
-            close_t = btc_df['close'].iloc[-t]
-            sma_t = btc_df['sma'].iloc[-t]
-            if pd.isna(sma_t):
-                break
-            upper_t = sma_t * (1 + BTC_BUFFER)
-            lower_t = sma_t * (1 - BTC_BUFFER)
-            if close_t >= upper_t:
-                market_filter_state = "Bull"
-                break
-            elif close_t < lower_t:
-                market_filter_state = "Bear"
-                break
 
     # 4. 빗썸 서브 전략 알트코인 분석
     bithumb_report_lines = []
@@ -413,26 +391,23 @@ def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STR
     
     # 2.1 BTC 지표 계산
     btc_df = fetch_upbit_candles("KRW-BTC", count=BTC_SMA_LEN + 30)
-    btc_df['sma'] = btc_df['close'].rolling(window=BTC_SMA_LEN).mean()
-    
-    # 오늘 시점 (가장 최근 미완성 일봉인 마지막 행 제외, 전일 완료 일봉 기준)
-    btc_sma = btc_df['sma'].iloc[-2]
     btc_current_price = fetch_upbit_current_price("KRW-BTC")
+    btc_df.iloc[-1, btc_df.columns.get_loc('close')] = btc_current_price
+    btc_ind = calculate_btc_indicators(btc_df, sma_len=BTC_SMA_LEN, buffer_rate=BTC_BUFFER)
+    
+    btc_sma = btc_ind["sma"]
+    market_filter_state = btc_ind["market_filter_state"]
     
     # 2.2 ETH 지표 계산
     eth_df = fetch_upbit_candles("KRW-ETH", count=max(200, ETH_SMA_LEN + 50))
-    eth_df['sma'] = eth_df['close'].rolling(window=ETH_SMA_LEN).mean()
-    # True Range (TR) 및 ATR(14) 계산
-    prev_close = eth_df['close'].shift(1)
-    tr1 = eth_df['high'] - eth_df['low']
-    tr2 = (eth_df['high'] - prev_close).abs()
-    tr3 = (eth_df['low'] - prev_close).abs()
-    eth_df['tr'] = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
-    eth_df['atr_14'] = eth_df['tr'].rolling(window=14).mean()
-    
-    eth_sma = eth_df['sma'].iloc[-2]
-    eth_atr_14 = eth_df['atr_14'].iloc[-2]
     eth_current_price = fetch_upbit_current_price("KRW-ETH")
+    eth_df.iloc[-1, eth_df.columns.get_loc('close')] = eth_current_price
+    eth_ind = calculate_eth_indicators(eth_df, sma_len=ETH_SMA_LEN, atr_len=14, atr_multiplier=ETH_ATR_MULTIPLIER)
+    
+    eth_sma = eth_ind["sma"]
+    eth_atr_14 = eth_ind["atr_14"]
+    eth_upper_band = eth_ind["upper_band"]
+    eth_lower_band = eth_ind["lower_band"]
     
     # 2.3 잔고 현황 조회
     upbit_balances_raw = fetch_upbit_balances(upbit, is_dry_run=is_dry_run)
@@ -466,59 +441,14 @@ def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STR
         btc_target_state = 'cash' if btc_current_price < btc_sma * (1 - BTC_BUFFER) else 'hold'
         
     # ETH 신호
-    eth_upper_band = eth_sma + (eth_atr_14 * ETH_ATR_MULTIPLIER)
-    eth_lower_band = eth_sma - (eth_atr_14 * ETH_ATR_MULTIPLIER)
     if not is_holding_eth:
         eth_target_state = 'hold' if eth_current_price >= eth_upper_band else 'cash'
     else:
         eth_target_state = 'cash' if eth_current_price < eth_lower_band else 'hold'
 
-    logging.info(f"BTC 현재가: {btc_current_price:,.0f} KRW | SMA({BTC_SMA_LEN}): {btc_sma:,.0f} KRW (버퍼상한: {btc_sma * (1 + BTC_BUFFER):,.0f}, 하한: {btc_sma * (1 - BTC_BUFFER):,.0f})")
+    logging.info(f"BTC 현재가: {btc_current_price:,.0f} KRW | SMA({BTC_SMA_LEN}): {btc_sma:,.0f} KRW (버퍼상한: {btc_ind['upper_buffer']:,.0f}, 하한: {btc_ind['lower_buffer']:,.0f})")
     logging.info(f"ETH 현재가: {eth_current_price:,.0f} KRW | SMA({ETH_SMA_LEN}): {eth_sma:,.0f} KRW (상한밴드: {eth_upper_band:,.0f}, 하한밴드: {eth_lower_band:,.0f})")
-    logging.info(f"판정 결과 - BTC: {btc_target_state} | ETH: {eth_target_state}")
-
-    # 3. 빗썸 공통 시장 필터 판정 및 히스테리시스(역순 탐색) 처리
-    logging.info("=== [빗썸 공통 시장 필터 계산 시작] ===")
-    
-    # 오늘 기준 필터 판단
-    btc_upper_limit = btc_sma * (1 + BTC_BUFFER)
-    btc_lower_limit = btc_sma * (1 - BTC_BUFFER)
-    
-    if btc_current_price >= btc_upper_limit:
-        market_filter_state = "Bull"  # 상승장
-    elif btc_current_price < btc_lower_limit:
-        market_filter_state = "Bear"  # 하락장
-    else:
-        # 버퍼 구간 내(Standby)에 들어왔을 경우: 과거 데이터를 역순으로 탐색하여 상태 결정
-        logging.info("현재가가 공통 시장 필터 버퍼 범위 내에 존재합니다. 과거 데이터를 추적합니다.")
-        market_filter_state = "Bear"  # 매칭되는 과거 상태가 없을 시 보수적 관점에서 하락장 기본값 설정
-        
-        # 1일 전(index -2)부터 역방향 탐색. 인덱스는 -3, -4 ... 순서로 거슬러 올라감
-        # df 크기가 충분하므로 탐색 가능
-        found_state = False
-        for t in range(2, len(btc_df)):
-            close_t = btc_df['close'].iloc[-t]
-            # row -t의 시점에서 rolling SMA를 구하려면, 그 행을 기준으로 BTC_SMA_LEN일 이전 데이터가 필요
-            sma_t = btc_df['sma'].iloc[-t]
-            if pd.isna(sma_t):
-                break
-                
-            upper_t = sma_t * (1 + BTC_BUFFER)
-            lower_t = sma_t * (1 - BTC_BUFFER)
-            
-            if close_t >= upper_t:
-                market_filter_state = "Bull"
-                found_state = True
-                logging.info(f"{t-1}일 전 완료 봉 기준 상승장 기록 확인 (종가: {close_t:,.0f} >= {upper_t:,.0f})")
-                break
-            elif close_t < lower_t:
-                market_filter_state = "Bear"
-                found_state = True
-                logging.info(f"{t-1}일 전 완료 봉 기준 하락장 기록 확인 (종가: {close_t:,.0f} < {lower_t:,.0f})")
-                break
-        
-        if not found_state:
-            logging.warning(f"과거 {BTC_SMA_LEN}일 데이터 내에서 버퍼를 벗어난 확실한 상태 기록을 찾지 못했습니다. 기본값인 하락장(Bear) 상태를 유지합니다.")
+    logging.info(f"판정 결과 - BTC: {btc_target_state} | ETH: {eth_target_state} | 빗썸 공통 시장 필터: {market_filter_state}")
 
     logging.info(f"최종 공통 시장 필터 상태: {market_filter_state}")
 

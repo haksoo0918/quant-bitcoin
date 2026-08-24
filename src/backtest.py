@@ -98,10 +98,12 @@ def fetch_and_cache_candles(market, days_needed):
     print(f"[{market}] {len(df)}일의 데이터를 {cache_file} 파일로 캐시 저장 완료.")
     return df
 
-def run_simulation(btc_df, eth_df, btc_sma_len, eth_sma_len, initial_capital=10000000.0, no_rebalance=False):
+def run_simulation(btc_df, eth_df, btc_sma_len, eth_sma_len, initial_capital=10000000.0, no_rebalance=False, slippage=0.0):
     """
     지정한 파라미터 조건으로 백테스트 시뮬레이션을 수행합니다.
     """
+    total_cost_rate = FEE_RATE + (slippage / 100.0 if slippage > 0 else 0.0)
+    
     # 1. 지표 연산
     btc_df = btc_df.copy()
     eth_df = eth_df.copy()
@@ -191,28 +193,28 @@ def run_simulation(btc_df, eth_df, btc_sma_len, eth_sma_len, initial_capital=100
             if btc_signal == 'hold' and btc_qty * btc_p < UPBIT_MIN_ORDER_KRW:
                 buy_amount = cash_btc * 0.999
                 if buy_amount >= UPBIT_MIN_ORDER_KRW:
-                    btc_qty = (buy_amount * (1 - FEE_RATE)) / btc_p
+                    btc_qty = (buy_amount * (1 - total_cost_rate)) / btc_p
                     cash_btc -= buy_amount
-                    trade_logs.append(f"{date_str[:10]} | [매수] 업비트 BTC: {buy_amount:,.0f}원 ({btc_qty:.6f}개) | 수수료: {buy_amount * FEE_RATE:,.0f}원")
+                    trade_logs.append(f"{date_str[:10]} | [매수] 업비트 BTC: {buy_amount:,.0f}원 ({btc_qty:.6f}개) | 거래비용: {buy_amount * total_cost_rate:,.0f}원")
             elif btc_signal == 'cash' and btc_qty * btc_p >= UPBIT_MIN_ORDER_KRW:
                 sell_amount = btc_qty * btc_p
-                cash_received = sell_amount * (1 - FEE_RATE)
+                cash_received = sell_amount * (1 - total_cost_rate)
                 cash_btc += cash_received
-                trade_logs.append(f"{date_str[:10]} | [매도] 업비트 BTC: {sell_amount:,.0f}원 ({btc_qty:.6f}개) | 수수료: {sell_amount * FEE_RATE:,.0f}원")
+                trade_logs.append(f"{date_str[:10]} | [매도] 업비트 BTC: {sell_amount:,.0f}원 ({btc_qty:.6f}개) | 거래비용: {sell_amount * total_cost_rate:,.0f}원")
                 btc_qty = 0.0
                 
             # ETH 거래 집행 (독립)
             if eth_signal == 'hold' and eth_qty * eth_p < UPBIT_MIN_ORDER_KRW:
                 buy_amount = cash_eth * 0.999
                 if buy_amount >= UPBIT_MIN_ORDER_KRW:
-                    eth_qty = (buy_amount * (1 - FEE_RATE)) / eth_p
+                    eth_qty = (buy_amount * (1 - total_cost_rate)) / eth_p
                     cash_eth -= buy_amount
-                    trade_logs.append(f"{date_str[:10]} | [매수] 업비트 ETH: {buy_amount:,.0f}원 ({eth_qty:.6f}개) | 수수료: {buy_amount * FEE_RATE:,.0f}원")
+                    trade_logs.append(f"{date_str[:10]} | [매수] 업비트 ETH: {buy_amount:,.0f}원 ({eth_qty:.6f}개) | 거래비용: {buy_amount * total_cost_rate:,.0f}원")
             elif eth_signal == 'cash' and eth_qty * eth_p >= UPBIT_MIN_ORDER_KRW:
                 sell_amount = eth_qty * eth_p
-                cash_received = sell_amount * (1 - FEE_RATE)
+                cash_received = sell_amount * (1 - total_cost_rate)
                 cash_eth += cash_received
-                trade_logs.append(f"{date_str[:10]} | [매도] 업비트 ETH: {sell_amount:,.0f}원 ({eth_qty:.6f}개) | 수수료: {sell_amount * FEE_RATE:,.0f}원")
+                trade_logs.append(f"{date_str[:10]} | [매도] 업비트 ETH: {sell_amount:,.0f}원 ({eth_qty:.6f}개) | 거래비용: {sell_amount * total_cost_rate:,.0f}원")
                 eth_qty = 0.0
                 
             total_value = (cash_btc + btc_qty * btc_p) + (cash_eth + eth_qty * eth_p)
@@ -315,10 +317,10 @@ def run_simulation(btc_df, eth_df, btc_sma_len, eth_sma_len, initial_capital=100
                 
             sell_amount = sell_qty * btc_p
             if sell_amount >= UPBIT_MIN_ORDER_KRW:
-                cash_received = sell_amount * (1 - FEE_RATE)
+                cash_received = sell_amount * (1 - total_cost_rate)
                 cash += cash_received
                 btc_qty -= sell_qty
-                trade_logs.append(f"{date_str[:10]} | [매도] 업비트 BTC: {sell_amount:,.0f}원 ({sell_qty:.6f}개) | 수수료: {sell_amount * FEE_RATE:,.0f}원")
+                trade_logs.append(f"{date_str[:10]} | [매도] 업비트 BTC: {sell_amount:,.0f}원 ({sell_qty:.6f}개) | 거래비용: {sell_amount * total_cost_rate:,.0f}원")
                 
         # ETH 매도
         if diff_eth < 0:
@@ -329,10 +331,10 @@ def run_simulation(btc_df, eth_df, btc_sma_len, eth_sma_len, initial_capital=100
                 
             sell_amount = sell_qty * eth_p
             if sell_amount >= UPBIT_MIN_ORDER_KRW:
-                cash_received = sell_amount * (1 - FEE_RATE)
+                cash_received = sell_amount * (1 - total_cost_rate)
                 cash += cash_received
                 eth_qty -= sell_qty
-                trade_logs.append(f"{date_str[:10]} | [매도] 업비트 ETH: {sell_amount:,.0f}원 ({sell_qty:.6f}개) | 수수료: {sell_amount * FEE_RATE:,.0f}원")
+                trade_logs.append(f"{date_str[:10]} | [매도] 업비트 ETH: {sell_amount:,.0f}원 ({sell_qty:.6f}개) | 거래비용: {sell_amount * total_cost_rate:,.0f}원")
                 
         # 5.2 후매수 (차이액이 양수인 자산 매수)
         # BTC 매수
@@ -340,20 +342,20 @@ def run_simulation(btc_df, eth_df, btc_sma_len, eth_sma_len, initial_capital=100
         if diff_btc > 0:
             buy_amount = min(diff_btc, cash * 0.999) # 호가 슬리피지 방지용 가용 현금 버퍼
             if buy_amount >= UPBIT_MIN_ORDER_KRW:
-                buy_qty = (buy_amount * (1 - FEE_RATE)) / btc_p
+                buy_qty = (buy_amount * (1 - total_cost_rate)) / btc_p
                 cash -= buy_amount
                 btc_qty += buy_qty
-                trade_logs.append(f"{date_str[:10]} | [매수] 업비트 BTC: {buy_amount:,.0f}원 ({buy_qty:.6f}개) | 수수료: {buy_amount * FEE_RATE:,.0f}원")
+                trade_logs.append(f"{date_str[:10]} | [매수] 업비트 BTC: {buy_amount:,.0f}원 ({buy_qty:.6f}개) | 거래비용: {buy_amount * total_cost_rate:,.0f}원")
                 
         # ETH 매수
         diff_eth = target_eth_val - (eth_qty * eth_p)
         if diff_eth > 0:
             buy_amount = min(diff_eth, cash * 0.999)
             if buy_amount >= UPBIT_MIN_ORDER_KRW:
-                buy_qty = (buy_amount * (1 - FEE_RATE)) / eth_p
+                buy_qty = (buy_amount * (1 - total_cost_rate)) / eth_p
                 cash -= buy_amount
                 eth_qty += buy_qty
-                trade_logs.append(f"{date_str[:10]} | [매수] 업비트 ETH: {buy_amount:,.0f}원 ({buy_qty:.6f}개) | 수수료: {buy_amount * FEE_RATE:,.0f}원")
+                trade_logs.append(f"{date_str[:10]} | [매수] 업비트 ETH: {buy_amount:,.0f}원 ({buy_qty:.6f}개) | 거래비용: {buy_amount * total_cost_rate:,.0f}원")
                 
         # 6. 당일 거래 후 최종 총 평가 자산 기록
         end_portfolio_value = cash + (btc_qty * btc_p) + (eth_qty * eth_p)
@@ -450,7 +452,7 @@ def save_plot(portfolio_history, bh_history, timestamp_str=None):
     print(f"[시각화] 누적 자산 곡선 차트를 '{out_path}'에 저장했습니다.")
     return plot_filename
 
-def save_markdown_report(metrics, btc_sma, eth_sma, trade_logs, no_rebalance=False, timestamp_str=None, plot_filename=None):
+def save_markdown_report(metrics, btc_sma, eth_sma, trade_logs, no_rebalance=False, slippage=0.0, timestamp_str=None, plot_filename=None):
     """
     백테스트 결과 성과 분석 보고서를 'backtest_report_YYYYMMDD_HHMMSS.md' 마크다운 문서로 작성합니다.
     """
@@ -464,7 +466,7 @@ def save_markdown_report(metrics, btc_sma, eth_sma, trade_logs, no_rebalance=Fal
     report.append(f"⏱️ **작성 일시**: {get_kst_now().strftime('%Y-%m-%d %H:%M:%S')}")
     strategy_desc = "메인 전략 (BTC & ETH 50:50 독립 운용 - 리밸런싱 미실행)" if no_rebalance else "메인 전략 (BTC & ETH 50:50 자동 비중 조절 및 추세 추종)"
     report.append(f"🔍 **백테스트 대상 전략**: {strategy_desc}")
-    report.append(f"⚙️ **전략 파라미터**: BTC 이동평균: **{btc_sma}일** (버퍼 ±2%) | ETH 이동평균: **{eth_sma}일** (ATR배수 1.5배)")
+    report.append(f"⚙️ **전략 파라미터**: BTC 이동평균: **{btc_sma}일** (버퍼 ±2%) | ETH 이동평균: **{eth_sma}일** (ATR배수 1.5배) | 슬리피지: **{slippage:.2f}%** (기본 수수료 0.05% 외)")
     
     report.append(f"\n## 1. 종합 성과 분석 결과")
     report.append(f"- **백테스트 기간**: {metrics['start_date']} ~ {metrics['end_date']} (약 {metrics['years']}년)")
@@ -487,7 +489,7 @@ def save_markdown_report(metrics, btc_sma, eth_sma, trade_logs, no_rebalance=Fal
     
     report.append(f"\n## 3. 백테스트 기간 중 매매 거래 내역 (총 {len(trade_logs)}건)")
     if trade_logs:
-        report.append(f"| 거래 일시 | 거래 구분 | 거래 금액 및 수량 | 수수료 |")
+        report.append(f"| 거래 일시 | 거래 구분 | 거래 금액 및 수량 | 거래비용 (수수료+슬리피지) |")
         report.append(f"| :---: | :---: | :--- | :---: |")
         for log in trade_logs:
             # 파싱하여 표 형식으로 출력
@@ -495,7 +497,7 @@ def save_markdown_report(metrics, btc_sma, eth_sma, trade_logs, no_rebalance=Fal
             date = parts[0]
             type_action = "🔵 매수" if "[매수]" in parts[1] else "🔴 매도"
             desc = parts[1].replace("[매수] ", "").replace("[매도] ", "")
-            fee = parts[2].replace("수수료:", "").strip()
+            fee = parts[2].replace("거래비용:", "").replace("수수료:", "").strip()
             report.append(f"| {date} | {type_action} | {desc} | {fee} |")
     else:
         report.append("- 백테스트 기간 중 신호 변화에 따른 매매 거래가 발생하지 않았습니다.")
@@ -507,7 +509,7 @@ def save_markdown_report(metrics, btc_sma, eth_sma, trade_logs, no_rebalance=Fal
         f.write("\n".join(report))
     print(f"백테스트 마크다운 성과 분석 보고서를 '{out_path}'에 저장했습니다.")
 
-def run_optimization(btc_df, eth_df, initial_capital=10000000.0, no_rebalance=False):
+def run_optimization(btc_df, eth_df, initial_capital=10000000.0, no_rebalance=False, slippage=0.0):
     """
     이동평균 기간 조합을 변경해 가며 모든 백테스트 조합을 연산하고, 랭킹을 출력하는 파라미터 최적화 모드입니다.
     """
@@ -515,7 +517,7 @@ def run_optimization(btc_df, eth_df, initial_capital=10000000.0, no_rebalance=Fa
     eth_sma_candidates = [50, 80, 100, 120, 150, 160, 180, 200]
     
     print("\n=======================================================")
-    print(f"🚀 전략 파라미터 최적화(Grid Search) 연산을 개시합니다. ({'리밸런싱 미실행' if no_rebalance else '리밸런싱 실행'})")
+    print(f"🚀 전략 파라미터 최적화(Grid Search) 연산을 개시합니다. ({'리밸런싱 미실행' if no_rebalance else '리밸런싱 실행'} | 슬리피지: {slippage:.2f}%)")
     print(f"  - BTC SMA 후보군: {btc_sma_candidates}")
     print(f"  - ETH SMA 후보군: {eth_sma_candidates}")
     print(f"  - 총 연산 조합 수: {len(btc_sma_candidates) * len(eth_sma_candidates)}개")
@@ -526,7 +528,7 @@ def run_optimization(btc_df, eth_df, initial_capital=10000000.0, no_rebalance=Fa
     for b_sma in btc_sma_candidates:
         for e_sma in eth_sma_candidates:
             try:
-                p_hist, bh_hist, _ = run_simulation(btc_df, eth_df, b_sma, e_sma, initial_capital, no_rebalance)
+                p_hist, bh_hist, _ = run_simulation(btc_df, eth_df, b_sma, e_sma, initial_capital, no_rebalance, slippage=slippage)
                 metrics = calculate_metrics(p_hist, bh_hist)
                 results.append({
                     "btc_sma": b_sma,
@@ -559,6 +561,7 @@ def run_optimization(btc_df, eth_df, initial_capital=10000000.0, no_rebalance=Fa
     report = []
     report.append(f"# 🏆 퀀트 전략 이동평균선 파라미터 최적화 보고서 ({'리밸런싱 미실행' if no_rebalance else '리밸런싱 실행'})")
     report.append(f"⏱️ **연산 일시**: {get_kst_now().strftime('%Y-%m-%d %H:%M:%S')}")
+    report.append(f"⚙️ **설정 조건**: 슬리피지 {slippage:.2f}% | 거래 수수료 0.05%")
     report.append(f"\n모든 이동평균선(SMA) 조합에 따른 연산 결과 전체 랭킹 테이블입니다.")
     report.append(f"\n| 순위 | BTC SMA 기간 | ETH SMA 기간 | 누적 수익률 | CAGR (연평균) | MDD (최대 낙폭) |")
     report.append(f"| :---: | :---: | :---: | :---: | :---: | :---: |")
@@ -577,6 +580,7 @@ def main():
     parser.add_argument("--optimize", action="store_true", help="Run parameter optimization grid search")
     parser.add_argument("--capital", type=float, default=10000000.0, help="Initial capital in KRW (default: 10,000,000)")
     parser.add_argument("--no-rebalance", action="store_true", help="Run simulation without portfolio rebalancing (independent assets)")
+    parser.add_argument("--slippage", type=float, default=0.0, help="Slippage percentage e.g. 0.05 for 0.05%% (default: 0.0)")
     
     args = parser.parse_args()
     
@@ -591,18 +595,19 @@ def main():
         return
         
     if args.optimize:
-        run_optimization(btc_df, eth_df, args.capital, args.no_rebalance)
+        run_optimization(btc_df, eth_df, args.capital, args.no_rebalance, slippage=args.slippage)
     else:
         print(f"\n=======================================================")
         print(f"📈 퀀트 전략 백테스트 시뮬레이션을 시작합니다. ({args.days}일)")
         print(f"  - BTC SMA: {args.btc_sma}일 (버퍼 ±2%)")
         print(f"  - ETH SMA: {args.eth_sma}일 (ATR 1.5배)")
         print(f"  - 리밸런싱 실행 여부: {'미실행 (BTC/ETH 독립 자산 운용)' if args.no_rebalance else '실행 (50:50 비중 조절)'}")
+        print(f"  - 슬리피지: {args.slippage:.2f}% (기본 수수료 0.05% 외)")
         print(f"  - 초기 자산: {args.capital:,.0f} KRW")
         print("=======================================================")
         
         try:
-            p_hist, bh_hist, logs = run_simulation(btc_df, eth_df, args.btc_sma, args.eth_sma, args.capital, args.no_rebalance)
+            p_hist, bh_hist, logs = run_simulation(btc_df, eth_df, args.btc_sma, args.eth_sma, args.capital, args.no_rebalance, slippage=args.slippage)
             metrics = calculate_metrics(p_hist, bh_hist)
             
             # 최종 지표 콘솔 요약 출력
@@ -617,7 +622,7 @@ def main():
             # 성과 지표 기록 및 플로팅
             ts = get_kst_now().strftime("%Y%m%d_%H%M%S")
             plot_file = save_plot(p_hist, bh_hist, timestamp_str=ts)
-            save_markdown_report(metrics, args.btc_sma, args.eth_sma, logs, args.no_rebalance, timestamp_str=ts, plot_filename=plot_file)
+            save_markdown_report(metrics, args.btc_sma, args.eth_sma, logs, args.no_rebalance, slippage=args.slippage, timestamp_str=ts, plot_filename=plot_file)
             
         except Exception as e:
             print(f"시뮬레이션 연산 중 오류 발생: {e}")

@@ -21,9 +21,13 @@ quant-bitcoin/
 ├── requirements.txt              # 파이썬 의존성 패키지 목록
 ├── PRD.md                        # 상품 요구사항 정의서
 ├── CHANGELOG.md                  # 버전 변경 이력 문서
+├── scripts/                      # 편의 유틸리티 스크립트
+│   ├── setup_scheduler.bat       # Windows 작업 스케줄러 일일 자동실행 등록기
+│   └── remove_scheduler.bat      # Windows 작업 스케줄러 등록 해제기
 ├── backtest/                     # 백테스트 실행 결과물 저장 폴더 (보고서, 차트 이미지)
 └── src/                          # 소스 코드 폴더
     ├── config.py                 # 전역 상수 및 시스템 제어 설정 파일
+    ├── indicators.py             # 공통 기술적 지표(SMA, ATR, 버퍼, 히스테리시스) 연산 모듈
     ├── discord_bot.py            # 디스코드 리포트 메시지 포맷팅 및 전송 봇
     ├── bithumb_api.py            # 빗썸 v1 REST API 연동 클라이언트 클래스
     ├── test_monday.py            # 빗썸 월요일 상승장 종목 선정 로직 독립 테스트 스크립트
@@ -163,6 +167,9 @@ DISCORD_WEBHOOK_URL=디스코드_웹훅_주소
   run_bot.bat --live
   ```
 
+* **Windows 작업 스케줄러 자동 실행 등록 (로컬 24시간 무인 매매)**:
+  `scripts/setup_scheduler.bat`을 실행하면 매일 오전 09:05 KST에 `run_bot.bat --live`가 자동으로 실행되도록 Windows 작업 스케줄러에 즉시 등록됩니다. (해제 시 `scripts/remove_scheduler.bat` 실행)
+
 ---
 
 ### 4. 로컬 백테스트 및 파라미터 최적화 실행
@@ -173,6 +180,10 @@ DISCORD_WEBHOOK_URL=디스코드_웹훅_주소
   ```bash
   python src/backtest.py --btc-sma 220 --eth-sma 50 --days 1500
   ```
+  * **슬리피지(Slippage) 보수적 반영**: `--slippage 0.05` (0.05% 슬리피지 추가) 옵션을 부여하여 시장가 체결 오차를 반영한 정밀 백테스트를 수행할 수 있습니다.
+    ```bash
+    python src/backtest.py --btc-sma 220 --eth-sma 50 --slippage 0.05
+    ```
   * 실행 완료 시 **`backtest/`** 폴더에 **`backtest_report_YYYYMMDD_HHMMSS.md`** 상세 보고서와 **`backtest_result_YYYYMMDD_HHMMSS.png`** 자산 변동 추이 차트가 타임스탬프와 함께 자동 생성됩니다.
   * **리밸런싱 미적용 모드 (독립 자산 운용)**: `--no-rebalance` 옵션을 추가하면 비중 조절 거래 없이 두 자산을 독립 운용하는 시뮬레이션을 수행합니다.
     ```bash

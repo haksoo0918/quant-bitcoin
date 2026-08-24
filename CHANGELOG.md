@@ -5,6 +5,20 @@
 
 ---
 
+## [1.5.0] - 2026-08-24
+
+### Added (추가됨)
+- **공통 기술적 지표 연산 모듈(`src/indicators.py`) 분리 및 모듈화**:
+  - `calculate_btc_indicators`: BTC 이동평균선(SMA), 상하한 버퍼(±2%) 및 히스테리시스 과거 일봉 역순 탐색 로직 공통화.
+  - `calculate_eth_indicators`: ETH 이동평균선(SMA) 및 ATR(14) 변동성 채널 밴드 연산 공통화.
+  - `src/main.py`와 `src/backtest.py`에서 중복 코드를 제거하고 공통 모듈 호출로 통합.
+- **백테스트 슬리피지(Slippage) 모델 지원 (`src/backtest.py`)**:
+  - `--slippage` CLI 옵션 추가: 시장가 체결 오차율을 수수료(0.05%)와 함께 거래비용으로 정확히 반영.
+  - 마크다운 보고서 및 최적화 그리드 서치에 슬리피지 조건 명시.
+- **Windows 작업 스케줄러 등록 스크립트 추가 (`scripts/`)**:
+  - `scripts/setup_scheduler.bat`: 매일 09:05 KST `run_bot.bat --live` 자동 실행을 원클릭으로 작업 스케줄러에 등록.
+  - `scripts/remove_scheduler.bat`: 등록된 스케줄러 작업 안전 해제.
+
 ## [1.4.1] - 2026-08-24
 
 ### Changed (변경됨)

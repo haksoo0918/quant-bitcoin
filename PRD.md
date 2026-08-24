@@ -90,6 +90,7 @@
       - `이동평균 기간 조정`: BTC 및 ETH의 SMA 연산 기간 개별 설정 (`--btc-sma`, `--eth-sma`)
       - `분석 기간 및 원금 조정`: 과거 백테스트 일수 및 시작 금액 설정 (`--days`, `--capital`)
       - `리밸런싱 활성/비활성`: 포트폴리오 차원의 50:50 비중 재조정 거래를 배제하고 두 자산을 독립적으로 운용하는 모드 (`--no-rebalance`)
+      - `슬리피지(Slippage) 모델`: 시장가 체결 오차를 보수적으로 반영하기 위한 슬리피지 비율 파라미터 (`--slippage`, 기본값 0.0%)
       - `파라미터 최적화`: 이평선 기간 조합별 성과를 연산하여 최고 수익률 순으로 정렬하는 모드 (`--optimize`)
   - **결과물 저장 및 파일명 표준화**:
     - 모든 백테스트 결과물은 `backtest/` 디렉토리에 저장됩니다.
@@ -97,7 +98,9 @@
       - 단일 백테스트 보고서: `backtest/backtest_report_YYYYMMDD_HHMMSS.md`
       - 자산 곡선 차트: `backtest/backtest_result_YYYYMMDD_HHMMSS.png`
       - 파라미터 최적화 보고서: `backtest/backtest_optimization_report_YYYYMMDD_HHMMSS.md` (리밸런싱 미적용 시 `backtest_optimization_report_no_rebalance_YYYYMMDD_HHMMSS.md`)
-  - **구현 방식**: `src/backtest.py` 스크립트를 통해 백테스트를 실행하고, 위 규격에 따라 성과 보고서와 차트 이미지를 생성하도록 구현.
+  - **구현 방식 및 공통 모듈화**:
+    - `src/indicators.py` 공통 기술적 지표 모듈(SMA, ATR, 버퍼, 히스테리시스 연산)을 `main.py`와 `backtest.py`가 공유하여 전략 로직의 일관성을 보장합니다.
+    - `src/backtest.py` 스크립트를 통해 백테스트를 실행하고, 위 규격에 따라 성과 보고서와 차트 이미지를 생성하도록 구현.
 
 ---
 
