@@ -24,7 +24,8 @@ Thumbs.db
 run_bot.bat
 trading_log.txt
 logs/
-data/
+/data/
+!docs/data/status.json
 
 # Backtest reports and output artifacts (backtest/ 폴더 내 결과물)
 backtest/*.md
