@@ -6,6 +6,9 @@ on:
     - cron: '5 0 * * *'
   workflow_dispatch: # 수동 실행 지원
 
+permissions:
+  contents: write
+
 jobs:
   run-signal-bot:
     runs-on: ubuntu-latest
@@ -29,3 +32,11 @@ jobs:
         DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
       run: |
         python src/main.py --signal-only
+
+    - name: Commit and push updated status.json
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add docs/data/status.json
+        git diff-index --quiet HEAD || (git commit -m "chore(data): 일일 전략 상태 데이터 자동 업데이트 [skip ci]" && git push)
+

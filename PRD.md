@@ -99,3 +99,25 @@
       - 파라미터 최적화 보고서: `backtest/backtest_optimization_report_YYYYMMDD_HHMMSS.md` (리밸런싱 미적용 시 `backtest_optimization_report_no_rebalance_YYYYMMDD_HHMMSS.md`)
   - **구현 방식**: `src/backtest.py` 스크립트를 통해 백테스트를 실행하고, 위 규격에 따라 성과 보고서와 차트 이미지를 생성하도록 구현.
 
+---
+
+## 6. PWA 기반 웹 대시보드 및 GitHub Pages 요구사항
+- **개념**: GitHub Pages의 정적 웹 호스팅과 PWA(Progressive Web App) 기술을 활용하여, 별도 서버 없이 모바일 및 PC 브라우저에서 퀀트 전략 상태와 매매 신호를 실시간/일일 단위로 조회할 수 있는 웹 대시보드를 제공합니다.
+- **아키텍처 및 디렉토리 구조**:
+  - `docs/` 디렉토리를 GitHub Pages 배포 루트로 사용
+  - `docs/index.html`: 반응형 SPA 대시보드 (다크 모드, 실시간 시세 연동, 카드형 전략 요약)
+  - `docs/manifest.json`: PWA 앱 설치 메타데이터 (앱 이름, 테마 색상, 시작 URL, 아이콘)
+  - `docs/service-worker.js`: 오프라인 캐싱 및 PWA 지원 서비스 워커
+  - `docs/icons/`: PWA 앱 아이콘 (192x192, 512x512)
+  - `docs/data/status.json`: 일일 전략 신호 및 지표 상태 데이터 JSON
+- **데이터 갱신 및 배포 파이프라인**:
+  - `src/main.py` 실행 시 분석된 최신 시그널 및 지표 데이터를 `docs/data/status.json` 파일로 자동 내보내기(Export) 수행.
+  - GitHub Actions 워크플로우(`main.yml`)에서 매일 09:05 KST 실행 시 생성된 `docs/data/status.json`을 저장소에 자동 반영하거나 GitHub Pages로 자동 배포.
+- **주요 UI/UX 기능**:
+  - **종합 행동 가이드 배너**: 당일 업비트/빗썸 즉시 매매 행동 요약
+  - **업비트 메인 전략 카드**: BTC (220일 SMA ±2%), ETH (50일 SMA ± 1.5 ATR) 현재가, 기준 지표, 전략 판정 뱃지 표시
+  - **빗썸 서브 전략 카드**: 공통 시장 필터(Bull/Bear) 상태 및 월요일 추천 알트코인 4종 랭킹 표시
+  - **실시간 조회 지원**: 웹 브라우저에서 업비트 공개 REST API를 직접 호출하여 장중 실시간 시세 및 지표 새로고침 지원
+  - **PWA 앱 설치**: 모바일/데스크톱 홈 화면에 바로가기 앱으로 설치 지원
+
+

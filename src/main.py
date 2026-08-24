@@ -19,6 +19,7 @@ import datetime
 import logging
 import functools
 import argparse
+import json
 import requests
 import pandas as pd
 import numpy as np
@@ -163,6 +164,20 @@ def fetch_bithumb_balances(bithumb_client, is_dry_run=False):
     return bithumb_client.get_balances()
 
 
+def export_web_status_json(status_data, output_path=None):
+    """
+    PWA 웹 대시보드에서 비동기 로드할 수 있도록 최신 전략 상태를 docs/data/status.json으로 내보냅니다.
+    """
+    if output_path is None:
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        output_path = os.path.join(project_root, "docs", "data", "status.json")
+    
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(status_data, f, ensure_ascii=False, indent=2)
+    logging.info(f"PWA 웹 대시보드용 최신 상태 데이터를 '{output_path}'에 저장했습니다.")
+
+
 def run_signal_only_briefing(kst_now, use_alt_strategy=USE_ALTCOIN_STRATEGY):
     """
     GitHub Actions 및 시그널 전용 모드 실행 함수
@@ -238,6 +253,7 @@ def run_signal_only_briefing(kst_now, use_alt_strategy=USE_ALTCOIN_STRATEGY):
 
     # 4. 빗썸 서브 전략 알트코인 분석
     bithumb_report_lines = []
+    top_4_alts_data = []
     if use_alt_strategy:
         if market_filter_state == "Bull":
             bithumb_report_lines.append("• **공통 시장 필터**: 🟢 `Bull (상승장)`")
@@ -268,8 +284,10 @@ def run_signal_only_briefing(kst_now, use_alt_strategy=USE_ALTCOIN_STRATEGY):
                             ret_14d = (curr_p - p_14d_ago) / p_14d_ago
                             altcoin_stats.append({
                                 "market": market,
+                                "currency": market.replace("KRW-", ""),
                                 "return_14d": ret_14d,
-                                "avg_val_7d": avg_val_7d
+                                "avg_val_7d": avg_val_7d,
+                                "price": curr_p
                             })
                             time.sleep(0.05)
                         except Exception:
@@ -278,6 +296,7 @@ def run_signal_only_briefing(kst_now, use_alt_strategy=USE_ALTCOIN_STRATEGY):
                     top_10 = altcoin_stats[:10]
                     top_10.sort(key=lambda x: x['return_14d'], reverse=True)
                     top_4 = top_10[:4]
+                    top_4_alts_data = top_4
                     
                     bithumb_report_lines.append("• **주간 리밸런싱**: 🚀 **[월요일 추천 알트코인 (각 25% 균등 매수)]**")
                     for i, c in enumerate(top_4):
@@ -319,6 +338,49 @@ def run_signal_only_briefing(kst_now, use_alt_strategy=USE_ALTCOIN_STRATEGY):
     
     send_discord_message("\n".join(report))
     logging.info("GitHub Actions 시그널 브리핑 디스코드 전송 완료.")
+
+    # 6. PWA 웹 대시보드용 status.json 파일 내보내기
+    status_data = {
+        "updated_at": kst_now.isoformat(),
+        "updated_at_formatted": kst_now.strftime("%Y-%m-%d %H:%M:%S KST"),
+        "mode": "signal",
+        "upbit": {
+            "btc": {
+                "current_price": float(btc_current_price),
+                "sma": float(btc_sma),
+                "sma_len": BTC_SMA_LEN,
+                "upper_buffer": float(btc_upper),
+                "lower_buffer": float(btc_lower),
+                "status": "bull" if btc_current_price >= btc_upper else ("bear" if btc_current_price < btc_lower else "buffer"),
+                "status_label": "상승 추세 돌파" if btc_current_price >= btc_upper else ("하락 추세 이탈" if btc_current_price < btc_lower else "버퍼 구간 대기"),
+                "guide": btc_guide
+            },
+            "eth": {
+                "current_price": float(eth_current_price),
+                "sma": float(eth_sma),
+                "sma_len": ETH_SMA_LEN,
+                "atr_14": float(eth_atr_14),
+                "upper_band": float(eth_upper_band),
+                "lower_band": float(eth_lower_band),
+                "status": "bull" if eth_current_price >= eth_upper_band else ("bear" if eth_current_price < eth_lower_band else "neutral"),
+                "status_label": "상승 채널 돌파" if eth_current_price >= eth_upper_band else ("하락 밴드 이탈" if eth_current_price < eth_lower_band else "밴드 내 중립"),
+                "guide": eth_guide
+            }
+        },
+        "bithumb": {
+            "enabled": use_alt_strategy,
+            "market_filter": market_filter_state,
+            "market_filter_label": "상승장 (Bull)" if market_filter_state == "Bull" else "하락장 (Bear)",
+            "is_monday": kst_now.weekday() == 0,
+            "top_alts": top_4_alts_data,
+            "guide": bithumb_guide
+        },
+        "guides": {
+            "upbit": f"{btc_guide} / {eth_guide}",
+            "bithumb": bithumb_guide
+        }
+    }
+    export_web_status_json(status_data)
 
 
 def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STRATEGY):

@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>퀀트 코인 전략 대시보드</title>
+  
+  <!-- PWA Meta Tags -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0b0f19">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="QuantCoin">
+  <link rel="apple-touch-icon" href="icons/icon.svg">
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+
+  <style>
+    :root {
+      --bg-primary: #090d16;
+      --bg-secondary: #111827;
+      --bg-card: rgba(17, 24, 39, 0.85);
+      --bg-card-hover: rgba(30, 41, 59, 0.9);
+      --border-color: rgba(51, 65, 85, 0.6);
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent-cyan: #38bdf8;
+      --accent-indigo: #6366f1;
+      --accent-green: #10b981;
+      --accent-red: #ef4444;
+      --accent-amber: #f59e0b;
+      --radius-lg: 16px;
+      --radius-md: 12px;
+      --shadow-glow: 0 0 25px rgba(56, 189, 248, 0.15);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans KR", sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.1) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(99, 102, 241, 0.1) 0px, transparent 50%);
+      background-attachment: fixed;
+      color: var(--text-primary);
+      min-height: 100vh;
+      padding-bottom: 40px;
+    }
+
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 0;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .logo-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-img {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      filter: drop-shadow(0 2px 8px rgba(56, 189, 248, 0.4));
+    }
+
+    .logo-text h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #38bdf8, #818cf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .logo-text p {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #0284c7, #4f46e5);
+      border: none;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.9;
+    }
+
+    /* Live Update Time Bar */
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 10px 14px;
+      margin-bottom: 16px;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    .live-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--accent-green);
+      font-weight: 600;
+    }
+
+    .dot-pulse {
+      width: 8px;
+      height: 8px;
+      background-color: var(--accent-green);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--accent-green);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.3); opacity: 1; box-shadow: 0 0 12px var(--accent-green); }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+
+    /* Master Action Banner */
+    .action-banner {
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.9));
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow-glow);
+    }
+
+    .action-banner h2 {
+      font-size: 0.95rem;
+      color: var(--accent-cyan);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .action-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    @media (max-width: 600px) {
+      .action-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .action-item {
+      background: rgba(15, 23, 42, 0.8);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      border-left: 4px solid var(--accent-cyan);
+    }
+
+    .action-item.bithumb {
+      border-left-color: var(--accent-amber);
+    }
+
+    .action-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+
+    .action-value {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    /* Section Title */
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin: 24px 0 12px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Strategy Cards */
+    .card-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    @media (max-width: 700px) {
+      .card-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: var(--bg-card);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .card:hover {
+      border-color: rgba(56, 189, 248, 0.4);
+      transform: translateY(-2px);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .coin-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+
+    .coin-badge {
+      font-size: 0.72rem;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent-cyan);
+      font-weight: 600;
+    }
+
+    .status-pill {
+      font-size: 0.78rem;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .status-bull {
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+
+    .status-bear {
+      background: rgba(239, 68, 68, 0.2);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+
+    .status-buffer, .status-neutral {
+      background: rgba(245, 158, 11, 0.2);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.4);
+    }
+
+    .price-display {
+      margin-bottom: 14px;
+    }
+
+    .price-main {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: -0.5px;
+    }
+
+    .price-sub {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    /* Gauge / Channel visualizer */
+    .channel-box {
+      background: rgba(15, 23, 42, 0.8);
+      border-radius: var(--radius-md);
+      padding: 10px 12px;
+      margin-bottom: 12px;
+      border: 1px solid rgba(51, 65, 85, 0.4);
+    }
+
+    .channel-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.76rem;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+
+    .channel-row .val {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    /* Progress bar */
+    .gauge-bar-bg {
+      height: 8px;
+      background: #1e293b;
+      border-radius: 4px;
+      position: relative;
+      margin: 8px 0;
+      overflow: hidden;
+    }
+
+    .gauge-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #6366f1, #38bdf8);
+      border-radius: 4px;
+      transition: width 0.4s ease;
+    }
+
+    .card-footer-guide {
+      font-size: 0.82rem;
+      color: #cbd5e1;
+      background: rgba(30, 41, 59, 0.5);
+      border-radius: 8px;
+      padding: 8px 10px;
+      border-left: 3px solid var(--accent-cyan);
+    }
+
+    /* Altcoin Sub-Strategy Card */
+    .alt-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      margin-bottom: 20px;
+    }
+
+    .alt-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .alt-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .alt-item {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 10px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .alt-coin-name {
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: var(--text-primary);
+    }
+
+    .alt-return {
+      font-weight: 700;
+      font-size: 0.82rem;
+      color: var(--accent-green);
+    }
+
+    /* Backtest Stats Accordion */
+    .stats-card {
+      background: rgba(17, 24, 39, 0.6);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    @media (max-width: 600px) {
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .stat-box {
+      background: rgba(15, 23, 42, 0.8);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      text-align: center;
+    }
+
+    .stat-label {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+
+    .stat-val {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--accent-cyan);
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      margin-top: 30px;
+      line-height: 1.6;
+    }
+
+    footer a {
+      color: var(--accent-cyan);
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+
+    /* Loading Spinner */
+    .spinner {
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border-left-color: var(--accent-cyan);
+      animation: spin 1s linear infinite;
+      display: inline-block;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    
+    <!-- Top Header -->
+    <header>
+      <div class="logo-group">
+        <img src="icons/icon.svg" alt="Quant Logo" class="logo-img">
+        <div class="logo-text">
+          <h1>퀀트 코인 전략</h1>
+          <p>듀얼 모멘텀 & 알트코인 모멘텀</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="btn-refresh" class="btn" title="실시간 시세 및 지표 새로고침">
+          <span id="refresh-icon">🔄</span>
+          <span>새로고침</span>
+        </button>
+        <button id="btn-install" class="btn btn-primary" style="display: none;">
+          <span>📲</span>
+          <span>앱 설치</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Status & Sync Bar -->
+    <div class="status-bar">
+      <div class="live-badge">
+        <div class="dot-pulse"></div>
+        <span id="live-text">자동 업데이트 가동 중</span>
+      </div>
+      <div id="updated-time">기준 일시: 로딩 중...</div>
+    </div>
+
+    <!-- Master Action Banner -->
+    <div class="action-banner">
+      <h2>💡 오늘의 종합 매매 행동 가이드</h2>
+      <div class="action-grid">
+        <div class="action-item">
+          <div class="action-label">🔵 업비트 메인 (BTC / ETH)</div>
+          <div id="guide-upbit" class="action-value">데이터를 불러오는 중...</div>
+        </div>
+        <div class="action-item bithumb">
+          <div class="action-label">🟢 빗썸 서브 (알트코인)</div>
+          <div id="guide-bithumb" class="action-value">데이터를 불러오는 중...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Strategy Section: Upbit -->
+    <div class="section-title">
+      <span>🔵</span>
+      <span>업비트 메인 전략 (50:50 듀얼 모멘텀)</span>
+    </div>
+
+    <div class="card-grid">
+      
+      <!-- BTC Card -->
+      <div class="card">
+        <div class="card-header">
+          <div class="coin-title">
+            <span>비트코인</span>
+            <span class="coin-badge">BTC</span>
+          </div>
+          <div id="btc-status-badge" class="status-pill status-buffer">버퍼 대기</div>
+        </div>
+
+        <div class="price-display">
+          <div id="btc-price" class="price-main">- 원</div>
+          <div id="btc-sma-diff" class="price-sub">기준 220일 SMA: -</div>
+        </div>
+
+        <div class="channel-box">
+          <div class="channel-row">
+            <span>상한 버퍼 (+2%)</span>
+            <span id="btc-upper" class="val">- 원</span>
+          </div>
+          <div class="channel-row">
+            <span>기준 220일 SMA</span>
+            <span id="btc-sma" class="val">- 원</span>
+          </div>
+          <div class="channel-row">
+            <span>하한 버퍼 (-2%)</span>
+            <span id="btc-lower" class="val">- 원</span>
+          </div>
+        </div>
+
+        <div id="btc-guide" class="card-footer-guide">
+          지표 분석 중...
+        </div>
+      </div>
+
+      <!-- ETH Card -->
+      <div class="card">
+        <div class="card-header">
+          <div class="coin-title">
+            <span>이더리움</span>
+            <span class="coin-badge">ETH</span>
+          </div>
+          <div id="eth-status-badge" class="status-pill status-bull">상승 돌파</div>
+        </div>
+
+        <div class="price-display">
+          <div id="eth-price" class="price-main">- 원</div>
+          <div id="eth-sma-diff" class="price-sub">기준 50일 SMA + 1.5 ATR: -</div>
+        </div>
+
+        <div class="channel-box">
+          <div class="channel-row">
+            <span>상한 밴드 (+1.5 ATR)</span>
+            <span id="eth-upper" class="val">- 원</span>
+          </div>
+          <div class="channel-row">
+            <span>기준 50일 SMA</span>
+            <span id="eth-sma" class="val">- 원</span>
+          </div>
+          <div class="channel-row">
+            <span>하한 밴드 (-1.5 ATR)</span>
+            <span id="eth-lower" class="val">- 원</span>
+          </div>
+        </div>
+
+        <div id="eth-guide" class="card-footer-guide">
+          지표 분석 중...
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Strategy Section: Bithumb -->
+    <div class="section-title">
+      <span>🟢</span>
+      <span>빗썸 서브 전략 (알트코인 상대 모멘텀)</span>
+    </div>
+
+    <div class="alt-card">
+      <div class="alt-header">
+        <div>
+          <strong style="font-size: 1rem;">공통 시장 필터</strong>
+          <span style="font-size: 0.8rem; color: var(--text-secondary); margin-left: 6px;">(업비트 BTC 220 SMA ±2%)</span>
+        </div>
+        <div id="bithumb-filter-badge" class="status-pill status-bull">Bull (상승장)</div>
+      </div>
+
+      <div style="font-size: 0.84rem; color: var(--text-secondary); margin-bottom: 12px;" id="bithumb-strategy-desc">
+        하락장 시 모든 알트코인을 전량 현금화하며, 월요일 상승장 시 상위 4개 종목을 각 25%씩 동일 비중 매수합니다.
+      </div>
+
+      <div id="alt-recommend-box">
+        <div style="font-size: 0.8rem; font-weight: 700; color: var(--accent-cyan); margin-bottom: 6px;">
+          🚀 주간 추천 알트코인 (거래대금 상위 10선 중 14일 수익률 TOP 4)
+        </div>
+        <div id="alt-list" class="alt-list">
+          <div class="alt-item"><span class="alt-coin-name">알트코인 목록 로딩 중...</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Historical Backtest Summary -->
+    <div class="section-title">
+      <span>📈</span>
+      <span>역사적 백테스트 검증 성과 (최근 4.3년)</span>
+    </div>
+
+    <div class="stats-card">
+      <div style="font-size: 0.8rem; color: var(--text-secondary);">
+        1,500일 일봉 백테스트 (2022.04 ~ 현재) 시뮬레이션 결과
+      </div>
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div class="stat-label">전략 연평균 성장률 (CAGR)</div>
+          <div class="stat-val">+30.36%</div>
+          <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">단순보유: +8.44%</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">최대 낙폭 방어 (MDD)</div>
+          <div class="stat-val" style="color: #38bdf8;">-28.07%</div>
+          <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">단순보유: -59.09%</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">전략 누적 수익률</div>
+          <div class="stat-val" style="color: var(--accent-green);">+214.42%</div>
+          <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">초과 성과: +172.51%p</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+      <div>Crypto Quantitative Trading Bot • PWA Dashboard</div>
+      <div>GitHub Actions 자동화로 매일 09:05 KST 최신 시그널을 계산합니다.</div>
+      <div style="margin-top: 6px;">
+        <a href="https://github.com/haksoo0918/quant-bitcoin" target="_blank" rel="noopener">GitHub 저장소 바로가기</a>
+      </div>
+    </footer>
+
+  </div>
+
+  <script>
+    // Format Currency Helper
+    function formatKRW(val) {
+      if (val === undefined || val === null || isNaN(val)) return '-';
+      return Math.round(val).toLocaleString('ko-KR') + ' 원';
+    }
+
+    // Render Data to DOM
+    function renderStatus(data) {
+      if (!data) return;
+
+      // Update time
+      document.getElementById('updated-time').textContent = `기준 일시: ${data.updated_at_formatted || data.updated_at}`;
+
+      // Guides
+      if (data.guides) {
+        document.getElementById('guide-upbit').textContent = data.guides.upbit || '유지';
+        document.getElementById('guide-bithumb').textContent = data.guides.bithumb || '유지';
+      }
+
+      // BTC Render
+      if (data.upbit && data.upbit.btc) {
+        const btc = data.upbit.btc;
+        document.getElementById('btc-price').textContent = formatKRW(btc.current_price);
+        document.getElementById('btc-sma').textContent = formatKRW(btc.sma);
+        document.getElementById('btc-upper').textContent = formatKRW(btc.upper_buffer);
+        document.getElementById('btc-lower').textContent = formatKRW(btc.lower_buffer);
+        document.getElementById('btc-guide').textContent = `💡 행동 가이드: ${btc.guide}`;
+        
+        const btcBadge = document.getElementById('btc-status-badge');
+        btcBadge.className = 'status-pill';
+        if (btc.status === 'bull') {
+          btcBadge.classList.add('status-bull');
+          btcBadge.textContent = '🟢 상승 돌파';
+        } else if (btc.status === 'bear') {
+          btcBadge.classList.add('status-bear');
+          btcBadge.textContent = '🔴 하락 이탈';
+        } else {
+          btcBadge.classList.add('status-buffer');
+          btcBadge.textContent = '🔍 버퍼 대기';
+        }
+
+        const diffPct = ((btc.current_price - btc.sma) / btc.sma) * 100;
+        document.getElementById('btc-sma-diff').textContent = `기준 이평(${btc.sma_len}일) 대비 ${diffPct >= 0 ? '+' : ''}${diffPct.toFixed(2)}%`;
+      }
+
+      // ETH Render
+      if (data.upbit && data.upbit.eth) {
+        const eth = data.upbit.eth;
+        document.getElementById('eth-price').textContent = formatKRW(eth.current_price);
+        document.getElementById('eth-sma').textContent = formatKRW(eth.sma);
+        document.getElementById('eth-upper').textContent = formatKRW(eth.upper_band);
+        document.getElementById('eth-lower').textContent = formatKRW(eth.lower_band);
+        document.getElementById('eth-guide').textContent = `💡 행동 가이드: ${eth.guide}`;
+
+        const ethBadge = document.getElementById('eth-status-badge');
+        ethBadge.className = 'status-pill';
+        if (eth.status === 'bull') {
+          ethBadge.classList.add('status-bull');
+          ethBadge.textContent = '🟢 상승 채널 돌파';
+        } else if (eth.status === 'bear') {
+          ethBadge.classList.add('status-bear');
+          ethBadge.textContent = '🔴 하락 밴드 이탈';
+        } else {
+          ethBadge.classList.add('status-neutral');
+          ethBadge.textContent = '🔍 밴드 내 중립';
+        }
+
+        const ethDiffPct = ((eth.current_price - eth.sma) / eth.sma) * 100;
+        document.getElementById('eth-sma-diff').textContent = `기준 이평(${eth.sma_len}일) 대비 ${ethDiffPct >= 0 ? '+' : ''}${ethDiffPct.toFixed(2)}% (ATR: ${Math.round(eth.atr_14).toLocaleString()})`;
+      }
+
+      // Bithumb Render
+      if (data.bithumb) {
+        const b = data.bithumb;
+        const bFilter = document.getElementById('bithumb-filter-badge');
+        bFilter.className = 'status-pill';
+        if (b.market_filter === 'Bull') {
+          bFilter.classList.add('status-bull');
+          bFilter.textContent = '🟢 Bull (상승장)';
+        } else {
+          bFilter.classList.add('status-bear');
+          bFilter.textContent = '🔴 Bear (하락장)';
+        }
+
+        const altListEl = document.getElementById('alt-list');
+        if (b.top_alts && b.top_alts.length > 0) {
+          altListEl.innerHTML = b.top_alts.map((c, i) => `
+            <div class="alt-item">
+              <div>
+                <div class="alt-coin-name">${i+1}위: ${c.currency || c.market.replace('KRW-', '')}</div>
+                <div style="font-size: 0.72rem; color: var(--text-muted);">25% 균등 매수</div>
+              </div>
+              <div class="alt-return">${c.return_14d >= 0 ? '+' : ''}${(c.return_14d * 100).toFixed(2)}%</div>
+            </div>
+          `).join('');
+        } else {
+          altListEl.innerHTML = `
+            <div class="alt-item" style="grid-column: 1 / -1;">
+              <span class="alt-coin-name">${b.market_filter === 'Bull' ? '월요일이 아니므로 기존 선정 종목을 유지합니다.' : '하락장이므로 모든 알트코인을 전량 현금화합니다.'}</span>
+            </div>
+          `;
+        }
+      }
+    }
+
+    // Fetch Status JSON
+    async function loadStatusData() {
+      try {
+        const res = await fetch('./data/status.json?t=' + Date.now());
+        if (!res.ok) throw new Error('Data file not found');
+        const data = await res.json();
+        renderStatus(data);
+        return data;
+      } catch (err) {
+        console.warn('Failed to load status.json:', err);
+      }
+    }
+
+    // Direct Live Price Refresh via Upbit Public API
+    async function fetchLiveUpbitPrices() {
+      try {
+        const res = await fetch('https://api.upbit.com/v1/ticker?markets=KRW-BTC,KRW-ETH');
+        if (!res.ok) return;
+        const tickers = await res.json();
+        tickers.forEach(t => {
+          if (t.market === 'KRW-BTC') {
+            document.getElementById('btc-price').textContent = formatKRW(t.trade_price);
+          } else if (t.market === 'KRW-ETH') {
+            document.getElementById('eth-price').textContent = formatKRW(t.trade_price);
+          }
+        });
+      } catch (e) {
+        console.warn('Live Upbit ticker fetch failed:', e);
+      }
+    }
+
+    // Refresh Button Handler
+    const btnRefresh = document.getElementById('btn-refresh');
+    btnRefresh.addEventListener('click', async () => {
+      btnRefresh.disabled = true;
+      btnRefresh.innerHTML = '<span class="spinner"></span> <span>갱신 중...</span>';
+      await Promise.all([loadStatusData(), fetchLiveUpbitPrices()]);
+      setTimeout(() => {
+        btnRefresh.disabled = false;
+        btnRefresh.innerHTML = '<span>🔄</span> <span>새로고침</span>';
+      }, 500);
+    });
+
+    // PWA Service Worker Registration
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js')
+          .then(reg => console.log('ServiceWorker registered:', reg.scope))
+          .catch(err => console.error('ServiceWorker error:', err));
+      });
+    }
+
+    // PWA Install Prompt
+    let deferredPrompt;
+    const btnInstall = document.getElementById('btn-install');
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      btnInstall.style.display = 'inline-flex';
+    });
+
+    btnInstall.addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        btnInstall.style.display = 'none';
+      }
+      deferredPrompt = null;
+    });
+
+    // Initial Load
+    loadStatusData();
+  </script>
+</body>
+</html>

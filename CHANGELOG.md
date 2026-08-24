@@ -5,6 +5,18 @@
 
 ---
 
+## [1.4.0] - 2026-08-24
+
+### Added (추가됨)
+- **PWA(Progressive Web App) 기반 반응형 웹 대시보드 구축 (`docs/`)**:
+  - `docs/index.html`: 다크 테마 기반의 종합 매매 행동 가이드, 업비트(BTC/ETH) 듀얼 모멘텀 지표 카드, 빗썸 알트코인 모멘텀 카드 및 백테스트 성과 요약 SPA 구현.
+  - `docs/manifest.json` & `docs/service-worker.js`: 모바일/PC 홈 화면 앱 설치(PWA) 및 오프라인 캐싱 지원.
+  - `docs/icons/icon.svg`: 고해상도 벡터 PWA 앱 아이콘 추가.
+  - 장중 실시간 업비트 시세 조회 및 지표 새로고침 기능 탑재.
+- **GitHub Pages 연동 및 일일 상태 데이터 자동 갱신 파이프라인**:
+  - `src/main.py`: 전략 시그널 분석 시 웹 대시보드 연동용 최신 상태 데이터 `docs/data/status.json` 자동 내보내기 로직 구현.
+  - `.github/workflows/main.yml`: 매일 09:05 KST 일일 실행 시 생성된 `docs/data/status.json`을 저장소에 자동 커밋&푸시하여 GitHub Pages 실시간 동기화.
+
 ## [1.3.0] - 2026-08-22
 
 ### Added (추가됨)
