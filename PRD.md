@@ -72,7 +72,7 @@
     - 시그널 확인: `python src/main.py --signal-only`
     - 모의 매매: `python src/main.py --dry-run`
     - 실거래 주문: `python src/main.py --live`
-    - 알트코인 제외: `python src/main.py --no-alt` (단독 또는 조합 사용)
+    - 빗썸 서브 전략 제외: `python src/main.py --no-alt` (단독 또는 조합 사용)
   - 배치 파일(`run_bot.bat`): CLI 인자 전달용 래퍼(`python src/main.py %*`)로 간소화 제공
 
 ---
