@@ -95,12 +95,30 @@
   - **결과물 저장 및 파일명 표준화**:
     - 모든 백테스트 결과물은 `backtest/` 디렉토리에 저장됩니다.
     - 실행 이력 보존과 구분을 위해 생성되는 보고서 및 차트 이미지 파일명에 실행 일시 타임스탬프(`YYYYMMDD_HHMMSS`)를 자동으로 포함합니다.
-      - 단일 백테스트 보고서: `backtest/backtest_report_YYYYMMDD_HHMMSS.md`
-      - 자산 곡선 차트: `backtest/backtest_result_YYYYMMDD_HHMMSS.png`
+      - 메인 백테스트 보고서: `backtest/backtest_report_YYYYMMDD_HHMMSS.md`
+      - 메인 자산 곡선 차트: `backtest/backtest_result_YYYYMMDD_HHMMSS.png`
+      - 알트코인 백테스트 보고서: `backtest/backtest_altcoin_report_YYYYMMDD_HHMMSS.md`
+      - 알트코인 자산 곡선 차트: `backtest/backtest_altcoin_result_YYYYMMDD_HHMMSS.png`
       - 파라미터 최적화 보고서: `backtest/backtest_optimization_report_YYYYMMDD_HHMMSS.md` (리밸런싱 미적용 시 `backtest_optimization_report_no_rebalance_YYYYMMDD_HHMMSS.md`)
   - **구현 방식 및 공통 모듈화**:
     - `src/indicators.py` 공통 기술적 지표 모듈(SMA, ATR, 버퍼, 히스테리시스 연산)을 `main.py`와 `backtest.py`가 공유하여 전략 로직의 일관성을 보장합니다.
-    - `src/backtest.py` 스크립트를 통해 백테스트를 실행하고, 위 규격에 따라 성과 보고서와 차트 이미지를 생성하도록 구현.
+    - `src/backtest.py` 스크립트를 통해 메인 전략 백테스트를 실행하고, `src/backtest_altcoin.py` (또는 `--altcoin` 모드)를 통해 빗썸 알트코인 모멘텀 전략 백테스트를 수행합니다.
+
+### 5.2. 서브 전략 (빗썸 알트코인 모멘텀) 백테스트 요구사항
+- **개념**: 빗썸 KRW 마켓의 과거 일봉 데이터를 기반으로, 비트코인 공통 시장 필터(220 SMA ±2%)와 주간 거래대금/모멘텀 상위 4종 알트코인 교체 매매 전략의 역사적 성과(수익률, MDD, 승률)를 검증합니다.
+- **백테스트 시뮬레이션 알고리즘**:
+  1. **과거 데이터 수집 & 로컬 캐싱**: 빗썸 원화 마켓 주요 알트코인들의 일봉 데이터(시가/고가/저가/종가/거래대금)를 수집하여 `data/` 폴더에 캐싱.
+  2. **일별 공통 시장 필터 판정**: 매일 09:00 시점 업비트 BTC 220일 SMA ±2% 버퍼 히스테리시스 적용.
+     - 하락장(Bear) 진입 시: 보유 중인 모든 알트코인을 즉시 전량 매도하여 100% 현금(KRW) 보존.
+  3. **주간 리밸런싱 (월요일 09:00)**:
+     - 상승장(Bull) 유지/진입 시:
+       - 직전 7일 일평균 거래대금 상위 10개 알트코인 추출 (BTC, ETH 제외)
+       - 선별된 10개 종목 중 직전 14일 수익률 상위 4개 종목 최종 선정
+       - 4개 종목에 총자산의 각 25%씩 균등 매수 (기존 보유 종목 중 탈락 종목은 매도 후 교체)
+  4. **거래 비용 모델**: 매수/매도 시 빗썸 기본 수수료(0.04%~0.05%) 및 슬리피지(`--slippage`) 적용.
+  5. **성과 분석 및 시각화**:
+     - 전략 누적 수익률, 연평균 성장률(CAGR), 최대 낙폭(MDD), 벤치마크(BTC 단순보유) 대비 초과 성과 산출
+     - 자산 곡선 차트(`PNG`) 및 상세 성과 보고서(`MD`) 자동 생성
 
 ---
 
