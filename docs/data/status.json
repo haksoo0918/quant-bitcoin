@@ -1,25 +1,25 @@
 {
-  "updated_at": "2026-08-25T18:07:55.009197+00:00",
-  "updated_at_formatted": "2026-08-25 18:07:55 KST",
+  "updated_at": "2026-08-25T22:00:18.356765+00:00",
+  "updated_at_formatted": "2026-08-25 22:00:18 KST",
   "mode": "signal",
   "upbit": {
     "btc": {
-      "current_price": 110236000.0,
-      "sma": 103975900.0,
+      "current_price": 109223000.0,
+      "sma": 103971295.45454545,
       "sma_len": 220,
-      "upper_buffer": 106055418.0,
-      "lower_buffer": 101896382.0,
+      "upper_buffer": 106050721.36363636,
+      "lower_buffer": 101891869.54545455,
       "status": "bull",
       "status_label": "상승 추세 돌파",
       "guide": "BTC 50% 비중 매수 또는 보유 유지"
     },
     "eth": {
-      "current_price": 3430000.0,
-      "sma": 2793280.0,
+      "current_price": 3420000.0,
+      "sma": 2793080.0,
       "sma_len": 50,
       "atr_14": 133928.57142857142,
-      "upper_band": 2994172.8571428573,
-      "lower_band": 2592387.1428571427,
+      "upper_band": 2993972.8571428573,
+      "lower_band": 2592187.1428571427,
       "status": "bull",
       "status_label": "상승 채널 돌파",
       "guide": "ETH 50% 비중 매수 또는 보유 유지"
@@ -30,8 +30,8 @@
     "target_coin": "ETH",
     "target_coin_name": "이더리움 (ETH)",
     "target_signal": "🚀 **[이더리움 (ETH) 100% 집중 탑승]** (30일 상대 모멘텀 우세)",
-    "btc_mom_30d": 0.15954895443261666,
-    "eth_mom_30d": 0.20732136571629708,
+    "btc_mom_30d": 0.1488934236546472,
+    "eth_mom_30d": 0.20380147835269272,
     "btc_is_bull": true,
     "eth_is_bull": true,
     "guide": "빗썸 ETH 100% 매수 또는 보유 유지"

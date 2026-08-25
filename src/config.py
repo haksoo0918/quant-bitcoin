@@ -22,10 +22,11 @@ SIGNAL_ONLY = IS_GITHUB_ACTIONS or (os.getenv("SIGNAL_ONLY", "false").lower() ==
 # - 로컬 실거래 실행 시에는 기본 False로 작동하며, DRY_RUN=true 설정 시 안전 모의 매매로 동작합니다.
 DRY_RUN = True if SIGNAL_ONLY else (os.getenv("DRY_RUN", "false").lower() == "true")
 
-# 4. 빗썸 알트코인 전략 실행 여부
-# - True: 업비트(BTC/ETH) 전략과 빗썸(알트코인) 전략을 모두 동시에 실행합니다.
+# 4. 빗썸 서브 전략 (BTC vs ETH 100% 스위칭) 실행 여부
+# - True: 업비트(BTC/ETH 50:50) 전략과 빗썸(BTC vs ETH 100% 스위칭) 전략을 모두 동시에 실행합니다.
 # - False: 빗썸 연동 및 거래를 완전히 비활성화하고, 업비트 메인 전략만 실행합니다.
-USE_ALTCOIN_STRATEGY = True
+USE_BITHUMB_STRATEGY = True
+USE_ALTCOIN_STRATEGY = USE_BITHUMB_STRATEGY  # 하위 호환성 유지
 
 
 # ==========================================
