@@ -15,7 +15,8 @@
   - `src/backtest_strategy2_turtle.py`: 터틀 20일 채널 돌파 + ATR 트레일링 스탑 백테스터 (누적 **+49.31%** 1위 달성)
   - `src/backtest_strategy3_risk_parity.py`: 변동성 역가중 Risk Parity 모멘텀 포트폴리오 백테스터 (누적 **+21.86%**)
   - `src/backtest_strategy4_mean_reversion.py`: 상승장 단기 과매도 RSI 반등 백테스터
-  - 각 전략별 자산 곡선 차트(`PNG`) 및 상세 성과 보고서(`MD`) 자동 생성.
+- **빗썸 서브 전략 BTC vs ETH 상대 모멘텀 100% 스위칭 백테스터 신설 (`src/backtest_bithumb_switching.py`)**:
+  - 과거 4.1년간 실데이터 기반으로 30일 모멘텀 1위 대장 코인 100% 집중 투자 및 하락장 현금화 듀얼 모멘텀 시뮬레이션 구현 (누적 **+178.08%** 달성).
 
 ## [1.5.9] - 2026-08-24
 
