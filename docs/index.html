@@ -975,32 +975,39 @@
 
     </div>
 
-    <!-- Strategy Section: Sub Altcoin -->
+    <!-- Strategy Section: Sub Strategy Bithumb Switching -->
     <div class="section-title">
       <svg class="icon icon-green" viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
-      <span>서브 알트코인 전략 (빗썸 기준 상대 모멘텀)</span>
+      <span>서브 전략 (빗썸 BTC vs ETH 100% 스위칭)</span>
     </div>
 
     <div class="alt-card">
       <div class="alt-header">
         <div>
-          <strong class="filter-title">공통 시장 필터</strong>
-          <span class="filter-subtitle">(업비트 BTC 220 SMA ±2% 기준)</span>
+          <strong class="filter-title">1등 대장 코인 탑승 신호</strong>
+          <span class="filter-subtitle">(30일 상대 모멘텀 우위 100% 집중)</span>
         </div>
-        <div id="bithumb-filter-badge" class="status-pill status-bull">Bull (상승장)</div>
+        <div id="bithumb-signal-badge" class="status-pill status-bull">로딩 중...</div>
       </div>
 
       <div class="alt-strategy-desc" id="bithumb-strategy-desc">
-        하락장 시 모든 알트코인을 전량 현금화하며, 월요일 상승장 시 상위 4개 종목을 각 25%씩 동일 비중 매수합니다.
+        비트코인과 이더리움 중 최근 30일 모멘텀(수익률)이 더 강한 1등 코인에 100% 집중 투자하고, 하락장 시 100% 현금화(KRW)합니다.
       </div>
 
       <div id="alt-recommend-box">
         <div class="alt-recommend-header">
           <svg class="icon icon-sm" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-          <span>주간 추천 알트코인 (거래대금 상위 10선 중 14일 수익률 TOP 4)</span>
+          <span>최근 30일 상대 모멘텀 비교 현황</span>
         </div>
-        <div id="alt-list" class="alt-list">
-          <div class="alt-item"><span class="alt-coin-name">알트코인 목록 로딩 중...</span></div>
+        <div id="bithumb-momentum-grid" class="alt-list">
+          <div class="alt-item" id="bithumb-mom-btc">
+            <div class="alt-coin-name">비트코인 (BTC) 30일 모멘텀</div>
+            <div class="alt-return" id="bithumb-btc-mom-val">+0.00%</div>
+          </div>
+          <div class="alt-item" id="bithumb-mom-eth">
+            <div class="alt-coin-name">이더리움 (ETH) 30일 모멘텀</div>
+            <div class="alt-return" id="bithumb-eth-mom-val">+0.00%</div>
+          </div>
         </div>
       </div>
     </div>
@@ -1199,34 +1206,35 @@
       // Bithumb Render
       if (data.bithumb) {
         const b = data.bithumb;
-        const bFilter = document.getElementById('bithumb-filter-badge');
-        bFilter.className = 'status-pill';
-        if (b.market_filter === 'Bull') {
-          bFilter.classList.add('status-bull');
-          bFilter.textContent = '🟢 Bull (상승장)';
+        const bBadge = document.getElementById('bithumb-signal-badge');
+        bBadge.className = 'status-pill';
+
+        if (b.target_coin === 'BTC') {
+          bBadge.classList.add('status-bull');
+          bBadge.textContent = '🚀 BTC 100% 집중 탑승';
+        } else if (b.target_coin === 'ETH') {
+          bBadge.classList.add('status-bull');
+          bBadge.textContent = '🚀 ETH 100% 집중 탑승';
         } else {
-          bFilter.classList.add('status-bear');
-          bFilter.textContent = '🔴 Bear (하락장)';
+          bBadge.classList.add('status-bear');
+          bBadge.textContent = '🔴 100% 현금화 관망';
         }
 
-        const altListEl = document.getElementById('alt-list');
-        if (b.top_alts && b.top_alts.length > 0) {
-          altListEl.innerHTML = b.top_alts.map((c, i) => {
-            const rawSym = c.currency || c.market.replace('KRW-', '');
-            const displayName = getCoinDisplayName(rawSym);
-            return `
-              <div class="alt-item">
-                <div class="alt-coin-name">${i+1}위: ${displayName}</div>
-                <div class="alt-return">${c.return_14d >= 0 ? '+' : ''}${(c.return_14d * 100).toFixed(2)}%</div>
-              </div>
-            `;
-          }).join('');
-        } else {
-          altListEl.innerHTML = `
-            <div class="alt-item alt-item-empty">
-              <span class="alt-coin-name">${b.market_filter === 'Bull' ? '월요일이 아니므로 기존 선정 종목을 유지합니다.' : '하락장이므로 모든 알트코인을 전량 현금화합니다.'}</span>
-            </div>
-          `;
+        const btcMomEl = document.getElementById('bithumb-btc-mom-val');
+        const ethMomEl = document.getElementById('bithumb-eth-mom-val');
+        if (btcMomEl && b.btc_mom_30d !== undefined) {
+          btcMomEl.textContent = `${b.btc_mom_30d >= 0 ? '+' : ''}${(b.btc_mom_30d * 100).toFixed(2)}%`;
+        }
+        if (ethMomEl && b.eth_mom_30d !== undefined) {
+          ethMomEl.textContent = `${b.eth_mom_30d >= 0 ? '+' : ''}${(b.eth_mom_30d * 100).toFixed(2)}%`;
+        }
+
+        // Highlight winner
+        const btcItem = document.getElementById('bithumb-mom-btc');
+        const ethItem = document.getElementById('bithumb-mom-eth');
+        if (btcItem && ethItem) {
+          btcItem.style.borderLeft = (b.target_coin === 'BTC') ? '4px solid #10b981' : 'none';
+          ethItem.style.borderLeft = (b.target_coin === 'ETH') ? '4px solid #10b981' : 'none';
         }
       }
     }
