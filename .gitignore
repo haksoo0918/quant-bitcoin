@@ -1,32 +1,35 @@
-# Python cache files
+# 파이썬 캐시 파일
 __pycache__/
 *.py[cod]
 *$py.class
 
-# Environments
+# 가상환경 및 환경 변수 파일
 .venv/
 venv/
 ENV/
 env/
 .env
 
-# OS files
+# 운영체제 생성 임시 파일
 .DS_Store
 Thumbs.db
 
-# IDEs
+# IDE 및 에디터 설정 파일
 .vscode/
 .idea/
 .gemini/
 .agents/
 
-# Personal execution scripts and logs
+# 로컬 실행 스크립트 및 로그 파일
 run_bot.bat
 trading_log.txt
 logs/
 /data/
 !docs/data/status.json
 
-# Backtest reports and output artifacts (backtest/ 폴더 내 결과물)
+# 백테스트 보고서 및 결과 차트 이미지 (backtest/ 폴더 내 결과물)
 backtest/*.md
 backtest/*.png
+
+# 개인 작업 및 비공개 문서
+hs-todo.md
