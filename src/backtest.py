@@ -17,8 +17,8 @@ if sys.stdout and sys.stdout.encoding != 'utf-8':
     except AttributeError:
         pass
 
-# 백테스트 결과물 저장 경로 (보고서, 차트 이미지)
-OUTPUT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "backtest")
+# 백테스트 결과물 저장 경로 (메인 전략: backtest/main)
+OUTPUT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "backtest", "main")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # 전략 고정 상수

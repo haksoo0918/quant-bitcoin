@@ -23,7 +23,7 @@ if sys.stdout and sys.stdout.encoding != 'utf-8':
     except AttributeError:
         pass
 
-OUTPUT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "backtest")
+OUTPUT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "backtest", "sub_switching")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 

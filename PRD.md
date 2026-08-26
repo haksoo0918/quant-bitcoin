@@ -98,17 +98,19 @@
       - `리밸런싱 활성/비활성`: 포트폴리오 차원의 50:50 비중 재조정 거래를 배제하고 두 자산을 독립적으로 운용하는 모드 (`--no-rebalance`)
       - `슬리피지(Slippage) 모델`: 시장가 체결 오차를 보수적으로 반영하기 위한 슬리피지 비율 파라미터 (`--slippage`, 기본값 0.0%)
       - `파라미터 최적화`: 이평선 기간 조합별 성과를 연산하여 최고 수익률 순으로 정렬하는 모드 (`--optimize`)
-  - **결과물 저장 및 파일명 표준화**:
-    - 모든 백테스트 결과물은 `backtest/` 디렉토리에 저장됩니다.
+  - **결과물 저장 및 디렉토리 구조 표준화**:
+    - 모든 백테스트 결과물은 전략 유형별로 `backtest/` 하위 디렉토리에 분류되어 자동 저장됩니다.
     - 실행 이력 보존과 구분을 위해 생성되는 보고서 및 차트 이미지 파일명에 실행 일시 타임스탬프(`YYYYMMDD_HHMMSS`)를 자동으로 포함합니다.
-      - 메인 백테스트 보고서: `backtest/backtest_report_YYYYMMDD_HHMMSS.md`
-      - 메인 자산 곡선 차트: `backtest/backtest_result_YYYYMMDD_HHMMSS.png`
-      - 알트코인 백테스트 보고서: `backtest/backtest_altcoin_report_YYYYMMDD_HHMMSS.md`
-      - 알트코인 자산 곡선 차트: `backtest/backtest_altcoin_result_YYYYMMDD_HHMMSS.png`
-      - 파라미터 최적화 보고서: `backtest/backtest_optimization_report_YYYYMMDD_HHMMSS.md` (리밸런싱 미적용 시 `backtest_optimization_report_no_rebalance_YYYYMMDD_HHMMSS.md`)
+      - **메인 전략 (업비트 50:50)**:
+        - 보고서: `backtest/main/backtest_report_YYYYMMDD_HHMMSS.md`
+        - 자산 곡선 차트: `backtest/main/backtest_result_YYYYMMDD_HHMMSS.png`
+        - 파라미터 최적화 보고서: `backtest/main/backtest_optimization_report_YYYYMMDD_HHMMSS.md`
+      - **서브 전략 (빗썸 100% 스위칭)**:
+        - 보고서: `backtest/sub_switching/backtest_bithumb_switching_report_YYYYMMDD_HHMMSS.md`
+        - 자산 곡선 차트: `backtest/sub_switching/backtest_bithumb_switching_result_YYYYMMDD_HHMMSS.png`
   - **구현 방식 및 공통 모듈화**:
-    - `src/indicators.py` 공통 기술적 지표 모듈(SMA, ATR, 버퍼, 히스테리시스 연산)을 `main.py`와 `backtest.py`가 공유하여 전략 로직의 일관성을 보장합니다.
-    - `src/backtest.py` 스크립트를 통해 메인 전략 백테스트를 실행하고, `src/backtest_altcoin.py` (또는 `--altcoin` 모드)를 통해 빗썸 알트코인 모멘텀 전략 백테스트를 수행합니다.
+    - `src/indicators.py` 공통 기술적 지표 모듈(SMA, ATR, 버퍼, 히스테리시스 연산)을 `main.py`와 `backtest.py`, `backtest_bithumb_switching.py`가 공유하여 전략 로직의 일관성을 보장합니다.
+    - `src/backtest.py` 스크립트를 통해 메인 전략 백테스트를 실행하고, `src/backtest_bithumb_switching.py`를 통해 빗썸 서브 전략 백테스트를 수행합니다.
 
 ### 5.2. 서브 전략 (빗썸 알트코인 모멘텀 2.0) 백테스트 및 개선 요구사항
 - **개념**: 빗썸 KRW 마켓의 과거 일봉 데이터를 기반으로, 비트코인 공통 시장 필터(220 SMA ±2%)와 주간 거래대금/모멘텀 상위 알트코인 교체 매매 전략의 역사적 성과(수익률, MDD, 승률)를 검증 및 고도화합니다.

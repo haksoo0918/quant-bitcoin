@@ -1,5 +1,5 @@
 // Service Worker for Quant Crypto Dashboard PWA
-const CACHE_NAME = 'quant-dashboard-v1.6.2';
+const CACHE_NAME = 'quant-dashboard-v1.6.3';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

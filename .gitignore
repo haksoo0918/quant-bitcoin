@@ -27,9 +27,11 @@ logs/
 /data/
 !docs/data/status.json
 
-# 백테스트 보고서 및 결과 차트 이미지 (backtest/ 폴더 내 결과물)
+# 백테스트 보고서 및 결과 차트 이미지 (backtest/ 폴더 및 하위 폴더 내 결과물)
 backtest/*.md
 backtest/*.png
+backtest/**/*.md
+backtest/**/*.png
 
 # 개인 작업 및 비공개 문서
 hs-todo.md

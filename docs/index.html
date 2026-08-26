@@ -565,11 +565,18 @@
     .alt-item {
       background: var(--bg-card-sub);
       border: 1px solid var(--border-color);
-      border-radius: 10px;
-      padding: 10px 12px;
+      border-left: 4px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px 14px;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      transition: border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .alt-item.winner {
+      border-left-color: var(--accent-primary) !important;
+      background: var(--banner-bg);
     }
 
     .alt-item-empty {
@@ -1280,8 +1287,12 @@
         const btcItem = document.getElementById('bithumb-mom-btc');
         const ethItem = document.getElementById('bithumb-mom-eth');
         if (btcItem && ethItem) {
-          btcItem.style.borderLeft = (b.target_coin === 'BTC') ? '4px solid #10b981' : 'none';
-          ethItem.style.borderLeft = (b.target_coin === 'ETH') ? '4px solid #10b981' : 'none';
+          const isBtcWinner = (b.target_coin === 'BTC');
+          const isEthWinner = (b.target_coin === 'ETH');
+          btcItem.classList.toggle('winner', isBtcWinner);
+          ethItem.classList.toggle('winner', isEthWinner);
+          btcItem.style.borderLeftColor = isBtcWinner ? 'var(--accent-primary)' : 'var(--border-color)';
+          ethItem.style.borderLeftColor = isEthWinner ? 'var(--accent-primary)' : 'var(--border-color)';
         }
       }
     }

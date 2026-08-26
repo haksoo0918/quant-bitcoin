@@ -5,6 +5,19 @@
 
 ---
 
+## [1.6.3] - 2026-08-26
+
+### Changed (변경됨)
+- **백테스트 디렉토리 구조 표준화 및 자동 분류 (`src/backtest.py`, `src/backtest_bithumb_switching.py`, `.gitignore`)**:
+  - `backtest/main/`: 업비트 메인 50:50 전략 백테스트 보고서 및 차트 자동 저장.
+  - `backtest/sub_switching/`: 빗썸 100% 스위칭 서브 전략 백테스트 보고서 및 차트 자동 저장.
+  - 과거 탐색 과정에서 생성된 130여 개 알트코인 임시 파일 정리 및 `.gitignore` 하위 경로 패턴 추가.
+
+### Fixed (수정됨)
+- **웹 대시보드 서브 전략 모멘텀 비교 카드 좌측 테두리 결손 수정 (`docs/index.html`)**:
+  - 비선택 코인 블록의 `borderLeft = 'none'`으로 인해 1px 기본 박스 테두리가 사라지던 현상 수정 (기본 `4px solid var(--border-color)` 유지, 1등 코인에 `4px solid var(--accent-primary)` 하이라이트 부여).
+  - PWA 서비스 워커 캐시 버전 `v1.6.3`으로 갱신.
+
 ## [1.6.2] - 2026-08-26
 
 ### Added (추가됨)
