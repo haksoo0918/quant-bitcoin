@@ -5,6 +5,17 @@
 
 ---
 
+## [1.6.5] - 2026-08-26
+
+### Changed (변경됨)
+- **웹 대시보드 미사용 코드 정리 및 스타일 디자인 토큰 정돈 (`docs/index.html`, `docs/service-worker.js`)**:
+  - **미사용 CSS 클래스/변수 삭제**: `.icon-lg`, `.alt-item-empty`, `.alt-sub-text`, `--card-shadow-hover`, `--accent-red` 등 불필요한 스타일 코드 정리.
+  - **미사용 JS 스크립트 삭제**: 과거 알트코인명 변환 딕셔너리(`COIN_NAMES`) 및 `getCoinDisplayName()` 미사용 헬퍼 함수 정리.
+  - **디자인 토큰(CSS 변수) 체계화**: 하드코딩된 `border-radius` 속성을 `:root`에 정의된 `var(--radius-*)` 변수로 일응화 및 셀렉터 중복 구조 단순화.
+  - PWA 서비스 워커 캐시 버전 `v1.6.5`로 갱신.
+- **백테스트 디렉터리 무시 규칙 단순화 (`.gitignore`)**:
+  - `backtest/` 하위 파일 확장자별 개별 규칙을 `backtest/` 전체 디렉터리 무시 규칙으로 직관화.
+
 ## [1.6.4] - 2026-08-26
 
 ### Changed (변경됨)

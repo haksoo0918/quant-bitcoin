@@ -42,7 +42,6 @@
       --accent-emerald: #10b981;     /* 성공 상태 */
       --accent-green: #10b981;
       --accent-amber: #f59e0b;     /* 경고/주의 상태 */
-      --accent-red: #ef4444;       /* 위험/오류 상태 */
       --accent-indigo: #0d9488;
 
       --pill-bull-bg: rgba(16, 185, 129, 0.12);
@@ -58,7 +57,6 @@
       --pill-buffer-border: rgba(245, 158, 11, 0.3);
 
       --card-shadow: 0 1px 3px rgba(10, 14, 39, 0.08), 0 1px 2px rgba(10, 14, 39, 0.04);
-      --card-shadow-hover: 0 10px 25px rgba(10, 14, 39, 0.10), 0 4px 12px rgba(10, 14, 39, 0.05);
       --banner-bg: linear-gradient(135deg, #ffffff, #f0fdfa);
       --banner-border: #ccfbf1;
 
@@ -67,10 +65,10 @@
 
       --font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       --font-mono: 'D2Coding', 'SF Mono', Consolas, Menlo, Monaco, monospace;
-      --radius-sm: 4px;
+      --radius-sm: 6px;
       --radius-md: 8px;
-      --radius-lg: 12px;
-      --radius-xl: 16px;
+      --radius-lg: 10px;
+      --radius-xl: 14px;
       --radius-pill: 9999px;
     }
 
@@ -93,7 +91,6 @@
       --accent-emerald: #6ee7b7;     /* 성공 상태 */
       --accent-green: #6ee7b7;
       --accent-amber: #fbbf24;     /* 경고/주의 상태 */
-      --accent-red: #f87171;       /* 위험/오류 상태 */
       --accent-indigo: #2dd4bf;
 
       --pill-bull-bg: rgba(45, 212, 191, 0.18);
@@ -109,7 +106,6 @@
       --pill-buffer-border: rgba(251, 191, 36, 0.35);
 
       --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-      --card-shadow-hover: 0 10px 25px rgba(0, 0, 0, 0.5);
       --banner-bg: linear-gradient(135deg, rgba(26, 31, 58, 0.95), rgba(18, 22, 48, 0.95));
       --banner-border: rgba(45, 212, 191, 0.35);
 
@@ -166,7 +162,6 @@
     }
 
     .icon-sm { width: 14px; height: 14px; }
-    .icon-lg { width: 22px; height: 22px; }
     
     .icon-cyan { color: var(--accent-cyan); }
     .icon-green { color: var(--accent-green); }
@@ -192,7 +187,7 @@
     .logo-img {
       width: 40px;
       height: 40px;
-      border-radius: 10px;
+      border-radius: var(--radius-lg);
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
       flex-shrink: 0;
     }
@@ -228,7 +223,7 @@
       color: var(--text-primary);
       background: var(--bg-card);
       border: 1px solid var(--border-color);
-      border-radius: 8px;
+      border-radius: var(--radius-md);
       cursor: pointer;
       box-shadow: var(--card-shadow);
       transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.15s ease;
@@ -250,7 +245,6 @@
       border: 1px solid var(--accent-primary);
     }
 
-    .btn.btn-primary:hover,
     .btn-primary:hover {
       background: var(--accent-primary-hover);
       border-color: var(--accent-primary-hover);
@@ -265,7 +259,6 @@
       font-weight: 700;
     }
 
-    [data-theme="dark"] .btn.btn-primary:hover,
     [data-theme="dark"] .btn-primary:hover {
       background: var(--accent-primary-hover);
       border-color: var(--accent-primary-hover);
@@ -279,7 +272,7 @@
       align-items: center;
       background: var(--bg-card);
       border: 1px solid var(--border-color);
-      border-radius: 12px;
+      border-radius: var(--radius-lg);
       padding: 10px 14px;
       margin-bottom: 16px;
       font-size: 0.8rem;
@@ -320,7 +313,7 @@
     .action-banner {
       background: var(--banner-bg);
       border: 1px solid var(--banner-border);
-      border-radius: 14px;
+      border-radius: var(--radius-xl);
       padding: 18px;
       margin-bottom: 20px;
       box-shadow: var(--card-shadow);
@@ -346,7 +339,7 @@
     .action-item {
       background: var(--bg-card);
       border: 1px solid var(--border-color);
-      border-radius: 10px;
+      border-radius: var(--radius-lg);
       padding: 12px;
       border-left: 4px solid var(--accent-cyan);
     }
@@ -392,7 +385,7 @@
     .card {
       background: var(--bg-card);
       border: 1px solid var(--border-card);
-      border-radius: 14px;
+      border-radius: var(--radius-xl);
       padding: 18px;
       box-shadow: var(--card-shadow);
     }
@@ -415,7 +408,7 @@
     .coin-badge {
       font-size: 0.72rem;
       padding: 3px 8px;
-      border-radius: 6px;
+      border-radius: var(--radius-sm);
       background: var(--bg-secondary);
       color: var(--accent-cyan);
       font-weight: 700;
@@ -425,7 +418,7 @@
     .status-pill {
       font-size: 0.76rem;
       padding: 4px 12px;
-      border-radius: 9999px;
+      border-radius: var(--radius-pill);
       font-weight: 700;
       display: inline-flex;
       align-items: center;
@@ -476,7 +469,7 @@
     /* 채널 및 기준 지표 박스 */
     .channel-box {
       background: var(--bg-card-sub);
-      border-radius: 10px;
+      border-radius: var(--radius-lg);
       padding: 10px 12px;
       margin-bottom: 12px;
       border: 1px solid var(--border-color);
@@ -501,7 +494,7 @@
       font-size: 0.82rem;
       color: var(--text-primary);
       background: var(--guide-box-bg);
-      border-radius: 8px;
+      border-radius: var(--radius-md);
       padding: 8px 10px;
       border-left: 3px solid var(--guide-box-border);
       font-weight: 500;
@@ -513,7 +506,7 @@
     .alt-card {
       background: var(--bg-card);
       border: 1px solid var(--border-card);
-      border-radius: 14px;
+      border-radius: var(--radius-xl);
       padding: 18px;
       margin-bottom: 20px;
       box-shadow: var(--card-shadow);
@@ -566,7 +559,7 @@
       background: var(--bg-card-sub);
       border: 1px solid var(--border-color);
       border-left: 4px solid var(--border-color);
-      border-radius: 8px;
+      border-radius: var(--radius-md);
       padding: 12px 14px;
       display: flex;
       justify-content: space-between;
@@ -579,19 +572,10 @@
       background: var(--banner-bg);
     }
 
-    .alt-item-empty {
-      grid-column: 1 / -1;
-    }
-
     .alt-coin-name {
       font-weight: 700;
       font-size: 0.9rem;
       color: var(--text-primary);
-    }
-
-    .alt-sub-text {
-      font-size: 0.72rem;
-      color: var(--text-muted);
     }
 
     .alt-return {
@@ -605,7 +589,7 @@
     .stats-card {
       background: var(--bg-card);
       border: 1px solid var(--border-card);
-      border-radius: 14px;
+      border-radius: var(--radius-xl);
       padding: 16px;
       margin-bottom: 20px;
       box-shadow: var(--card-shadow);
@@ -627,7 +611,7 @@
     .stat-box {
       background: var(--bg-card-sub);
       border: 1px solid var(--border-color);
-      border-radius: 10px;
+      border-radius: var(--radius-lg);
       padding: 12px;
       text-align: center;
     }
@@ -751,7 +735,7 @@
         height: 38px;
         padding: 0;
         justify-content: center;
-        border-radius: 10px;
+        border-radius: var(--radius-lg);
       }
 
       .btn-text {
@@ -1148,32 +1132,6 @@
         const nextTheme = activeTheme === 'dark' ? 'light' : 'dark';
         applyTheme(nextTheme);
       });
-    }
-
-    // ==========================================================================
-    // 한글 코인명 딕셔너리 및 변환 헬퍼 함수
-    // ==========================================================================
-    const COIN_NAMES = {
-      'BTC': '비트코인', 'ETH': '이더리움', 'XRP': '리플', 'SOL': '솔라나',
-      'DOGE': '도지코인', 'ADA': '에이다', 'AVAX': '아발란체', 'TRUMP': '마가트럼프',
-      'ENA': '에테나', 'ACE': '퓨전니스트', 'SUI': '수이', 'SHIB': '시바이누',
-      'PEPE': '페페', 'NEAR': '니어프로토콜', 'APT': '앱토스', 'STX': '스택스',
-      'ETC': '이더리움클래식', 'DOT': '폴카닷', 'BCH': '비트코인캐시', 'LINK': '체인링크',
-      'TRX': '트론', 'SEI': '세이', 'TIA': '셀레스티아', 'ARB': '아비트럼',
-      'OP': '옵티미즘', 'XLM': '스텔라루멘', 'WLD': '월드코인', 'ICP': '인터넷컴퓨터',
-      'HBAR': '헤데라', 'FIL': '파일코인', 'POL': '폴리곤', 'INJ': '인젝티브',
-      'AAVE': '에이브', 'KAIA': '카이아', 'JUP': '주피터', 'PYTH': '피스네트워크',
-      'STRK': '스타크넷', 'IO': '아이오넷', 'ZRO': '레이어제로', 'DRIFT': '드리프트',
-      'ME': '매직에덴', 'BERA': '베라체인', 'IP': '스토리', 'VIRTUAL': '버추얼',
-      'WIF': '위프', 'BONK': '봉크', 'FLOKI': '플로키', 'BOME': '북오브밈',
-      'SAND': '샌드박스', 'MANA': '디센트럴랜드', 'AXS': '엑시인피니티', 'CHZ': '칠리즈',
-      'RENDER': '렌더', 'GRT': '더그래프', 'ALGO': '알고랜드', 'ATOM': '코스모스'
-    };
-
-    function getCoinDisplayName(code) {
-      const sym = (code || '').replace('KRW-', '').toUpperCase();
-      const kor = COIN_NAMES[sym];
-      return kor ? `${kor} (${sym})` : sym;
     }
 
     // ==========================================================================
