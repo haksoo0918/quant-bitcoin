@@ -17,84 +17,104 @@
   <!-- Google Fonts: Noto Sans KR -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=D2Coding:wght@400;700&family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
   <style>
     /* ==========================================================================
-       CSS Variables & Themes (Light Mode Default)
+       hs-style Design System Variables (Modern Deep Teal & Emerald Point)
        ========================================================================== */
     :root, [data-theme="light"] {
-      --bg-primary: #f8fafc;
-      --bg-secondary: #f1f5f9;
+      --bg-primary: #ffffff;
+      --bg-secondary: #f8f9fb;
       --bg-card: #ffffff;
-      --bg-card-sub: #f8fafc;
-      --border-color: #e2e8f0;
-      --border-card: #e2e8f0;
-      --text-primary: #0f172a;
-      --text-secondary: #475569;
-      --text-muted: #94a3b8;
+      --bg-card-sub: #f8f9fb;
+      --border-color: #e5e7eb;
+      --border-card: #e5e7eb;
+      --text-primary: #1a1d2e;
+      --text-secondary: #6b7280;
+      --text-muted: #9ca3af;
       
-      --accent-cyan: #0284c7;
-      --accent-indigo: #4f46e5;
-      --accent-green: #16a34a;
-      --accent-red: #dc2626;
-      --accent-amber: #d97706;
+      --accent-primary: #0d9488;      /* Deep Teal */
+      --accent-primary-hover: #0f766e;
+      --on-primary: #ffffff;
+      
+      --accent-cyan: #0d9488;
+      --accent-emerald: #10b981;     /* Success */
+      --accent-green: #10b981;
+      --accent-amber: #f59e0b;     /* Warning */
+      --accent-red: #ef4444;       /* Danger */
+      --accent-indigo: #0d9488;
 
-      --pill-bull-bg: #dcfce7;
-      --pill-bull-text: #15803d;
-      --pill-bull-border: #86efac;
+      --pill-bull-bg: rgba(16, 185, 129, 0.12);
+      --pill-bull-text: #059669;
+      --pill-bull-border: rgba(16, 185, 129, 0.3);
 
-      --pill-bear-bg: #fee2e2;
-      --pill-bear-text: #b91c1c;
-      --pill-bear-border: #fca5a5;
+      --pill-bear-bg: rgba(239, 68, 68, 0.12);
+      --pill-bear-text: #dc2626;
+      --pill-bear-border: rgba(239, 68, 68, 0.3);
 
-      --pill-buffer-bg: #fef3c7;
-      --pill-buffer-text: #b45309;
-      --pill-buffer-border: #fde68a;
+      --pill-buffer-bg: rgba(245, 158, 11, 0.12);
+      --pill-buffer-text: #d97706;
+      --pill-buffer-border: rgba(245, 158, 11, 0.3);
 
-      --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
-      --banner-bg: linear-gradient(135deg, #ffffff, #f0fdf4);
-      --banner-border: #bbf7d0;
+      --card-shadow: 0 1px 3px rgba(10, 14, 39, 0.08), 0 1px 2px rgba(10, 14, 39, 0.04);
+      --card-shadow-hover: 0 10px 25px rgba(10, 14, 39, 0.10), 0 4px 12px rgba(10, 14, 39, 0.05);
+      --banner-bg: linear-gradient(135deg, #ffffff, #f0fdfa);
+      --banner-border: #ccfbf1;
 
-      --guide-box-bg: #f8fafc;
-      --guide-box-border: #cbd5e1;
+      --guide-box-bg: #f8f9fb;
+      --guide-box-border: #0d9488;
+
+      --font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: 'D2Coding', 'SF Mono', Consolas, Menlo, Monaco, monospace;
+      --radius-sm: 4px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 16px;
+      --radius-pill: 9999px;
     }
 
     [data-theme="dark"] {
-      --bg-primary: #090d16;
-      --bg-secondary: #111827;
-      --bg-card: rgba(17, 24, 39, 0.9);
-      --bg-card-sub: rgba(15, 23, 42, 0.8);
-      --border-color: rgba(51, 65, 85, 0.6);
-      --border-card: rgba(51, 65, 85, 0.6);
-      --text-primary: #f8fafc;
-      --text-secondary: #94a3b8;
-      --text-muted: #64748b;
+      --bg-primary: #0a0e27;
+      --bg-secondary: #141838;
+      --bg-card: #1a1f3a;
+      --bg-card-sub: #121630;
+      --border-color: #2d3548;
+      --border-card: #2d3548;
+      --text-primary: #f0f4f8;
+      --text-secondary: #8b92a9;
+      --text-muted: #5e6680;
       
-      --accent-cyan: #38bdf8;
-      --accent-indigo: #6366f1;
-      --accent-green: #10b981;
-      --accent-red: #ef4444;
-      --accent-amber: #f59e0b;
+      --accent-primary: #2dd4bf;      /* Emerald Teal */
+      --accent-primary-hover: #5eead4;
+      --on-primary: #0a0e27;         /* High Contrast Dark Text */
+      
+      --accent-cyan: #2dd4bf;
+      --accent-emerald: #6ee7b7;     /* Success */
+      --accent-green: #6ee7b7;
+      --accent-amber: #fbbf24;     /* Warning */
+      --accent-red: #f87171;       /* Danger */
+      --accent-indigo: #2dd4bf;
 
-      --pill-bull-bg: rgba(16, 185, 129, 0.18);
-      --pill-bull-text: #34d399;
-      --pill-bull-border: rgba(16, 185, 129, 0.35);
+      --pill-bull-bg: rgba(45, 212, 191, 0.18);
+      --pill-bull-text: #2dd4bf;
+      --pill-bull-border: rgba(45, 212, 191, 0.35);
 
-      --pill-bear-bg: rgba(239, 68, 68, 0.18);
+      --pill-bear-bg: rgba(248, 113, 113, 0.18);
       --pill-bear-text: #f87171;
-      --pill-bear-border: rgba(239, 68, 68, 0.35);
+      --pill-bear-border: rgba(248, 113, 113, 0.35);
 
-      --pill-buffer-bg: rgba(245, 158, 11, 0.18);
+      --pill-buffer-bg: rgba(251, 191, 36, 0.18);
       --pill-buffer-text: #fbbf24;
-      --pill-buffer-border: rgba(245, 158, 11, 0.35);
+      --pill-buffer-border: rgba(251, 191, 36, 0.35);
 
-      --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-      --banner-bg: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.9));
-      --banner-border: rgba(56, 189, 248, 0.4);
+      --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      --card-shadow-hover: 0 10px 25px rgba(0, 0, 0, 0.5);
+      --banner-bg: linear-gradient(135deg, rgba(26, 31, 58, 0.95), rgba(18, 22, 48, 0.95));
+      --banner-border: rgba(45, 212, 191, 0.35);
 
-      --guide-box-bg: rgba(30, 41, 59, 0.5);
-      --guide-box-border: var(--accent-cyan);
+      --guide-box-bg: rgba(18, 22, 48, 0.8);
+      --guide-box-border: #2dd4bf;
     }
 
     /* ==========================================================================
@@ -136,7 +156,7 @@
       display: inline-block;
       width: 18px;
       height: 18px;
-      stroke-width: 2;
+      stroke-width: 1.75;
       stroke: currentColor;
       fill: none;
       stroke-linecap: round;
@@ -202,44 +222,54 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 8px 12px;
+      padding: 8px 14px;
       font-size: 0.82rem;
       font-weight: 600;
       color: var(--text-primary);
       background: var(--bg-card);
       border: 1px solid var(--border-color);
-      border-radius: 10px;
+      border-radius: 8px;
       cursor: pointer;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-      transition: background-color 0.15s ease, border-color 0.15s ease;
+      box-shadow: var(--card-shadow);
+      transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.15s ease;
       white-space: nowrap;
     }
 
     .btn:hover {
       background: var(--bg-secondary);
-      border-color: var(--accent-cyan);
+      border-color: var(--accent-primary);
+    }
+
+    .btn:active {
+      transform: translateY(1px);
     }
 
     .btn-primary {
-      background: var(--accent-cyan);
-      color: #ffffff;
-      border: 1px solid var(--accent-cyan);
+      background: var(--accent-primary);
+      color: var(--on-primary);
+      border: 1px solid var(--accent-primary);
     }
 
     .btn.btn-primary:hover,
     .btn-primary:hover {
-      background: #0369a1;
-      border-color: #0369a1;
-      color: #ffffff;
+      background: var(--accent-primary-hover);
+      border-color: var(--accent-primary-hover);
+      color: var(--on-primary);
       opacity: 1;
+    }
+
+    [data-theme="dark"] .btn-primary {
+      background: var(--accent-primary);
+      color: #0a0e27;
+      border: 1px solid var(--accent-primary);
+      font-weight: 700;
     }
 
     [data-theme="dark"] .btn.btn-primary:hover,
     [data-theme="dark"] .btn-primary:hover {
-      background: #0284c7;
-      border-color: #0284c7;
-      color: #ffffff;
-      opacity: 0.92;
+      background: var(--accent-primary-hover);
+      border-color: var(--accent-primary-hover);
+      color: #0a0e27;
     }
 
     /* Live Update Status Bar */
@@ -393,14 +423,15 @@
     }
 
     .status-pill {
-      font-size: 0.78rem;
-      padding: 4px 10px;
-      border-radius: 20px;
+      font-size: 0.76rem;
+      padding: 4px 12px;
+      border-radius: 9999px;
       font-weight: 700;
       display: inline-flex;
       align-items: center;
       gap: 4px;
       white-space: nowrap;
+      letter-spacing: -0.2px;
     }
 
     .status-bull {
@@ -431,6 +462,7 @@
       color: var(--text-primary);
       letter-spacing: -0.5px;
       word-break: break-all;
+      font-family: var(--font-mono);
     }
 
     .price-sub {
@@ -462,6 +494,7 @@
     .channel-row .val {
       font-weight: 700;
       color: var(--text-primary);
+      font-family: var(--font-mono);
     }
 
     .card-footer-guide {
@@ -557,7 +590,8 @@
     .alt-return {
       font-weight: 800;
       font-size: 0.82rem;
-      color: var(--accent-green);
+      color: var(--accent-emerald);
+      font-family: var(--font-mono);
     }
 
     /* Backtest Stats */
@@ -601,7 +635,8 @@
     .stat-val {
       font-size: 1.2rem;
       font-weight: 800;
-      color: var(--accent-cyan);
+      color: var(--accent-primary);
+      font-family: var(--font-mono);
     }
 
     .stat-val-cyan {

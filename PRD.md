@@ -185,8 +185,19 @@
 - **데이터 갱신 및 배포 파이프라인**:
   - `src/main.py` 실행 시 분석된 최신 시그널 및 지표 데이터를 `docs/data/status.json` 파일로 자동 내보내기(Export) 수행.
   - GitHub Actions 워크플로우(`main.yml`)에서 매일 09:05 KST 실행 시 생성된 `docs/data/status.json`을 저장소에 자동 반영하거나 GitHub Pages로 자동 배포.
-- **주요 UI/UX 기능**:
-  - **종합 행동 가이드 배너**: 당일 업비트/빗썸 즉시 매매 행동 요약
+- **주요 UI/UX 기능 및 디자인 시스템 (hs-style 적용)**:
+  - **디자인 시스템 (hs-style)**:
+    - **핵심 철학**: 도구의 명확성과 정밀성을 위한 모던 딥 틸 & 에메랄드 포인트 기반 클린/미니멀 디자인 시스템.
+    - **컬러 팔레트**:
+      - Light: Primary Deep Teal (`#0d9488`), Background (`#ffffff`), Surface (`#f8f9fb`), Border (`#e5e7eb`), Text (`#1a1d2e`), Muted (`#6b7280`).
+      - Dark: Primary Emerald Teal (`#2dd4bf`), Background (`#0a0e27`), Surface (`#1a1f3a`), Border (`#2d3548`), Text (`#f0f4f8`), Muted (`#8b92a9`).
+      - Semantic: Success (`#10b981` / `#6ee7b7`), Warning (`#f59e0b` / `#fbbf24`), Danger (`#ef4444` / `#f87171`).
+    - **타이포그래피 & 아이콘**:
+      - 본문 및 레이블: `Noto Sans KR` (가독성 최우선, `word-break: keep-all;`).
+      - 금융 수치 및 코드/지표: `D2Coding` 고정폭 폰트 적용으로 숫자 자릿수 및 시인성 극대화.
+      - 아이콘: `Lucide Icons` 표준 일관 선 두께(`1.75px`) 적용.
+    - **모바일 퍼스트**: `<= 640px` 모바일 뷰포트 최우선 레이아웃, 터치 타겟 44px 이상 확보, 버튼 텍스트 줄바꿈 방지.
+  - **종합 행동 가이드 배너**: 당일 업비트/빗썸 즉시 매매 행동 요약 (딥 틸 / 에메랄드 하이라이트)
   - **업비트 메인 전략 카드**: BTC (220일 SMA ±2%), ETH (50일 SMA ± 1.5 ATR) 현재가, 기준 지표, 전략 판정 뱃지 표시
   - **빗썸 서브 전략 카드**: BTC vs ETH 30일 모멘텀 비교 및 당일 1등 대장 코인 100% 스위칭 신호 표시
   - **실시간 조회 지원**: 웹 브라우저에서 업비트 공개 REST API를 직접 호출하여 장중 실시간 시세 및 지표 새로고침 지원
