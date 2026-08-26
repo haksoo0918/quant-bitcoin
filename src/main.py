@@ -156,6 +156,91 @@ def calculate_eth_indicators(df, sma_len=ETH_SMA_LEN, atr_len=14, atr_multiplier
     }
 
 
+def calculate_supertrend(df, period=7, multiplier=3.5):
+    """
+    SuperTrend(슈퍼트렌드) 지표 연산
+    """
+    df_calc = df.copy()
+    high = df_calc['high']
+    low = df_calc['low']
+    close = df_calc['close']
+    prev_close = close.shift(1)
+    
+    tr1 = high - low
+    tr2 = (high - prev_close).abs()
+    tr3 = (low - prev_close).abs()
+    tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+    atr = tr.rolling(window=period).mean()
+    
+    hl2 = (high + low) / 2.0
+    basic_upper = hl2 + (multiplier * atr)
+    basic_lower = hl2 - (multiplier * atr)
+    
+    final_upper = basic_upper.copy()
+    final_lower = basic_lower.copy()
+    direction = pd.Series(index=df_calc.index, dtype=int)
+    supertrend = pd.Series(index=df_calc.index, dtype=float)
+    
+    n = len(df_calc)
+    for i in range(period, n):
+        if basic_upper.iloc[i] < final_upper.iloc[i-1] or close.iloc[i-1] > final_upper.iloc[i-1]:
+            final_upper.iloc[i] = basic_upper.iloc[i]
+        else:
+            final_upper.iloc[i] = final_upper.iloc[i-1]
+            
+        if basic_lower.iloc[i] > final_lower.iloc[i-1] or close.iloc[i-1] < final_lower.iloc[i-1]:
+            final_lower.iloc[i] = basic_lower.iloc[i]
+        else:
+            final_lower.iloc[i] = final_lower.iloc[i-1]
+            
+        if i == period:
+            direction.iloc[i] = 1 if close.iloc[i] > final_upper.iloc[i] else -1
+        else:
+            if direction.iloc[i-1] == 1:
+                direction.iloc[i] = -1 if close.iloc[i] < final_lower.iloc[i] else 1
+            else:
+                direction.iloc[i] = 1 if close.iloc[i] > final_upper.iloc[i] else -1
+                
+        supertrend.iloc[i] = final_lower.iloc[i] if direction.iloc[i] == 1 else final_upper.iloc[i]
+        
+    df_calc['supertrend'] = supertrend
+    df_calc['supertrend_direction'] = direction
+    return df_calc
+
+
+def calculate_bithumb_eth_indicators(df, sma_len=50, st_period=7, st_multiplier=3.5):
+    """
+    빗썸 서브 전략 (이더리움 SuperTrend + 50일 SMA 추세 추종) 지표 및 방향성 연산
+    """
+    df_st = calculate_supertrend(df, period=st_period, multiplier=st_multiplier)
+    df_st['sma50'] = df_st['close'].rolling(window=sma_len).mean()
+    
+    sma50 = float(df_st['sma50'].iloc[-1])
+    supertrend_val = float(df_st['supertrend'].iloc[-1])
+    direction_val = int(df_st['supertrend_direction'].iloc[-1])
+    supertrend_trend = "BULL" if direction_val == 1 else "BEAR"
+    
+    current_price = float(df_st['close'].iloc[-1])
+    is_above_sma = current_price >= sma50
+    
+    if is_above_sma and supertrend_trend == "BULL":
+        action = "BUY"
+        status_label = "상승 추세 (ETH 100% 매수)"
+    else:
+        action = "SELL"
+        status_label = "하락/약세장 (100% 현금화)"
+        
+    return {
+        "current_price": current_price,
+        "sma50": sma50,
+        "supertrend_val": supertrend_val,
+        "supertrend_trend": supertrend_trend,
+        "is_above_sma": is_above_sma,
+        "action": action,
+        "status_label": status_label
+    }
+
+
 def fetch_upbit_candles(market, count=250):
     """업비트 일봉 데이터 조회"""
     df = pyupbit.get_ohlcv(market, interval="day", count=count)
@@ -269,57 +354,45 @@ def run_signal_briefing(kst_now, use_alt_strategy=USE_ALTCOIN_STRATEGY):
         eth_status_str = f"🔍 **[밴드 내 중립]** ({eth_ind['status_label']})"
         eth_guide = "기존 보유 상태 유지 (신규 진입 자제)"
 
-    # 3. 빗썸 서브 전략 (BTC vs ETH 30일 상대 모멘텀 100% 스위칭)
+    # 3. 빗썸 서브 전략 (이더리움 SuperTrend + 50일 SMA 추세 추종)
     bithumb_report_lines = []
     bithumb_data = {}
     if use_alt_strategy:
-        btc_p = float(btc_current_price)
-        eth_p = float(eth_current_price)
-        btc_mom_30d = (btc_p - float(btc_df['close'].iloc[-31])) / float(btc_df['close'].iloc[-31]) if len(btc_df) >= 31 else 0.0
-        eth_mom_30d = (eth_p - float(eth_df['close'].iloc[-31])) / float(eth_df['close'].iloc[-31]) if len(eth_df) >= 31 else 0.0
+        bithumb_eth_ind = calculate_bithumb_eth_indicators(eth_df, sma_len=50, st_period=7, st_multiplier=3.5)
+        eth_p = float(bithumb_eth_ind["current_price"])
+        eth_sma50 = float(bithumb_eth_ind["sma50"])
+        st_val = float(bithumb_eth_ind["supertrend_val"])
+        st_trend = bithumb_eth_ind["supertrend_trend"]
+        is_above_sma = bithumb_eth_ind["is_above_sma"]
+        bithumb_action = bithumb_eth_ind["action"]
 
-        btc_is_bull = (market_filter_state == "Bull")
-        eth_is_bull = (eth_ind["status"] == "bull")
-
-        if btc_is_bull and eth_is_bull:
-            if btc_mom_30d >= eth_mom_30d:
-                target_coin = "BTC"
-                target_coin_name = "비트코인 (BTC)"
-                target_reason = "30일 상대 모멘텀 우세"
-            else:
-                target_coin = "ETH"
-                target_coin_name = "이더리움 (ETH)"
-                target_reason = "30일 상대 모멘텀 우세"
-            target_signal = f"🚀 **[{target_coin_name} 100% 집중 탑승]** ({target_reason})"
-            bithumb_guide = f"빗썸 {target_coin} 100% 매수 또는 보유 유지"
-        elif btc_is_bull:
-            target_coin = "BTC"
-            target_coin_name = "비트코인 (BTC)"
-            target_signal = "🟢 **[비트코인 (BTC) 100% 탑승]** (BTC 단독 상승장)"
-            bithumb_guide = "빗썸 BTC 100% 매수 또는 보유 유지"
-        elif eth_is_bull:
+        if bithumb_action == "BUY":
+            target_signal = "🟢 **[이더리움 (ETH) 100% 매수/보유]** (SuperTrend 상승 & 50일 SMA 돌파)"
+            bithumb_guide = "빗썸 이더리움 100% 매수 또는 보유 유지"
             target_coin = "ETH"
             target_coin_name = "이더리움 (ETH)"
-            target_signal = "🟢 **[이더리움 (ETH) 100% 탑승]** (ETH 단독 상승장)"
-            bithumb_guide = "빗썸 ETH 100% 매수 또는 보유 유지"
         else:
+            target_signal = "🔴 **[100% 원화 현금화 관망]** (SuperTrend 하락 또는 50일 SMA 이탈)"
+            bithumb_guide = "보유 이더리움 전량 매도 후 100% 현금(KRW) 보존"
             target_coin = "KRW"
             target_coin_name = "원화 현금 (KRW)"
-            target_signal = "🔴 **[전량 현금화 관망]** (양대 코인 동반 하락장)"
-            bithumb_guide = "보유 코인 전량 매도 후 100% 현금(KRW) 보유"
 
-        bithumb_report_lines.append(f"• **30일 상대 모멘텀**: BTC `{btc_mom_30d*100:+.2f}%` vs ETH `{eth_mom_30d*100:+.2f}%`")
-        bithumb_report_lines.append(f"• **1등 대장 스위칭 신호**: {target_signal}")
+        bithumb_report_lines.append(f"• **이더리움 (ETH)**: {eth_p:,.0f} 원")
+        bithumb_report_lines.append(f"  - 50일 이평: {eth_sma50:,.0f} 원 ({'상회 🟢' if is_above_sma else '하회 🔴'}) | SuperTrend(7, 3.5): {st_val:,.0f} 원 ({st_trend})")
+        bithumb_report_lines.append(f"• **전략 방향성 신호**: {target_signal}")
 
         bithumb_data = {
             "enabled": True,
+            "strategy_name": "이더리움 SuperTrend + 50일 SMA 추세 추종",
             "target_coin": target_coin,
             "target_coin_name": target_coin_name,
             "target_signal": target_signal,
-            "btc_mom_30d": float(btc_mom_30d),
-            "eth_mom_30d": float(eth_mom_30d),
-            "btc_is_bull": btc_is_bull,
-            "eth_is_bull": eth_is_bull,
+            "current_price": eth_p,
+            "sma50": eth_sma50,
+            "supertrend_val": st_val,
+            "supertrend_trend": st_trend,
+            "is_above_sma": is_above_sma,
+            "action": bithumb_action,
             "guide": bithumb_guide
         }
     else:
@@ -340,7 +413,7 @@ def run_signal_briefing(kst_now, use_alt_strategy=USE_ALTCOIN_STRATEGY):
     report.append(f"  - 기준 이평: {eth_sma:,.0f} 원 (상한밴드: {eth_upper_band:,.0f} / 하한밴드: {eth_lower_band:,.0f})")
     report.append(f"  - 전략 방향성: {eth_status_str}")
     
-    report.append("\n🟢 **서브 전략 (빗썸 - BTC vs ETH 100% 스위칭)**")
+    report.append("\n🟢 **서브 전략 (빗썸 - 이더리움 SuperTrend + 50일 SMA)**")
     report.extend(bithumb_report_lines)
     
     report.append("\n💡 **모바일 직접 매매 가이드 요약**")
@@ -530,22 +603,19 @@ def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STR
                     upbit_krw -= buy_amount
                 time.sleep(2)
 
-    # 4. 빗썸 매매 실행 (서브 전략: BTC vs ETH 30일 상대 모멘텀 100% 스위칭)
+    # 4. 빗썸 매매 실행 (서브 전략: 이더리움 SuperTrend + 50일 SMA 추세 추종)
     bithumb_krw = 0.0
-    bithumb_btc_bal = 0.0
     bithumb_eth_bal = 0.0
-    bithumb_btc_avg = 0.0
     bithumb_eth_avg = 0.0
     total_bithumb_value = 0.0
     bithumb_order_history = []
-    bithumb_target_coin = "KRW"
+    bithumb_action = "SELL"
 
     if use_alt_strategy:
-        logging.info("=== [빗썸 BTC vs ETH 100% 스위칭 매매 프로세스 가동] ===")
+        logging.info("=== [빗썸 이더리움 SuperTrend 추세 추종 매매 프로세스 가동] ===")
         bithumb_balances_raw = fetch_bithumb_balances(bithumb, is_dry_run=is_dry_run)
         bithumb_ticker_data = fetch_bithumb_ticker_all()
 
-        bithumb_btc_p = float(bithumb_ticker_data.get("BTC", {}).get("closing_price", btc_current_price))
         bithumb_eth_p = float(bithumb_ticker_data.get("ETH", {}).get("closing_price", eth_current_price))
 
         for asset in bithumb_balances_raw:
@@ -557,113 +627,50 @@ def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STR
 
             if curr == "KRW":
                 bithumb_krw = bal
-            elif curr == "BTC":
-                bithumb_btc_bal = bal
-                bithumb_btc_avg = avg_buy
             elif curr == "ETH":
                 bithumb_eth_bal = bal
                 bithumb_eth_avg = avg_buy
+            elif curr == "BTC":
+                # 과거 잔여 BTC가 있을 경우 정리 청산
+                btc_p_val = float(bithumb_ticker_data.get("BTC", {}).get("closing_price", btc_current_price))
+                if bal * btc_p_val >= BITHUMB_MIN_ORDER_KRW:
+                    val = bal * btc_p_val
+                    logging.info(f"[빗썸 잔여 정리] 구버전 BTC 청산 (금액: {val:,.0f}원)")
+                    if not is_dry_run:
+                        try:
+                            bithumb.sell_market_order("KRW-BTC", bal)
+                            bithumb_order_history.append(f"✅ 빗썸 잔여 BTC 청산: {val:,.0f}원")
+                        except Exception as e:
+                            bithumb_order_history.append(f"❌ 빗썸 BTC 청산 실패: {e}")
+                    else:
+                        bithumb_order_history.append(f"📝 [모의 주문] 빗썸 잔여 BTC 청산: {val:,.0f}원")
 
-        total_bithumb_value = bithumb_krw + (bithumb_btc_bal * bithumb_btc_p) + (bithumb_eth_bal * bithumb_eth_p)
-        bithumb_order_history = []
+        total_bithumb_value = bithumb_krw + (bithumb_eth_bal * bithumb_eth_p)
 
-        # 4.1 30일 모멘텀 산출 및 1등 목표 코인 결정
-        btc_mom_30d = (btc_current_price - float(btc_df['close'].iloc[-31])) / float(btc_df['close'].iloc[-31]) if len(btc_df) >= 31 else 0.0
-        eth_mom_30d = (eth_current_price - float(eth_df['close'].iloc[-31])) / float(eth_df['close'].iloc[-31]) if len(eth_df) >= 31 else 0.0
+        # 4.1 이더리움 SuperTrend + 50일 SMA 지표 연산
+        bithumb_eth_ind = calculate_bithumb_eth_indicators(eth_df, sma_len=50, st_period=7, st_multiplier=3.5)
+        bithumb_action = bithumb_eth_ind["action"]
 
-        btc_is_bull = (market_filter_state == "Bull")
-        eth_is_bull = (eth_ind["status"] == "bull")
+        logging.info(f"빗썸 ETH 분석: 현재가 {bithumb_eth_p:,.0f}원 | 50일 SMA {bithumb_eth_ind['sma50']:,.0f}원 | SuperTrend {bithumb_eth_ind['supertrend_val']:,.0f}원 ({bithumb_eth_ind['supertrend_trend']}) | 판정: {bithumb_action}")
 
-        if btc_is_bull and eth_is_bull:
-            bithumb_target_coin = "BTC" if btc_mom_30d >= eth_mom_30d else "ETH"
-        elif btc_is_bull:
-            bithumb_target_coin = "BTC"
-        elif eth_is_bull:
-            bithumb_target_coin = "ETH"
-        else:
-            bithumb_target_coin = "KRW"
-
-        logging.info(f"빗썸 스위칭 분석: BTC 30일 수익률 {btc_mom_30d*100:+.2f}% vs ETH {eth_mom_30d*100:+.2f}% | 목표 코인: {bithumb_target_coin}")
-
-        # 4.2 100% 스위칭 매매 집행
-        # A. 목표가 KRW(하락장 현금화)인 경우 -> BTC & ETH 전량 매도
-        if bithumb_target_coin == "KRW":
-            if bithumb_btc_bal * bithumb_btc_p >= BITHUMB_MIN_ORDER_KRW:
-                val = bithumb_btc_bal * bithumb_btc_p
-                logging.info(f"[빗썸 하락장 청산] BTC 매도 (수량: {bithumb_btc_bal:.8f}, 금액: {val:,.0f}원)")
-                if not is_dry_run:
-                    try:
-                        order_res = bithumb.sell_market_order("KRW-BTC", bithumb_btc_bal)
-                        bithumb_order_history.append(f"✅ 빗썸 BTC 청산: {val:,.0f}원 ({bithumb_btc_bal:.4f} BTC)")
-                    except Exception as e:
-                        bithumb_order_history.append(f"❌ 빗썸 BTC 청산 실패: {e}")
-                else:
-                    bithumb_order_history.append(f"📝 [모의 주문] 빗썸 BTC 청산: {val:,.0f}원 ({bithumb_btc_bal:.4f} BTC)")
-                time.sleep(2)
-
+        # 4.2 매매 집행
+        # A. 약세/하락장 (SELL) -> 보유 ETH 전량 매도 (100% 현금화)
+        if bithumb_action == "SELL":
             if bithumb_eth_bal * bithumb_eth_p >= BITHUMB_MIN_ORDER_KRW:
                 val = bithumb_eth_bal * bithumb_eth_p
-                logging.info(f"[빗썸 하락장 청산] ETH 매도 (수량: {bithumb_eth_bal:.8f}, 금액: {val:,.0f}원)")
+                logging.info(f"[빗썸 약세장 청산] ETH 매도 (수량: {bithumb_eth_bal:.8f}, 금액: {val:,.0f}원)")
                 if not is_dry_run:
                     try:
                         order_res = bithumb.sell_market_order("KRW-ETH", bithumb_eth_bal)
-                        bithumb_order_history.append(f"✅ 빗썸 ETH 청산: {val:,.0f}원 ({bithumb_eth_bal:.4f} ETH)")
+                        bithumb_order_history.append(f"✅ 빗썸 ETH 청산 (100% 현금화): {val:,.0f}원 ({bithumb_eth_bal:.4f} ETH)")
                     except Exception as e:
                         bithumb_order_history.append(f"❌ 빗썸 ETH 청산 실패: {e}")
                 else:
-                    bithumb_order_history.append(f"📝 [모의 주문] 빗썸 ETH 청산: {val:,.0f}원 ({bithumb_eth_bal:.4f} ETH)")
+                    bithumb_order_history.append(f"📝 [모의 주문] 빗썸 ETH 청산 (100% 현금화): {val:,.0f}원 ({bithumb_eth_bal:.4f} ETH)")
                 time.sleep(2)
 
-        # B. 목표가 BTC인 경우 -> 보유 ETH 전량 매도 후 가용 KRW로 BTC 100% 매수
-        elif bithumb_target_coin == "BTC":
-            if bithumb_eth_bal * bithumb_eth_p >= BITHUMB_MIN_ORDER_KRW:
-                val = bithumb_eth_bal * bithumb_eth_p
-                logging.info(f"[빗썸 스위칭 매도] ETH 매도 (금액: {val:,.0f}원)")
-                if not is_dry_run:
-                    try:
-                        order_res = bithumb.sell_market_order("KRW-ETH", bithumb_eth_bal)
-                        bithumb_order_history.append(f"✅ 빗썸 ETH ➔ BTC 스위칭 매도: {val:,.0f}원")
-                    except Exception as e:
-                        bithumb_order_history.append(f"❌ 빗썸 ETH 매도 실패: {e}")
-                else:
-                    bithumb_order_history.append(f"📝 [모의 주문] 빗썸 ETH ➔ BTC 스위칭 매도: {val:,.0f}원")
-                time.sleep(2)
-
-            if not is_dry_run:
-                try:
-                    bithumb_krw = bithumb.get_balance("KRW")
-                except Exception:
-                    pass
-
-            buy_amount = bithumb_krw * 0.995
-            if buy_amount >= BITHUMB_MIN_ORDER_KRW:
-                logging.info(f"[빗썸 100% 집중 매수] BTC 매수 (금액: {buy_amount:,.0f}원)")
-                if not is_dry_run:
-                    try:
-                        order_res = bithumb.buy_market_order("KRW-BTC", buy_amount)
-                        bithumb_order_history.append(f"✅ 빗썸 BTC 100% 매수: {buy_amount:,.0f}원")
-                        bithumb_krw -= buy_amount
-                    except Exception as e:
-                        bithumb_order_history.append(f"❌ 빗썸 BTC 매수 실패: {e}")
-                else:
-                    bithumb_order_history.append(f"📝 [모의 주문] 빗썸 BTC 100% 집중 매수: {buy_amount:,.0f}원")
-                    bithumb_krw -= buy_amount
-
-        # C. 목표가 ETH인 경우 -> 보유 BTC 전량 매도 후 가용 KRW로 ETH 100% 매수
-        elif bithumb_target_coin == "ETH":
-            if bithumb_btc_bal * bithumb_btc_p >= BITHUMB_MIN_ORDER_KRW:
-                val = bithumb_btc_bal * bithumb_btc_p
-                logging.info(f"[빗썸 스위칭 매도] BTC 매도 (금액: {val:,.0f}원)")
-                if not is_dry_run:
-                    try:
-                        order_res = bithumb.sell_market_order("KRW-BTC", bithumb_btc_bal)
-                        bithumb_order_history.append(f"✅ 빗썸 BTC ➔ ETH 스위칭 매도: {val:,.0f}원")
-                    except Exception as e:
-                        bithumb_order_history.append(f"❌ 빗썸 BTC 매도 실패: {e}")
-                else:
-                    bithumb_order_history.append(f"📝 [모의 주문] 빗썸 BTC ➔ ETH 스위칭 매도: {val:,.0f}원")
-                time.sleep(2)
-
+        # B. 상승 추세 (BUY) -> 가용 KRW로 ETH 100% 매수
+        elif bithumb_action == "BUY":
             if not is_dry_run:
                 try:
                     bithumb_krw = bithumb.get_balance("KRW")
@@ -681,7 +688,7 @@ def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STR
                     except Exception as e:
                         bithumb_order_history.append(f"❌ 빗썸 ETH 매수 실패: {e}")
                 else:
-                    bithumb_order_history.append(f"📝 [모의 주문] 빗썸 ETH 100% 집중 매수: {buy_amount:,.0f}원")
+                    bithumb_order_history.append(f"📝 [모의 주문] 빗썸 ETH 100% 매수: {buy_amount:,.0f}원")
                     bithumb_krw -= buy_amount
 
     else:
@@ -712,9 +719,7 @@ def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STR
 
     # 5.2 빗썸 최종 잔고 파싱
     bithumb_krw_fin = 0.0
-    bithumb_btc_bal_fin = 0.0
     bithumb_eth_bal_fin = 0.0
-    bithumb_btc_avg_fin = 0.0
     bithumb_eth_avg_fin = 0.0
     total_bithumb_fin = 0.0
     
@@ -731,16 +736,12 @@ def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STR
                 
             if curr == "KRW":
                 bithumb_krw_fin = bal
-            elif curr == "BTC":
-                bithumb_btc_bal_fin = bal
-                bithumb_btc_avg_fin = avg_buy
             elif curr == "ETH":
                 bithumb_eth_bal_fin = bal
                 bithumb_eth_avg_fin = avg_buy
                     
-        bithumb_btc_val_fin = bithumb_btc_bal_fin * float(bithumb_ticker_fin.get("BTC", {}).get("closing_price", btc_price_fin))
         bithumb_eth_val_fin = bithumb_eth_bal_fin * float(bithumb_ticker_fin.get("ETH", {}).get("closing_price", eth_price_fin))
-        total_bithumb_fin = bithumb_krw_fin + bithumb_btc_val_fin + bithumb_eth_val_fin
+        total_bithumb_fin = bithumb_krw_fin + bithumb_eth_val_fin
 
     # 5.3 디스코드 본문 포맷팅
     upbit_btc_return = ((btc_price_fin - upbit_balances.get("BTC", {}).get("avg_buy", 0.0)) / upbit_balances.get("BTC", {}).get("avg_buy", 1.0)) * 100 if btc_bal_fin > 0 else 0.0
@@ -768,19 +769,17 @@ def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STR
     else:
         report.append("• **ETH**: 미보유 (현금화)")
         
-    report.append("\n🟢 **서브 전략 (빗썸 - BTC vs ETH 100% 스위칭)**")
+    report.append("\n🟢 **서브 전략 (빗썸 - 이더리움 SuperTrend + 50일 SMA)**")
     if use_alt_strategy:
-        report.append(f"• **1등 목표 코인**: `{bithumb_target_coin}` (30일 모멘텀 우위)")
+        st_badge = "🟢 매수 유지 (ETH 100%)" if bithumb_action == "BUY" else "🔴 100% 원화 현금화 관망"
+        report.append(f"• **전략 방향성**: {st_badge}")
         report.append(f"• **총 자산 가치**: {total_bithumb_fin:,.0f} 원")
         if total_bithumb_fin > 0:
             report.append(f"• **보유 현금 (KRW)**: {bithumb_krw_fin:,.0f} 원 ({bithumb_krw_fin/total_bithumb_fin*100:.1f}%)")
-            if bithumb_btc_bal_fin > 0:
-                btc_ret = ((bithumb_btc_p - bithumb_btc_avg_fin)/bithumb_btc_avg_fin)*100 if bithumb_btc_avg_fin > 0 else 0.0
-                report.append(f"• **BTC**: {bithumb_btc_val_fin:,.0f} 원 ({bithumb_btc_val_fin/total_bithumb_fin*100:.1f}%) | 평단 {bithumb_btc_avg_fin:,.0f} | 수익률 {btc_ret:+.2f}%")
             if bithumb_eth_bal_fin > 0:
-                eth_ret = ((bithumb_eth_p - bithumb_eth_avg_fin)/bithumb_eth_avg_fin)*100 if bithumb_eth_avg_fin > 0 else 0.0
+                eth_ret = ((eth_price_fin - bithumb_eth_avg_fin)/bithumb_eth_avg_fin)*100 if bithumb_eth_avg_fin > 0 else 0.0
                 report.append(f"• **ETH**: {bithumb_eth_val_fin:,.0f} 원 ({bithumb_eth_val_fin/total_bithumb_fin*100:.1f}%) | 평단 {bithumb_eth_avg_fin:,.0f} | 수익률 {eth_ret:+.2f}%")
-            if bithumb_btc_bal_fin <= 0 and bithumb_eth_bal_fin <= 0:
+            else:
                 report.append("• **코인 포지션**: 미보유 (100% 현금화 관망)")
         else:
             report.append(f"• **보유 현금 (KRW)**: {bithumb_krw_fin:,.0f} 원 (0.0%)")

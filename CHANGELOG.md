@@ -5,6 +5,16 @@
 
 ---
 
+## [1.7.0] - 2026-08-26
+
+### Added (추가됨)
+- **빗썸 서브 전략: 이더리움 SuperTrend + 50일 SMA 단독 추세 추종 전략 전면 개편 (`src/main.py`, `src/indicators.py`, `src/backtest_bithumb_eth.py`, `docs/index.html`)**:
+  - **고수익/저낙폭 퀀트 모델 도입**: 이더리움(ETH)의 폭발적 상승 파동을 추종하면서 약세장 시 100% 현금화하여 MDD(-25.03%)를 극적으로 방어하는 복합 전략 이식.
+  - **지표 연산 엔진 모듈화**: `calculate_supertrend(df, period=7, multiplier=3.5)` 및 `calculate_bithumb_eth_indicators()` 공통 모듈 추가.
+  - **전용 백테스트 시뮬레이터 구축 (`src/backtest_bithumb_eth.py`)**: 3.6년(1,500일) 실데이터 검증 (누적 +335.97%, CAGR +51.29%, MDD -25.03%, Calmar 2.05) 및 `backtest/sub_eth/` 자동 저장 파이프라인 구축.
+  - **웹 대시보드 UI 전면 개편**: 빗썸 서브 전략 카드를 이더리움 SuperTrend 추세선 및 50일 SMA 기준선 실시간 표시 카드로 전환.
+  - PWA 서비스 워커 캐시 버전 `v1.7.0`으로 갱신.
+
 ## [1.6.5] - 2026-08-26
 
 ### Fixed (수정됨)

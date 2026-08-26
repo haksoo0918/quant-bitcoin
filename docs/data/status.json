@@ -1,25 +1,25 @@
 {
-  "updated_at": "2026-08-26T10:45:18.567344+00:00",
-  "updated_at_formatted": "2026-08-26 10:45:18 KST",
+  "updated_at": "2026-08-26T19:42:44.648265+00:00",
+  "updated_at_formatted": "2026-08-26 19:42:44 KST",
   "mode": "signal",
   "upbit": {
     "btc": {
-      "current_price": 109701000.0,
-      "sma": 103838127.27272727,
+      "current_price": 109481000.0,
+      "sma": 103837127.27272727,
       "sma_len": 220,
-      "upper_buffer": 105914889.81818181,
-      "lower_buffer": 101761364.72727272,
+      "upper_buffer": 105913869.81818181,
+      "lower_buffer": 101760384.72727272,
       "status": "bull",
       "status_label": "상승 추세 돌파",
       "guide": "BTC 50% 비중 매수 또는 보유 유지"
     },
     "eth": {
-      "current_price": 3416000.0,
-      "sma": 2807820.0,
+      "current_price": 3428000.0,
+      "sma": 2808060.0,
       "sma_len": 50,
-      "atr_14": 134642.85714285713,
-      "upper_band": 3009784.2857142854,
-      "lower_band": 2605855.7142857146,
+      "atr_14": 135428.57142857142,
+      "upper_band": 3011202.8571428573,
+      "lower_band": 2604917.1428571427,
       "status": "bull",
       "status_label": "상승 채널 돌파",
       "guide": "ETH 50% 비중 매수 또는 보유 유지"
@@ -27,17 +27,20 @@
   },
   "bithumb": {
     "enabled": true,
+    "strategy_name": "이더리움 SuperTrend + 50일 SMA 추세 추종",
     "target_coin": "ETH",
     "target_coin_name": "이더리움 (ETH)",
-    "target_signal": "🚀 **[이더리움 (ETH) 100% 집중 탑승]** (30일 상대 모멘텀 우세)",
-    "btc_mom_30d": 0.17771908918161616,
-    "eth_mom_30d": 0.23544303797468355,
-    "btc_is_bull": true,
-    "eth_is_bull": true,
-    "guide": "빗썸 ETH 100% 매수 또는 보유 유지"
+    "target_signal": "🟢 **[이더리움 (ETH) 100% 매수/보유]** (SuperTrend 상승 & 50일 SMA 돌파)",
+    "current_price": 3428000.0,
+    "sma50": 2808060.0,
+    "supertrend_val": 2831000.0,
+    "supertrend_trend": "BULL",
+    "is_above_sma": true,
+    "action": "BUY",
+    "guide": "빗썸 이더리움 100% 매수 또는 보유 유지"
   },
   "guides": {
     "upbit": "BTC 50% 비중 매수 또는 보유 유지 / ETH 50% 비중 매수 또는 보유 유지",
-    "bithumb": "빗썸 ETH 100% 매수 또는 보유 유지"
+    "bithumb": "빗썸 이더리움 100% 매수 또는 보유 유지"
   }
 }

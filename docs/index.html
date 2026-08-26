@@ -1013,38 +1013,38 @@
 
     </div>
 
-    <!-- 전략 섹션 2: 서브 전략 (빗썸 BTC vs ETH 100% 스위칭) -->
+    <!-- 전략 섹션 2: 서브 전략 (빗썸 이더리움 SuperTrend + 50일 SMA) -->
     <div class="section-title">
       <svg class="icon icon-green" viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
-      <span>서브 전략 (빗썸 BTC vs ETH 100% 스위칭)</span>
+      <span>서브 전략 (빗썸 이더리움 SuperTrend + 50일 SMA)</span>
     </div>
 
     <div class="alt-card">
       <div class="alt-header">
         <div>
-          <strong class="filter-title">1등 대장 코인 탑승 신호</strong>
-          <span class="filter-subtitle">(30일 상대 모멘텀 우위 100% 집중)</span>
+          <strong class="filter-title">이더리움 단독 추세 추종 신호</strong>
+          <span class="filter-subtitle">(SuperTrend 7, 3.5 & 50일 SMA 복합)</span>
         </div>
         <div id="bithumb-signal-badge" class="status-pill status-bull">로딩 중...</div>
       </div>
 
       <div class="alt-strategy-desc" id="bithumb-strategy-desc">
-        비트코인과 이더리움 중 최근 30일 모멘텀(수익률)이 더 강한 1등 코인에 100% 집중 투자하고, 하락장 시 100% 현금화(KRW)합니다.
+        이더리움(ETH)의 대세 상승 파동을 끝까지 추종하여 고수익을 창출하고, 50일 SMA 이탈 또는 SuperTrend 하락 전환 시 100% 현금화(KRW)하여 원금을 철저히 보존합니다.
       </div>
 
       <div id="alt-recommend-box">
         <div class="alt-recommend-header">
           <svg class="icon icon-sm" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-          <span>최근 30일 상대 모멘텀 비교 현황</span>
+          <span>핵심 추세 지표 및 기준선 현황</span>
         </div>
         <div id="bithumb-momentum-grid" class="alt-list">
-          <div class="alt-item" id="bithumb-mom-btc">
-            <div class="alt-coin-name">비트코인 (BTC) 30일 모멘텀</div>
-            <div class="alt-return" id="bithumb-btc-mom-val">+0.00%</div>
+          <div class="alt-item" id="bithumb-st-box">
+            <div class="alt-coin-name">SuperTrend (7, 3.5) 추세선</div>
+            <div class="alt-return" id="bithumb-st-val">- 원</div>
           </div>
-          <div class="alt-item" id="bithumb-mom-eth">
-            <div class="alt-coin-name">이더리움 (ETH) 30일 모멘텀</div>
-            <div class="alt-return" id="bithumb-eth-mom-val">+0.00%</div>
+          <div class="alt-item" id="bithumb-sma-box">
+            <div class="alt-coin-name">대추세 필터 (50일 SMA)</div>
+            <div class="alt-return" id="bithumb-sma-val">- 원</div>
           </div>
         </div>
       </div>
@@ -1215,42 +1215,34 @@
         document.getElementById('eth-sma-diff').textContent = `기준 이평(${eth.sma_len}일) 대비 ${ethDiffPct >= 0 ? '+' : ''}${ethDiffPct.toFixed(2)}% (ATR: ${Math.round(eth.atr_14).toLocaleString()})`;
       }
 
-      // 5. 빗썸 서브 전략 (BTC vs ETH 30일 모멘텀 100% 스위칭) 렌더링
-      if (data.bithumb) {
+      // 5. 빗썸 서브 전략 (이더리움 SuperTrend + 50일 SMA) 렌더링
+      if (data.bithumb && data.bithumb.enabled) {
         const b = data.bithumb;
         const bBadge = document.getElementById('bithumb-signal-badge');
         bBadge.className = 'status-pill';
 
-        if (b.target_coin === 'BTC') {
+        if (b.action === 'BUY') {
           bBadge.classList.add('status-bull');
-          bBadge.textContent = '🚀 BTC 100% 집중 탑승';
-        } else if (b.target_coin === 'ETH') {
-          bBadge.classList.add('status-bull');
-          bBadge.textContent = '🚀 ETH 100% 집중 탑승';
+          bBadge.textContent = '🚀 ETH 100% 풀매수';
         } else {
           bBadge.classList.add('status-bear');
-          bBadge.textContent = '🔴 100% 현금화 관망';
+          bBadge.textContent = '🔴 100% 원화 현금화';
         }
 
-        const btcMomEl = document.getElementById('bithumb-btc-mom-val');
-        const ethMomEl = document.getElementById('bithumb-eth-mom-val');
-        if (btcMomEl && b.btc_mom_30d !== undefined) {
-          btcMomEl.textContent = `${b.btc_mom_30d >= 0 ? '+' : ''}${(b.btc_mom_30d * 100).toFixed(2)}%`;
+        const stValEl = document.getElementById('bithumb-st-val');
+        const smaValEl = document.getElementById('bithumb-sma-val');
+        if (stValEl && b.supertrend_val !== undefined) {
+          stValEl.textContent = `${formatKRW(b.supertrend_val)} (${b.supertrend_trend === 'BULL' ? '상승 🟢' : '하락 🔴'})`;
         }
-        if (ethMomEl && b.eth_mom_30d !== undefined) {
-          ethMomEl.textContent = `${b.eth_mom_30d >= 0 ? '+' : ''}${(b.eth_mom_30d * 100).toFixed(2)}%`;
+        if (smaValEl && b.sma50 !== undefined) {
+          smaValEl.textContent = `${formatKRW(b.sma50)} (${b.is_above_sma ? '상회 🟢' : '하회 🔴'})`;
         }
 
-        // 당일 1등 우세 코인 하이라이트 테두리 적용
-        const btcItem = document.getElementById('bithumb-mom-btc');
-        const ethItem = document.getElementById('bithumb-mom-eth');
-        if (btcItem && ethItem) {
-          const isBtcWinner = (b.target_coin === 'BTC');
-          const isEthWinner = (b.target_coin === 'ETH');
-          btcItem.classList.toggle('winner', isBtcWinner);
-          ethItem.classList.toggle('winner', isEthWinner);
-          btcItem.style.borderLeftColor = isBtcWinner ? 'var(--accent-primary)' : 'var(--border-color)';
-          ethItem.style.borderLeftColor = isEthWinner ? 'var(--accent-primary)' : 'var(--border-color)';
+        const stBox = document.getElementById('bithumb-st-box');
+        const smaBox = document.getElementById('bithumb-sma-box');
+        if (stBox && smaBox) {
+          stBox.style.borderLeftColor = (b.supertrend_trend === 'BULL') ? 'var(--accent-primary)' : 'var(--border-color)';
+          smaBox.style.borderLeftColor = b.is_above_sma ? 'var(--accent-primary)' : 'var(--border-color)';
         }
       }
     }

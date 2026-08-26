@@ -48,6 +48,8 @@ def fetch_and_cache_candles(market, days_needed):
         now = datetime.datetime.now()
         if mtime.date() == now.date():
             df = pd.read_csv(cache_file)
+            if 'date' not in df.columns:
+                df.rename(columns={df.columns[0]: 'date'}, inplace=True)
             if len(df) >= days_needed:
                 print(f"[{market}] 오늘 날짜의 캐시 파일 발견. 로컬에서 데이터를 로드합니다. (총 {len(df)}일분)")
                 return df
@@ -107,6 +109,9 @@ def run_simulation(btc_df, eth_df, btc_sma_len, eth_sma_len, initial_capital=100
     # 1. 지표 연산
     btc_df = btc_df.copy()
     eth_df = eth_df.copy()
+    
+    btc_df['date'] = pd.to_datetime(btc_df['date']).dt.strftime('%Y-%m-%d')
+    eth_df['date'] = pd.to_datetime(eth_df['date']).dt.strftime('%Y-%m-%d')
     
     btc_df['sma'] = btc_df['close'].rolling(window=btc_sma_len).mean()
     
