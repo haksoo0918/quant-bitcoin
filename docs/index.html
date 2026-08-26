@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>퀀트 코인 전략 대시보드</title>
   
-  <!-- PWA Meta Tags -->
+  <!-- PWA 및 모바일 메타 태그 설정 -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" id="meta-theme-color" content="#f8fafc">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -14,14 +14,14 @@
   <link rel="apple-touch-icon" href="icons/icon.svg">
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 
-  <!-- Google Fonts: Noto Sans KR -->
+  <!-- 구글 웹 폰트: D2Coding(숫자/지표) & Noto Sans KR(본문) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=D2Coding:wght@400;700&family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
   <style>
     /* ==========================================================================
-       hs-style Design System Variables (Modern Deep Teal & Emerald Point)
+       hs-style 디자인 시스템 변수 정의 (모던 딥 틸 & 에메랄드 포인트)
        ========================================================================== */
     :root, [data-theme="light"] {
       --bg-primary: #ffffff;
@@ -34,15 +34,15 @@
       --text-secondary: #6b7280;
       --text-muted: #9ca3af;
       
-      --accent-primary: #0d9488;      /* Deep Teal */
+      --accent-primary: #0d9488;      /* 딥 틸 (라이트 모드 포인트) */
       --accent-primary-hover: #0f766e;
       --on-primary: #ffffff;
       
       --accent-cyan: #0d9488;
-      --accent-emerald: #10b981;     /* Success */
+      --accent-emerald: #10b981;     /* 성공 상태 */
       --accent-green: #10b981;
-      --accent-amber: #f59e0b;     /* Warning */
-      --accent-red: #ef4444;       /* Danger */
+      --accent-amber: #f59e0b;     /* 경고/주의 상태 */
+      --accent-red: #ef4444;       /* 위험/오류 상태 */
       --accent-indigo: #0d9488;
 
       --pill-bull-bg: rgba(16, 185, 129, 0.12);
@@ -85,15 +85,15 @@
       --text-secondary: #8b92a9;
       --text-muted: #5e6680;
       
-      --accent-primary: #2dd4bf;      /* Emerald Teal */
+      --accent-primary: #2dd4bf;      /* 에메랄드 틸 (다크 모드 포인트) */
       --accent-primary-hover: #5eead4;
-      --on-primary: #0a0e27;         /* High Contrast Dark Text */
+      --on-primary: #0a0e27;         /* 에메랄드 틸 배경 위 고대비 다크 텍스트 */
       
       --accent-cyan: #2dd4bf;
-      --accent-emerald: #6ee7b7;     /* Success */
+      --accent-emerald: #6ee7b7;     /* 성공 상태 */
       --accent-green: #6ee7b7;
-      --accent-amber: #fbbf24;     /* Warning */
-      --accent-red: #f87171;       /* Danger */
+      --accent-amber: #fbbf24;     /* 경고/주의 상태 */
+      --accent-red: #f87171;       /* 위험/오류 상태 */
       --accent-indigo: #2dd4bf;
 
       --pill-bull-bg: rgba(45, 212, 191, 0.18);
@@ -118,7 +118,7 @@
     }
 
     /* ==========================================================================
-       Global Styles & Resets
+       글로벌 스타일 및 기본 리셋
        ========================================================================== */
     * {
       box-sizing: border-box;
@@ -142,7 +142,7 @@
       padding: 16px;
     }
 
-    /* Utility & Helpers */
+    /* 유틸리티 및 헬퍼 클래스 */
     .hidden {
       display: none !important;
     }
@@ -151,7 +151,7 @@
       display: inline;
     }
 
-    /* SVG Icon Classes */
+    /* SVG 아이콘 공통 클래스 (Lucide 표준 1.75px) */
     .icon {
       display: inline-block;
       width: 18px;
@@ -173,7 +173,7 @@
     .icon-indigo { color: var(--accent-indigo); }
     .icon-external { margin-left: 2px; }
 
-    /* Header */
+    /* 상단 헤더 영역 */
     header {
       display: flex;
       justify-content: space-between;
@@ -272,7 +272,7 @@
       color: #0a0e27;
     }
 
-    /* Live Update Status Bar */
+    /* 실시간 상태 표시 및 동기화 바 */
     .status-bar {
       display: flex;
       justify-content: space-between;
@@ -316,7 +316,7 @@
       100% { transform: scale(0.95); opacity: 0.8; }
     }
 
-    /* Master Action Banner */
+    /* 오늘의 종합 매매 행동 가이드 배너 */
     .action-banner {
       background: var(--banner-bg);
       border: 1px solid var(--banner-border);
@@ -370,7 +370,7 @@
       line-height: 1.45;
     }
 
-    /* Section Title */
+    /* 섹션 타이틀 */
     .section-title {
       font-size: 1.05rem;
       font-weight: 800;
@@ -381,7 +381,7 @@
       letter-spacing: -0.3px;
     }
 
-    /* Strategy Cards */
+    /* 전략 지표 카드 */
     .card-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -473,7 +473,7 @@
       word-break: keep-all;
     }
 
-    /* Channel box */
+    /* 채널 및 기준 지표 박스 */
     .channel-box {
       background: var(--bg-card-sub);
       border-radius: 10px;
@@ -509,7 +509,7 @@
       line-height: 1.45;
     }
 
-    /* Altcoin Sub-Strategy Card */
+    /* 서브 전략 카드 */
     .alt-card {
       background: var(--bg-card);
       border: 1px solid var(--border-card);
@@ -601,7 +601,7 @@
       font-family: var(--font-mono);
     }
 
-    /* Backtest Stats */
+    /* 역사적 백테스트 검증 성과 통계 */
     .stats-card {
       background: var(--bg-card);
       border: 1px solid var(--border-card);
@@ -660,7 +660,7 @@
       margin-top: 2px;
     }
 
-    /* Footer */
+    /* 하단 푸터 영역 */
     footer {
       text-align: center;
       font-size: 0.76rem;
@@ -689,7 +689,7 @@
       text-decoration: underline;
     }
 
-    /* Loading Spinner */
+    /* 로딩 스피너 애니메이션 */
     .spinner {
       border: 2px solid rgba(0, 0, 0, 0.1);
       width: 14px;
@@ -874,7 +874,7 @@
 
   <div class="container">
     
-    <!-- Top Header -->
+    <!-- 최상단 헤더 -->
     <header>
       <div class="logo-group">
         <img src="icons/icon.svg" alt="Quant Logo" class="logo-img">
@@ -884,7 +884,7 @@
         </div>
       </div>
       <div class="header-actions">
-        <!-- Theme Toggle Button -->
+        <!-- 테마 전환 버튼 (라이트/다크) -->
         <button id="btn-theme" class="btn" title="라이트 / 다크 테마 전환" aria-label="테마 전환">
           <svg id="theme-icon-sun" class="icon hidden" viewBox="0 0 24 24">
             <circle cx="12" cy="12" r="4"/>
@@ -896,7 +896,7 @@
           <span class="btn-text" id="theme-text">다크모드</span>
         </button>
 
-        <!-- Live Refresh Button -->
+        <!-- 거래소 실시간 시세 조회 버튼 -->
         <button id="btn-refresh" class="btn" title="거래소 실시간 시세 및 전략 신호 갱신" aria-label="실시간 시세">
           <svg id="refresh-icon" class="icon" viewBox="0 0 24 24">
             <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
@@ -907,7 +907,7 @@
           <span class="btn-text">실시간 시세</span>
         </button>
 
-        <!-- PWA Install Button -->
+        <!-- PWA 앱 설치 버튼 -->
         <button id="btn-install" class="btn btn-primary hidden" title="스마트폰 홈 화면에 앱 설치" aria-label="앱 설치">
           <svg class="icon" viewBox="0 0 24 24">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -919,7 +919,7 @@
       </div>
     </header>
 
-    <!-- Status & Sync Bar -->
+    <!-- 실시간 상태 및 기준 일시 바 -->
     <div class="status-bar">
       <div class="live-badge">
         <div class="dot-pulse"></div>
@@ -931,7 +931,7 @@
       </div>
     </div>
 
-    <!-- Master Action Banner -->
+    <!-- 오늘의 종합 매매 행동 가이드 배너 -->
     <div class="action-banner">
       <h2>
         <svg class="icon" viewBox="0 0 24 24"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
@@ -949,7 +949,7 @@
       </div>
     </div>
 
-    <!-- Strategy Section: Main -->
+    <!-- 전략 섹션 1: 메인 전략 (업비트 BTC/ETH 50:50) -->
     <div class="section-title">
       <svg class="icon icon-cyan" viewBox="0 0 24 24"><path d="m3 3 7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/><path d="m13 13 6 6"/></svg>
       <span>메인 전략 (50:50 듀얼 모멘텀)</span>
@@ -1029,7 +1029,7 @@
 
     </div>
 
-    <!-- Strategy Section: Sub Strategy Bithumb Switching -->
+    <!-- 전략 섹션 2: 서브 전략 (빗썸 BTC vs ETH 100% 스위칭) -->
     <div class="section-title">
       <svg class="icon icon-green" viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
       <span>서브 전략 (빗썸 BTC vs ETH 100% 스위칭)</span>
@@ -1066,7 +1066,7 @@
       </div>
     </div>
 
-    <!-- Historical Backtest Summary -->
+    <!-- 역사적 백테스트 성과 요약 섹션 -->
     <div class="section-title">
       <svg class="icon icon-indigo" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
       <span>역사적 백테스트 검증 성과 (최근 4.3년)</span>
@@ -1114,7 +1114,7 @@
 
   <script>
     // ==========================================================================
-    // Theme Switcher Logic (Light Mode Default)
+    // 테마 전환 로직 (라이트 모드 기본값, 시스템/로컬스토리지 연동)
     // ==========================================================================
     const currentTheme = localStorage.getItem('quant_theme') || 'light';
     applyTheme(currentTheme);
@@ -1151,7 +1151,7 @@
     }
 
     // ==========================================================================
-    // Korean Coin Name Dictionary & Helper
+    // 한글 코인명 딕셔너리 및 변환 헬퍼 함수
     // ==========================================================================
     const COIN_NAMES = {
       'BTC': '비트코인', 'ETH': '이더리움', 'XRP': '리플', 'SOL': '솔라나',
@@ -1177,7 +1177,7 @@
     }
 
     // ==========================================================================
-    // Format Currency Helper
+    // 통화 및 수치 포맷팅 헬퍼 함수
     // ==========================================================================
     function formatKRW(val) {
       if (val === undefined || val === null || isNaN(val)) return '-';
@@ -1185,12 +1185,12 @@
     }
 
     // ==========================================================================
-    // Render Data to DOM
+    // 상태 데이터를 DOM 화면에 렌더링
     // ==========================================================================
     function renderStatus(data) {
       if (!data) return;
 
-      // Update time
+      // 1. 기준 일시 업데이트
       const timeEl = document.getElementById('updated-time');
       if (timeEl) {
         timeEl.innerHTML = `
@@ -1199,13 +1199,13 @@
         `;
       }
 
-      // Guides
+      // 2. 오늘의 종합 행동 가이드 텍스트
       if (data.guides) {
         document.getElementById('guide-upbit').textContent = data.guides.upbit || '유지';
         document.getElementById('guide-bithumb').textContent = data.guides.bithumb || '유지';
       }
 
-      // BTC Render
+      // 3. 비트코인(BTC) 지표 및 상태 렌더링
       if (data.upbit && data.upbit.btc) {
         const btc = data.upbit.btc;
         document.getElementById('btc-price').textContent = formatKRW(btc.current_price);
@@ -1231,7 +1231,7 @@
         document.getElementById('btc-sma-diff').textContent = `기준 이평(${btc.sma_len}일) 대비 ${diffPct >= 0 ? '+' : ''}${diffPct.toFixed(2)}%`;
       }
 
-      // ETH Render
+      // 4. 이더리움(ETH) 지표 및 상태 렌더링
       if (data.upbit && data.upbit.eth) {
         const eth = data.upbit.eth;
         document.getElementById('eth-price').textContent = formatKRW(eth.current_price);
@@ -1257,7 +1257,7 @@
         document.getElementById('eth-sma-diff').textContent = `기준 이평(${eth.sma_len}일) 대비 ${ethDiffPct >= 0 ? '+' : ''}${ethDiffPct.toFixed(2)}% (ATR: ${Math.round(eth.atr_14).toLocaleString()})`;
       }
 
-      // Bithumb Render
+      // 5. 빗썸 서브 전략 (BTC vs ETH 30일 모멘텀 100% 스위칭) 렌더링
       if (data.bithumb) {
         const b = data.bithumb;
         const bBadge = document.getElementById('bithumb-signal-badge');
@@ -1283,7 +1283,7 @@
           ethMomEl.textContent = `${b.eth_mom_30d >= 0 ? '+' : ''}${(b.eth_mom_30d * 100).toFixed(2)}%`;
         }
 
-        // Highlight winner
+        // 당일 1등 우세 코인 하이라이트 테두리 적용
         const btcItem = document.getElementById('bithumb-mom-btc');
         const ethItem = document.getElementById('bithumb-mom-eth');
         if (btcItem && ethItem) {
@@ -1297,7 +1297,7 @@
       }
     }
 
-    // Fetch Status JSON
+    // 백엔드 전략 상태 데이터(status.json) 비동기 호출
     async function loadStatusData() {
       try {
         const res = await fetch('./data/status.json?t=' + Date.now());
@@ -1310,7 +1310,7 @@
       }
     }
 
-    // Direct Live Price Refresh via Upbit Public API
+    // 업비트 공개 시세 API를 통한 장중 실시간 가격 직접 조회
     async function fetchLiveUpbitPrices() {
       try {
         const res = await fetch('https://api.upbit.com/v1/ticker?markets=KRW-BTC,KRW-ETH');
@@ -1328,12 +1328,12 @@
       }
     }
 
-    // Global Refresh Handler (Status data + Live Upbit Ticker)
+    // 전체 데이터 동시 갱신 핸들러 (전략 상태 + 업비트 실시간 시세)
     async function refreshAllData() {
       await Promise.all([loadStatusData(), fetchLiveUpbitPrices()]);
     }
 
-    // Refresh Button Handler
+    // 실시간 시세 버튼 클릭 이벤트 핸들러
     const btnRefresh = document.getElementById('btn-refresh');
     btnRefresh.addEventListener('click', async () => {
       btnRefresh.disabled = true;
@@ -1353,20 +1353,20 @@
       }, 500);
     });
 
-    // PWA Service Worker Registration
+    // PWA 서비스 워커 등록 및 업데이트 확인
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./service-worker.js')
           .then(reg => {
             console.log('ServiceWorker registered:', reg.scope);
-            // Check for service worker updates
+            // 서비스 워커 최신 버전 자동 점검
             reg.update();
           })
           .catch(err => console.error('ServiceWorker error:', err));
       });
     }
 
-    // PWA Install Prompt
+    // PWA 홈 화면 앱 설치 프롬프트 처리
     let deferredPrompt;
     const btnInstall = document.getElementById('btn-install');
     window.addEventListener('beforeinstallprompt', (e) => {
@@ -1385,7 +1385,7 @@
       deferredPrompt = null;
     });
 
-    // Auto-refresh when user returns to app (PWA resume / mobile screen turn-on / tab focus)
+    // 모바일 앱 복귀 및 화면 켜짐 시 자동 갱신 (PWA 복귀 / 포커스 획득)
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
         refreshAllData();
@@ -1400,7 +1400,7 @@
       refreshAllData();
     });
 
-    // Initial Load
+    // 페이지 최초 진입 시 데이터 1회 자동 로드
     refreshAllData();
   </script>
 </body>

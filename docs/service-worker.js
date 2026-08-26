@@ -1,4 +1,4 @@
-// Service Worker for Quant Crypto Dashboard PWA
+// 퀀트 코인 전략 웹 대시보드 PWA 서비스 워커
 const CACHE_NAME = 'quant-dashboard-v1.6.4';
 const ASSETS_TO_CACHE = [
   './',
@@ -8,7 +8,7 @@ const ASSETS_TO_CACHE = [
   './data/status.json'
 ];
 
-// Install Event
+// 1. 서비스 워커 설치 이벤트: 핵심 앱 셸 캐싱 및 즉시 대기열 통과
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -18,7 +18,7 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// Activate Event
+// 2. 활성화 이벤트: 구버전 캐시 정리 및 즉시 클라이언트 제어
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
@@ -34,13 +34,13 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch Event: Network-first for HTML navigation and status.json (always fresh), Cache-first for static icons/manifest
+// 3. 네트워크 요청 가로채기 이벤트: HTML 네비게이션 및 실시간 상태 JSON은 네트워크 우선(Network-First), 정적 아이콘/매니페스트는 캐시 우선(Cache-First)
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   const isHtml = event.request.mode === 'navigate' || url.pathname.endsWith('index.html') || url.pathname.endsWith('/');
   const isStatusJson = url.pathname.endsWith('status.json');
 
-  // Network-First for HTML navigation and status data
+  // HTML 문서 및 전략 상태 데이터: 네트워크 우선 (항상 최신 버전 반영)
   if (isHtml || isStatusJson) {
     event.respondWith(
       fetch(event.request)
@@ -54,7 +54,7 @@ self.addEventListener('fetch', (event) => {
           return networkResponse;
         })
         .catch(() => {
-          // Fallback to cache when offline
+          // 오프라인 상태일 때 로컬 캐시로 안전하게 폴백
           return caches.match(event.request).then((cachedResponse) => {
             if (cachedResponse) return cachedResponse;
             if (isHtml) return caches.match('./index.html');
@@ -64,7 +64,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Cache-First for static assets (icons, manifest)
+  // 정적 자산(아이콘, 매니페스트): 캐시 우선
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
