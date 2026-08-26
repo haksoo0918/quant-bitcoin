@@ -7,6 +7,11 @@
 
 ## [1.6.5] - 2026-08-26
 
+### Fixed (수정됨)
+- **Windows 작업 스케줄러 배치 스크립트 인코딩 및 구문 오류 수정 (`scripts/setup_scheduler.bat`, `scripts/remove_scheduler.bat`)**:
+  - `cmd.exe` 실행 시 UTF-8 한글 문자열로 인한 파싱 오류 및 스케줄러 등록 실패 현상 해결.
+  - 프로젝트 루트 절대 경로 자동 탐색 및 `schtasks` 옵션 순서 안정화.
+
 ### Changed (변경됨)
 - **웹 대시보드 미사용 코드 정리 및 스타일 디자인 토큰 정돈 (`docs/index.html`, `docs/service-worker.js`)**:
   - **미사용 CSS 클래스/변수 삭제**: `.icon-lg`, `.alt-item-empty`, `.alt-sub-text`, `--card-shadow-hover`, `--accent-red` 등 불필요한 스타일 코드 정리.
