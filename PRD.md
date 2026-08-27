@@ -71,8 +71,10 @@
     - 시그널 확인: `python src/main.py --signal-only`
     - 모의 매매: `python src/main.py --dry-run`
     - 실거래 주문: `python src/main.py --live`
-    - 빗썸 서브 전략 제외: `python src/main.py --no-alt` (단독 또는 조합 사용)
-  - 배치 파일(`run_bot.bat`): CLI 인자 전달용 래퍼(`python src/main.py %*`)로 간소화 제공
+  - 배치 파일(`run_bot.bat`): CLI 인자 전달 및 실행 자동화 래퍼
+    - **스케줄러/CLI 인자 전달 시 (`run_bot.bat --live` 등)**: 프로세스 완료 즉시 `pause` 없이 터미널 창 자동 닫힘 (무인 백그라운드 자동화).
+    - **사용자 수동 더블 클릭 시 (인자 없음)**: 실행 결과 및 로그 확인을 위해 대기(`pause`) 유지.
+  - Windows 작업 스케줄러 등록 스크립트(`scripts/setup_scheduler.bat`, `scripts/remove_scheduler.bat`): 매일 09:05 KST `run_bot.bat --live` 자동 등록 지원.
 
 ---
 

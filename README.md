@@ -24,14 +24,14 @@ quant-bitcoin/
 ├── scripts/                      # 편의 유틸리티 스크립트
 │   ├── setup_scheduler.bat       # Windows 작업 스케줄러 일일 자동실행 등록기
 │   └── remove_scheduler.bat      # Windows 작업 스케줄러 등록 해제기
-├── backtest/                     # 백테스트 실행 결과물 저장 폴더 (보고서, 차트 이미지)
+├── backtest/                     # 백테스트 실행 결과물 저장 폴더 (main/, sub_eth/)
 └── src/                          # 소스 코드 폴더
     ├── config.py                 # 전역 상수 및 시스템 제어 설정 파일
-    ├── indicators.py             # 공통 기술적 지표(SMA, ATR, 버퍼, 히스테리시스) 연산 모듈
+    ├── indicators.py             # 공통 기술적 지표(SMA, ATR, SuperTrend, 버퍼, 히스테리시스) 연산 모듈
     ├── discord_bot.py            # 디스코드 리포트 메시지 포맷팅 및 전송 봇
     ├── bithumb_api.py            # 빗썸 v1 REST API 연동 클라이언트 클래스
     ├── backtest.py               # 메인 전략(업비트 BTC/ETH 50:50) 백테스트 연산 스크립트
-    ├── backtest_bithumb_switching.py # 빗썸 서브 전략(BTC vs ETH 100% 스위칭) 백테스트 스크립트
+    ├── backtest_bithumb_eth.py   # 빗썸 서브 전략(이더리움 SuperTrend + 50일 SMA) 백테스트 스크립트
     └── main.py                   # 메인 오케스트레이터 및 실거래/시그널 자동화 엔진
 ```
 
@@ -53,17 +53,16 @@ quant-bitcoin/
   * BTC와 ETH 모두 추세 필터를 통과하여 보유 중일 때만 평가합니다.
   * 한쪽 자산의 비중이 목표 비중(50%) 대비 10%p를 초과하여 벗어날 때(40% 미만 혹은 60% 초과)만 50:50 비중으로 재조정 매매를 수행합니다.
 
-### 2. 서브 전략 (빗썸 BTC vs ETH 100% 스위칭)
-* **대상 자산**: 비트코인(BTC) 및 이더리움(ETH)
-* **전략 모델**: Gary Antonacci의 듀얼 모멘텀 모델 적용 (1등 대장 코인 100% 집중 투자)
-* **절대 모멘텀 (시장 필터)**:
-  * BTC: 220일 SMA ±2% 노이즈 필터링
-  * ETH: 50일 SMA ± (ATR(14) * 1.5) 채널 돌파
-* **상대 모멘텀 (1등 대장 선별 및 100% 스위칭)**:
-  * **둘 다 상승장**: 최근 30일 수익률(상대 모멘텀)이 더 높은 1등 대장 코인에 **자산 100% 집중 매수/보유**
-  * **하나만 상승장**: 상승 추세인 단일 코인에 **100% 매수/보유**
-  * **둘 다 하락장**: 보유 코인 전량 매도 후 **100% 원화(KRW) 현금 보존**
-* **스위칭 주기**: 매일 09:05 KST 추세 이탈 및 30일 모멘텀 실시간 점검 후 포지션 유지 또는 스위칭.
+### 2. 서브 전략 (빗썸 이더리움 SuperTrend + 50일 SMA 추세 추종)
+* **대상 자산**: 이더리움(ETH)
+* **전략 모델**: SuperTrend(7, 3.5) 변동성 밴드와 50일 SMA 대추세 필터를 결합한 단독 고수익/저낙폭 추세 추종 모델
+* **진입/보유 조건 (100% 풀매수)**:
+  * `일봉 종가 >= 50일 SMA` AND `SuperTrend(7, 3.5) == Green(상승 추세)`
+  * 상승 파동을 끝까지 추종하여 자산의 **100%를 이더리움에 집중 투자/보유**
+* **청산/현금화 조건 (100% 현금 보존)**:
+  * `일봉 종가 < 50일 SMA` OR `SuperTrend(7, 3.5) == Red(하락 추세)`
+  * 하락/약세장 진입 시 즉시 전량 매도하여 **100% 원화(KRW) 현금 보존 (MDD -25% 철저 통제)**
+* **실행 주기**: 매일 09:05 KST 신호 판정 후 자동 매매 또는 관망.
 
 ---
 
@@ -99,10 +98,10 @@ quant-bitcoin/
 5. 수 분 내로 `https://<사용자아이디>.github.io/<저장소이름>/` 주소로 웹 대시보드가 오픈됩니다.
 
 #### 2) 대시보드 주요 기능
-* **종합 매매 행동 가이드**: 오늘의 업비트(BTC/ETH 50:50) 및 빗썸(BTC vs ETH 100% 스위칭) 즉시 행동 요약
+* **종합 매매 행동 가이드**: 오늘의 업비트(BTC/ETH 50:50) 및 빗썸(이더리움 SuperTrend + 50일 SMA) 즉시 행동 요약
 * **업비트 50:50 듀얼 모멘텀**: BTC(220일 SMA ±2%) 및 ETH(50일 SMA ± 1.5 ATR) 현재가, 기준 채널 지표, 상태 뱃지 표시
-* **빗썸 100% 모멘텀 스위칭**: BTC vs ETH 30일 상대 모멘텀 실시간 비교 및 당일 1등 대장 코인 100% 집중 탑승 신호 표시
-* **장중 실시간 새로고침**: 우측 상단 `새로고침` 버튼 클릭 시 업비트 공개 시세 API를 실시간 호출하여 현재가 및 이탈 여부 즉시 갱신
+* **빗썸 이더리움 추세 추종**: SuperTrend(7, 3.5) 추세선 및 50일 SMA 기준선 실시간 비교와 당일 포지션(100% 매수 / 100% 현금화) 뱃지 표시
+* **장중 실시간 시세 조회**: 우측 상단 `실시간 시세` 버튼 클릭 시 업비트 공개 시세 API를 실시간 호출하여 현재가 및 이탈 여부 즉시 갱신
 * **PWA 앱 설치 지원**: 브라우저 주소창 또는 `📲 앱 설치` 버튼을 통해 스마트폰 홈 화면에 단독 앱으로 설치 가능
 
 ---
@@ -163,6 +162,9 @@ DISCORD_WEBHOOK_URL=디스코드_웹훅_주소
   run_bot.bat --dry-run
   run_bot.bat --live
   ```
+  * **실행 모드별 자동 종료(Pause) 분기**:
+    * **스케줄러/CLI 인자 전달 시 (`run_bot.bat --live` 등)**: 매매 완료 즉시 터미널 창이 자동으로 닫힙니다 (24시간 무인 자동화).
+    * **사용자 수동 더블 클릭 시 (인자 없음)**: 실행 로그를 확인할 수 있도록 `pause` 대기 상태가 유지됩니다.
 
 * **Windows 작업 스케줄러 자동 실행 등록 (로컬 24시간 무인 매매)**:
   `scripts/setup_scheduler.bat`을 실행하면 매일 오전 09:05 KST에 `run_bot.bat --live`가 자동으로 실행되도록 Windows 작업 스케줄러에 즉시 등록됩니다. (해제 시 `scripts/remove_scheduler.bat` 실행)
@@ -173,6 +175,7 @@ DISCORD_WEBHOOK_URL=디스코드_웹훅_주소
 
 실제 업비트 과거 일봉 데이터를 다운로드하여 전략 수익률을 검증하거나 이동평균 최적 기간을 도출할 수 있습니다. (다운로드한 데이터는 `data/` 디렉토리에 캐싱됩니다.)
 
+#### 1) 메인 전략 (업비트 BTC/ETH 50:50) 백테스트
 * **단일 조건 백테스트 수행 (성과 보고서 및 차트 이미지 자동 생성)**:
   ```bash
   python src/backtest.py --btc-sma 220 --eth-sma 50 --days 1500
@@ -181,7 +184,7 @@ DISCORD_WEBHOOK_URL=디스코드_웹훅_주소
     ```bash
     python src/backtest.py --btc-sma 220 --eth-sma 50 --slippage 0.05
     ```
-  * 실행 완료 시 **`backtest/`** 폴더에 **`backtest_report_YYYYMMDD_HHMMSS.md`** 상세 보고서와 **`backtest_result_YYYYMMDD_HHMMSS.png`** 자산 변동 추이 차트가 타임스탬프와 함께 자동 생성됩니다.
+  * 실행 완료 시 **`backtest/main/`** 폴더에 **`backtest_report_YYYYMMDD_HHMMSS.md`** 상세 보고서와 **`backtest_result_YYYYMMDD_HHMMSS.png`** 자산 변동 추이 차트가 타임스탬프와 함께 자동 생성됩니다.
   * **리밸런싱 미적용 모드 (독립 자산 운용)**: `--no-rebalance` 옵션을 추가하면 비중 조절 거래 없이 두 자산을 독립 운용하는 시뮬레이션을 수행합니다.
     ```bash
     python src/backtest.py --btc-sma 220 --eth-sma 50 --no-rebalance
@@ -191,9 +194,17 @@ DISCORD_WEBHOOK_URL=디스코드_웹훅_주소
   ```bash
   python src/backtest.py --optimize
   ```
-  * 연산 완료 시 모든 SMA 조합의 성과가 분석되어 누적 수익률이 높은 순서로 정렬된 **`backtest/backtest_optimization_report_YYYYMMDD_HHMMSS.md`** 보고서가 생성되며, 상위 15개 최적 조합이 콘솔 창에 랭킹 표로 출력됩니다.
-  * **리밸런싱 미적용 최적화**: `--no-rebalance` 옵션을 함께 추가하면 리밸런싱 없는 독립 자산 기준의 최적 파라미터 조합 랭킹 보고서인 **`backtest/backtest_optimization_report_no_rebalance_YYYYMMDD_HHMMSS.md`** 가 생성됩니다.
-    ```bash
-    python src/backtest.py --optimize --no-rebalance
-    ```
+  * 연산 완료 시 모든 SMA 조합의 성과가 분석되어 누적 수익률이 높은 순서로 정렬된 **`backtest/main/backtest_optimization_report_YYYYMMDD_HHMMSS.md`** 보고서가 생성되며, 상위 15개 최적 조합이 콘솔 창에 랭킹 표로 출력됩니다.
+
+#### 2) 빗썸 서브 전략 (이더리움 SuperTrend + 50일 SMA) 백테스트
+* **이더리움 단독 추세 추종 백테스트 수행**:
+  ```bash
+  python src/backtest_bithumb_eth.py --days 1500
+  ```
+  * **파라미터 커스텀 옵션**:
+    * `--period 7`: SuperTrend ATR 기간 (기본값: 7일)
+    * `--multiplier 3.5`: SuperTrend ATR 승수 (기본값: 3.5)
+    * `--sma 50`: 대추세 필터 SMA 기간 (기본값: 50일)
+    * `--slippage 0.0005`: 슬리피지 비율 (기본값: 0.05%)
+  * 실행 완료 시 **`backtest/sub_eth/`** 폴더에 **`backtest_bithumb_eth_report_YYYYMMDD_HHMMSS.md`** 보고서와 **`backtest_bithumb_eth_result_YYYYMMDD_HHMMSS.png`** 차트가 자동 저장됩니다.
 
