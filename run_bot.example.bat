@@ -9,13 +9,21 @@
 ::   run_bot.bat --dry-run
 ::   run_bot.bat --live
 ::   run_bot.bat --live --no-alt
+:: Behavior:
+::   - Double-click (no args): runs --live and pauses to view output.
+::   - Scheduled / CLI (with args like --live): executes and exits automatically.
 :: ========================================================
 
 cd /d "%~dp0"
 
-python src/main.py %*
-
-echo.
-echo Execution finished.
-pause
+if "%~1"=="" (
+    python src/main.py --live
+    echo.
+    echo Execution completed.
+    pause
+) else (
+    python src/main.py %*
+    echo.
+    echo Execution completed.
+)
 
