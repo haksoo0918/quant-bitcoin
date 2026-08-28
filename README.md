@@ -10,7 +10,7 @@
 
 ```
 quant-bitcoin/
-├── docs/                         # PWA 웹 대시보드 및 GitHub Pages 배포 루트
+├── docs/                         # PWA 웹 대시보드 소스 루트 (현재 GitHub Pages 비활성화 상태)
 │   ├── index.html                # 반응형 웹 대시보드 SPA
 │   ├── manifest.json             # PWA 매니페스트 설정
 │   ├── service-worker.js         # PWA 오프라인 캐싱 서비스 워커
@@ -88,9 +88,12 @@ quant-bitcoin/
 
 ### 2. PWA 웹 대시보드 & GitHub Pages 연동
 
+> [!NOTE]
+> **현재 호스팅 상태 안내**: 현재 GitHub Pages 웹 호스팅은 비활성화(OFF)되어 있습니다. 추후 웹 대시보드 기능이 다시 필요할 경우 아래의 활성화 방법을 통해 언제든지 다시 켤 수 있습니다.
+
 별도의 유료 웹 서버 없이 **GitHub Pages** 무료 호스팅을 통해 모바일 및 PC 브라우저에서 실시간 전략 상태 대시보드를 열람하고, 모바일 홈 화면에 **PWA 앱(바로가기)** 으로 설치하여 편리하게 이용할 수 있습니다.
 
-#### 1) GitHub Pages 활성화 방법
+#### 1) GitHub Pages 활성화 방법 (필요 시 재활성화)
 1. 저장소 상단 메뉴의 **[Settings]** 클릭
 2. 왼쪽 사이드바의 **[Pages]** 클릭
 3. **Build and deployment** -> **Source** 항목에서 **Deploy from a branch** 선택

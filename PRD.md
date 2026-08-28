@@ -175,9 +175,12 @@
 ---
 
 ## 6. PWA 기반 웹 대시보드 및 GitHub Pages 요구사항
+> [!NOTE]
+> **현재 호스팅 상태 (Disabled)**: 현재 GitHub Pages 배포 기능은 사용자에 의해 비활성화(OFF) 상태로 전환되어 있습니다. 추후 웹 대시보드 접근이 필요할 경우 GitHub 저장소 [Settings] -> [Pages]에서 언제든 재활성화할 수 있도록 관련 프론트엔드 소스 코드(`docs/`) 및 아키텍처 사양은 온전히 보존 및 유지 관리합니다.
+
 - **개념**: GitHub Pages의 정적 웹 호스팅과 PWA(Progressive Web App) 기술을 활용하여, 별도 서버 없이 모바일 및 PC 브라우저에서 퀀트 전략 상태와 매매 신호를 실시간/일일 단위로 조회할 수 있는 웹 대시보드를 제공합니다.
 - **아키텍처 및 디렉토리 구조**:
-  - `docs/` 디렉토리를 GitHub Pages 배포 루트로 사용
+  - `docs/` 디렉토리를 GitHub Pages 배포 루트로 사용 (비활성화 상태 시 소스 보존)
   - `docs/index.html`: 반응형 SPA 대시보드 (다크 모드, 실시간 시세 연동, 카드형 전략 요약)
   - `docs/manifest.json`: PWA 앱 설치 메타데이터 (앱 이름, 테마 색상, 시작 URL, 아이콘)
   - `docs/service-worker.js`: 오프라인 캐싱 및 PWA 지원 서비스 워커
