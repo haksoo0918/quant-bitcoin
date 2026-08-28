@@ -61,10 +61,10 @@
 ---
 
 ## 4. 실행 환경 및 운영 구조
-- **GitHub Actions (매일 09:05 KST 자동 실행)**:
+- **GitHub Actions (수동 실행 `workflow_dispatch` 지원)**:
   - Repository Secrets: `DISCORD_WEBHOOK_URL` (1개만 등록, 거래소 API Key 불필요)
   - 실행 명령: `python src/main.py --signal-only`
-  - 역할: 24시간 자동 시그널 방향성 분석 및 디스코드 브리핑
+  - 역할: 자동 스케줄(Cron) 지연 이슈 방지를 위해 수동 트리거 지원으로 전환. (시세 및 전략 확인은 PWA 대시보드의 실시간 시세 조회 기능 및 로컬 스케줄러 자동 실행 활용)
 - **로컬 환경 (CLI 및 `.env` 기반 실행)**:
   - `.env` 파일에 API Key 및 `DISCORD_WEBHOOK_URL` 설정
   - CLI 명령어로 실행:
