@@ -744,8 +744,21 @@ def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STR
         total_bithumb_fin = bithumb_krw_fin + bithumb_eth_val_fin
 
     # 5.3 디스코드 본문 포맷팅
+    upbit_btc_cost = btc_bal_fin * upbit_balances.get("BTC", {}).get("avg_buy", 0.0)
+    upbit_eth_cost = eth_bal_fin * upbit_balances.get("ETH", {}).get("avg_buy", 0.0)
+    upbit_total_invested = upbit_krw_fin + upbit_btc_cost + upbit_eth_cost
+    upbit_total_ret = ((total_upbit_fin - upbit_total_invested) / upbit_total_invested * 100) if upbit_total_invested > 0 else 0.0
+
     upbit_btc_return = ((btc_price_fin - upbit_balances.get("BTC", {}).get("avg_buy", 0.0)) / upbit_balances.get("BTC", {}).get("avg_buy", 1.0)) * 100 if btc_bal_fin > 0 else 0.0
     upbit_eth_return = ((eth_price_fin - upbit_balances.get("ETH", {}).get("avg_buy", 0.0)) / upbit_balances.get("ETH", {}).get("avg_buy", 1.0)) * 100 if eth_bal_fin > 0 else 0.0
+
+    bithumb_eth_cost = bithumb_eth_bal_fin * bithumb_eth_avg_fin
+    bithumb_total_invested = bithumb_krw_fin + bithumb_eth_cost
+    bithumb_total_ret = ((total_bithumb_fin - bithumb_total_invested) / bithumb_total_invested * 100) if bithumb_total_invested > 0 else 0.0
+
+    grand_total_val = total_upbit_fin + (total_bithumb_fin if use_alt_strategy else 0.0)
+    grand_total_invested = upbit_total_invested + (bithumb_total_invested if use_alt_strategy else 0.0)
+    grand_total_ret = ((grand_total_val - grand_total_invested) / grand_total_invested * 100) if grand_total_invested > 0 else 0.0
 
     report = []
     if is_dry_run:
@@ -755,9 +768,12 @@ def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STR
     report.append(f"⏱️ **실행 일시**: {kst_now.strftime('%Y-%m-%d %H:%M')} KST")
     report.append("==================================")
     
+    if use_alt_strategy:
+        report.append(f"💰 **통합 총 자산**: {grand_total_val:,.0f} 원 (전체 평가수익률: `{grand_total_ret:+.2f}%`)")
+    
     report.append("\n🔵 **메인 전략 (업비트 - BTC & ETH 50:50)**")
-    report.append(f"• **총 자산 가치**: {total_upbit_fin:,.0f} 원")
-    report.append(f"• **보유 현금 (KRW)**: {upbit_krw_fin:,.0f} 원 ({upbit_krw_fin/total_upbit_fin*100:.1f}%)")
+    report.append(f"• **총 자산 가치**: {total_upbit_fin:,.0f} 원 (전체 수익률: `{upbit_total_ret:+.2f}%`)")
+    report.append(f"• **보유 현금 (KRW)**: {upbit_krw_fin:,.0f} 원 ({upbit_krw_fin/total_upbit_fin*100:.1f}%)" if total_upbit_fin > 0 else f"• **보유 현금 (KRW)**: {upbit_krw_fin:,.0f} 원 (0.0%)")
     
     if btc_bal_fin > 0:
         report.append(f"• **BTC**: {btc_val_fin:,.0f} 원 ({btc_val_fin/total_upbit_fin*100:.1f}%) | 평단 {upbit_balances['BTC']['avg_buy']:,.0f} | 수익률 {upbit_btc_return:+.2f}%")
@@ -773,7 +789,7 @@ def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STR
     if use_alt_strategy:
         st_badge = "🟢 매수 유지 (ETH 100%)" if bithumb_action == "BUY" else "🔴 100% 원화 현금화 관망"
         report.append(f"• **전략 방향성**: {st_badge}")
-        report.append(f"• **총 자산 가치**: {total_bithumb_fin:,.0f} 원")
+        report.append(f"• **총 자산 가치**: {total_bithumb_fin:,.0f} 원 (전체 수익률: `{bithumb_total_ret:+.2f}%`)")
         if total_bithumb_fin > 0:
             report.append(f"• **보유 현금 (KRW)**: {bithumb_krw_fin:,.0f} 원 ({bithumb_krw_fin/total_bithumb_fin*100:.1f}%)")
             if bithumb_eth_bal_fin > 0:
