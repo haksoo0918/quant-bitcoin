@@ -1772,9 +1772,9 @@
             renderStrategyView(globalStrategyData);
           }
         }
-        if (!globalStrategyData) {
-          // 캐시가 없으면 기본 status.json을 즉시 로드하여 0.05초 만에 표시
-          const res = await fetch('./data/status.json');
+        if (!globalStrategyData || !globalStrategyData.chart) {
+          // 캐시가 없거나 차트가 누락된 경우 기본 status.json을 즉시 로드
+          const res = await fetch('./data/status.json?v=' + Date.now());
           if (res.ok) {
             const fallbackData = await res.json();
             globalStrategyData = fallbackData;
@@ -1789,6 +1789,8 @@
       const data = await loadOrComputeStrategyData();
       if (data) {
         renderStrategyView(data);
+      } else if (globalStrategyData) {
+        renderStrategyView(globalStrategyData);
       }
 
       // 3. 장중 현재가 실시간 동기화
