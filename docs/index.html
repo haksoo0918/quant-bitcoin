@@ -967,6 +967,11 @@
   </div>
 
   <script>
+    // 전역 상태 및 차트 인스턴스 변수 선언 (TDZ 방지)
+    let currentChartInstance = null;
+    let globalStrategyData = null;
+    let activeChartTab = 'btc';
+
     // ==========================================================================
     // 1. 테마 전환 로직
     // ==========================================================================
@@ -1160,8 +1165,6 @@
         return null;
       }
     }
-
-    let globalStrategyData = null;
 
     async function loadOrComputeStrategyData() {
       const cacheKey = get9AmCycleKey();
@@ -1507,9 +1510,6 @@
     // ==========================================================================
     // 5. Chart.js 인터랙티브 차트 시각화 모듈
     // ==========================================================================
-    let currentChartInstance = null;
-    let activeChartTab = 'btc';
-
     function switchChartTab(tabName) {
       activeChartTab = tabName;
       document.querySelectorAll('.chart-tab').forEach(t => t.classList.remove('active'));
