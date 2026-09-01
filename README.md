@@ -87,19 +87,19 @@ quant-bitcoin/
 
 ---
 
-### 2. PWA 웹 대시보드 & GitHub Pages 연동
-
-> [!NOTE]
-> **현재 호스팅 상태 안내**: 현재 GitHub Pages 웹 호스팅은 비활성화(OFF)되어 있습니다. 추후 웹 대시보드 기능이 다시 필요할 경우 아래의 활성화 방법을 통해 언제든지 다시 켤 수 있습니다.
+### 2. PWA 웹 대시보드 & 실시간 전략 차트 (GitHub Pages)
 
 별도의 유료 웹 서버 없이 **GitHub Pages** 무료 호스팅을 통해 모바일 및 PC 브라우저에서 실시간 전략 상태 대시보드를 열람하고, 모바일 홈 화면에 **PWA 앱(바로가기)** 으로 설치하여 편리하게 이용할 수 있습니다.
 
-#### 1) GitHub Pages 활성화 방법 (필요 시 재활성화)
+* 🌐 **웹 대시보드 바로가기**: **[https://haksoo0918.github.io/quant-bitcoin/](https://haksoo0918.github.io/quant-bitcoin/)**
+* 🖥️ **로컬 PC 실행**: `scripts/view_dashboard.bat` 더블 클릭 (로컬 `http://localhost:8000` 즉시 오픈)
+
+#### 1) GitHub Pages 설정 안내 (저장소 기본 연동)
 1. 저장소 상단 메뉴의 **[Settings]** 클릭
 2. 왼쪽 사이드바의 **[Pages]** 클릭
 3. **Build and deployment** -> **Source** 항목에서 **Deploy from a branch** 선택
 4. **Branch** 를 **`main`**, 폴더를 **`/docs`** 로 설정한 후 **[Save]** 클릭
-5. 수 분 내로 `https://<사용자아이디>.github.io/<저장소이름>/` 주소로 웹 대시보드가 오픈됩니다.
+5. `https://haksoo0918.github.io/quant-bitcoin/` 주소로 상시 서비스가 제공됩니다.
 
 #### 2) 대시보드 주요 기능
 * **종합 매매 행동 가이드**: 오늘의 업비트(BTC/ETH 50:50) 및 빗썸(이더리움 SuperTrend + 50일 SMA) 즉시 행동 요약
