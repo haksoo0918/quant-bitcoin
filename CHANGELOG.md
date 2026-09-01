@@ -5,6 +5,14 @@
 
 ---
 
+## [1.8.1] - 2026-09-01
+
+### Fixed (수정됨)
+- **자바스크립트 TDZ ReferenceError 수정 및 차트 렌더링 복구 (`docs/index.html`)**:
+  - 초기 테마 적용 함수(`applyTheme`) 호출 시 하단에 선언된 `currentChartInstance`를 참조하여 발생하던 `ReferenceError`를 전역 변수 최상단 배치로 완벽 해결.
+  - 캐시 유효성 검증 로직을 강화하여 차트 시계열 데이터 누락 시 즉시 재연산하도록 보강.
+  - 실제 브라우저 자동화(Selenium Headless Chrome) 환경을 구축하여 3종 전략 탭 차트 렌더링 및 콘솔 에러 0건 실시간 검증 완료.
+
 ## [1.8.0] - 2026-09-01
 
 ### Added (추가됨)
