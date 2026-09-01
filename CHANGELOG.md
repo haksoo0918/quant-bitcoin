@@ -5,6 +5,14 @@
 
 ---
 
+## [1.8.2] - 2026-09-01
+
+### Fixed (수정됨)
+- **GitHub Pages CORS 방어, status.json 차트 데이터 동봉 및 TDD 파이프라인 구축 (`docs/data/status.json`, `src/main.py`, `tests/test_status_pipeline.py`)**:
+  - GitHub Pages 도메인(`https://*.github.io`)에서 브라우저가 업비트 API를 직접 호출할 때 발생하는 CORS 차단(`net::ERR_FAILED`) 문제를 해결하기 위해 `status.json`에 60일 시계열 차트 데이터를 동봉.
+  - 매일 아침 데스크톱 봇 실행 시 `status.json`을 자동 생성하고 GitHub에 안전하게 커밋/푸시하는 `auto_push_status_json()` 함수 구현.
+  - `pytest` 기반 TDD 단위 테스트 스위트(`tests/test_status_pipeline.py`) 구축 및 검증 완료 (4개 테스트 통과).
+
 ## [1.8.1] - 2026-09-01
 
 ### Fixed (수정됨)

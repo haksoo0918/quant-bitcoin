@@ -294,6 +294,88 @@ def fetch_bithumb_balances(bithumb_client, is_dry_run=False):
     return bithumb_client.get_balances()
 
 
+def build_chart_series(btc_df, eth_df, chart_count=60):
+    """PWA 대시보드 인터랙티브 차트용 60일 시계열 데이터 생성"""
+    try:
+        import numpy as np
+        btc_closes = btc_df['close'].tolist()
+        eth_closes = eth_df['close'].tolist()
+        
+        # BTC 지표
+        btc_sma = btc_df['close'].rolling(window=220).mean().tolist()
+        btc_upper = [s * 1.02 if pd.notnull(s) else None for s in btc_sma]
+        btc_lower = [s * 0.98 if pd.notnull(s) else None for s in btc_sma]
+        
+        # ETH 지표
+        eth_sma = eth_df['close'].rolling(window=50).mean().tolist()
+        hl = eth_df['high'] - eth_df['low']
+        hc = (eth_df['high'] - eth_df['close'].shift()).abs()
+        lc = (eth_df['low'] - eth_df['close'].shift()).abs()
+        tr = pd.concat([hl, hc, lc], axis=1).max(axis=1)
+        atr14 = tr.rolling(window=14).mean().tolist()
+        
+        eth_upper = [(s + (a * 1.5)) if (pd.notnull(s) and pd.notnull(a)) else None for s, a in zip(eth_sma, atr14)]
+        eth_lower = [(s - (a * 1.5)) if (pd.notnull(s) and pd.notnull(a)) else None for s, a in zip(eth_sma, atr14)]
+        
+        # ETH SuperTrend (7, 3.5)
+        st_atr = tr.rolling(window=7).mean()
+        hl2 = (eth_df['high'] + eth_df['low']) / 2.0
+        basic_upper = hl2 + (3.5 * st_atr)
+        basic_lower = hl2 - (3.5 * st_atr)
+        final_upper = basic_upper.copy()
+        final_lower = basic_lower.copy()
+        supertrend = pd.Series(index=eth_df.index, dtype=float)
+        direction = pd.Series(index=eth_df.index, dtype=int)
+        
+        for i in range(len(eth_df)):
+            if i < 7:
+                continue
+            c = eth_df['close'].iloc[i]
+            prev_c = eth_df['close'].iloc[i - 1]
+            if basic_upper.iloc[i] < final_upper.iloc[i - 1] or prev_c > final_upper.iloc[i - 1]:
+                final_upper.iloc[i] = basic_upper.iloc[i]
+            else:
+                final_upper.iloc[i] = final_upper.iloc[i - 1]
+            if basic_lower.iloc[i] > final_lower.iloc[i - 1] or prev_c < final_lower.iloc[i - 1]:
+                final_lower.iloc[i] = basic_lower.iloc[i]
+            else:
+                final_lower.iloc[i] = final_lower.iloc[i - 1]
+            if i == 7:
+                dir_val = 1 if c > final_upper.iloc[i] else -1
+            else:
+                prev_dir = direction.iloc[i - 1]
+                dir_val = -1 if (prev_dir == 1 and c < final_lower.iloc[i]) else (1 if (prev_dir == -1 and c > final_upper.iloc[i]) else prev_dir)
+            direction.iloc[i] = dir_val
+            supertrend.iloc[i] = final_lower.iloc[i] if dir_val == 1 else final_upper.iloc[i]
+            
+        dates = [d.strftime('%m-%d') for d in btc_df.index[-chart_count:]]
+        
+        return {
+            "dates": dates,
+            "btc": {
+                "closes": btc_closes[-chart_count:],
+                "sma": [round(x, 2) if x is not None and not np.isnan(x) else None for x in btc_sma[-chart_count:]],
+                "upper": [round(x, 2) if x is not None and not np.isnan(x) else None for x in btc_upper[-chart_count:]],
+                "lower": [round(x, 2) if x is not None and not np.isnan(x) else None for x in btc_lower[-chart_count:]]
+            },
+            "eth": {
+                "closes": eth_closes[-chart_count:],
+                "sma": [round(x, 2) if x is not None and not np.isnan(x) else None for x in eth_sma[-chart_count:]],
+                "upper": [round(x, 2) if x is not None and not np.isnan(x) else None for x in eth_upper[-chart_count:]],
+                "lower": [round(x, 2) if x is not None and not np.isnan(x) else None for x in eth_lower[-chart_count:]]
+            },
+            "bithumb": {
+                "closes": eth_closes[-chart_count:],
+                "sma": [round(x, 2) if x is not None and not np.isnan(x) else None for x in eth_sma[-chart_count:]],
+                "supertrend": [round(x, 2) if not np.isnan(x) else None for x in supertrend.iloc[-chart_count:].tolist()],
+                "direction": [int(x) if not np.isnan(x) else 1 for x in direction.iloc[-chart_count:].tolist()]
+            }
+        }
+    except Exception as e:
+        logging.error(f"차트 시계열 데이터 생성 실패: {e}")
+        return None
+
+
 def export_web_status_json(data_dict, file_path="docs/data/status.json"):
     """PWA 웹 대시보드 연동용 status.json 파일 저장"""
     try:
@@ -303,6 +385,63 @@ def export_web_status_json(data_dict, file_path="docs/data/status.json"):
         logging.info(f"PWA 대시보드 상태 데이터 저장 완료: {file_path}")
     except Exception as e:
         logging.error(f"PWA 대시보드 상태 데이터 저장 실패: {e}")
+
+
+def auto_push_status_json(target_file="docs/data/status.json", dry_run=False):
+    """
+    PWA 웹 대시보드 데이터(status.json)를 GitHub에 자동 커밋 & 푸시.
+    오류가 발생하더라도 매매 봇 프로세스가 중단되지 않도록 안전하게 예외 처리.
+    """
+    if dry_run:
+        logging.info("[Dry-Run] status.json GitHub 자동 푸시 스킵")
+        return True
+
+    try:
+        import subprocess
+        # 1. git add
+        add_res = subprocess.run(
+            ["git", "add", target_file],
+            capture_output=True,
+            text=True,
+            check=False
+        )
+        if add_res.returncode != 0:
+            logging.warning(f"git add 실패: {add_res.stderr.strip()}")
+            return False
+
+        # 2. git commit (변경 사항이 없을 경우 대비)
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        commit_res = subprocess.run(
+            ["git", "commit", "-m", f"data: 일일 대시보드 상태 및 차트 시계열 자동 갱신 ({today_str})"],
+            capture_output=True,
+            text=True,
+            check=False
+        )
+        if commit_res.returncode != 0:
+            # nothing to commit인 경우는 정상 상태로 간주
+            if "nothing to commit" in commit_res.stdout or "clean" in commit_res.stdout:
+                logging.info("status.json 변경 사항 없음 (이미 최신 상태)")
+                return True
+            logging.warning(f"git commit 실패: {commit_res.stderr.strip()}")
+            return False
+
+        # 3. git push
+        push_res = subprocess.run(
+            ["git", "push", "origin", "main"],
+            capture_output=True,
+            text=True,
+            check=False
+        )
+        if push_res.returncode == 0:
+            logging.info("🚀 PWA 대시보드 status.json GitHub 자동 푸시 완료")
+            return True
+        else:
+            logging.warning(f"git push 실패: {push_res.stderr.strip()}")
+            return False
+
+    except Exception as e:
+        logging.warning(f"status.json 자동 푸시 중 예외 발생 (매매는 정상 유지): {e}")
+        return False
 
 
 def run_signal_briefing(kst_now, use_alt_strategy=USE_ALTCOIN_STRATEGY):
@@ -456,9 +595,11 @@ def run_signal_briefing(kst_now, use_alt_strategy=USE_ALTCOIN_STRATEGY):
         "guides": {
             "upbit": f"{btc_guide} / {eth_guide}",
             "bithumb": bithumb_guide
-        }
+        },
+        "chart": build_chart_series(btc_df, eth_df)
     }
     export_web_status_json(status_data)
+    auto_push_status_json()
 
 
 def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STRATEGY):
@@ -815,6 +956,44 @@ def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STR
     
     send_discord_message("\n".join(report))
     logging.info("매매 및 잔고 리포팅이 무사히 완료되었습니다.")
+
+    # PWA 웹 대시보드용 status.json 파일 내보내기
+    live_status_data = {
+        "updated_at": kst_now.isoformat(),
+        "updated_at_formatted": kst_now.strftime("%Y-%m-%d %H:%M:%S KST"),
+        "mode": "dry-run" if is_dry_run else "live",
+        "upbit": {
+            "btc": {
+                "current_price": float(btc_current_price),
+                "sma": float(btc_sma),
+                "sma_len": BTC_SMA_LEN,
+                "upper_buffer": float(btc_upper),
+                "lower_buffer": float(btc_lower),
+                "status": "bull" if btc_current_price >= btc_upper else ("bear" if btc_current_price < btc_lower else "buffer"),
+                "status_label": "상승 추세 돌파" if btc_current_price >= btc_upper else ("하락 추세 이탈" if btc_current_price < btc_lower else "버퍼 구간 대기"),
+                "guide": btc_guide
+            },
+            "eth": {
+                "current_price": float(eth_current_price),
+                "sma": float(eth_sma),
+                "sma_len": ETH_SMA_LEN,
+                "atr_14": float(eth_atr_14),
+                "upper_band": float(eth_upper_band),
+                "lower_band": float(eth_lower_band),
+                "status": "bull" if eth_current_price >= eth_upper_band else ("bear" if eth_current_price < eth_lower_band else "neutral"),
+                "status_label": "상승 채널 돌파" if eth_current_price >= eth_upper_band else ("하락 밴드 이탈" if eth_current_price < eth_lower_band else "밴드 내 중립"),
+                "guide": eth_guide
+            }
+        },
+        "bithumb": bithumb_data,
+        "guides": {
+            "upbit": f"{btc_guide} / {eth_guide}",
+            "bithumb": bithumb_guide
+        },
+        "chart": build_chart_series(btc_df, eth_df)
+    }
+    export_web_status_json(live_status_data)
+    auto_push_status_json(dry_run=is_dry_run)
 
 
 def main():
