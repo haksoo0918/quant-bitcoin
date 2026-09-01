@@ -700,10 +700,49 @@
     }
 
     @media (max-width: 640px) {
-      .container { padding: 12px; }
+      .container { padding: 10px; }
       .card-grid, .action-grid, .alt-list, .stats-grid { grid-template-columns: 1fr; }
-      .chart-canvas-wrapper { height: 240px; }
+      .card, .action-banner, .alt-card, .chart-card, .stats-card { padding: 14px; }
+      .chart-canvas-wrapper { height: 230px; }
       .price-main { font-size: 20px; }
+      .chart-meta-bar {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px 10px;
+        font-size: 11.5px;
+        padding: 8px 10px;
+      }
+      .chart-meta-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .chart-tab {
+        font-size: 12px;
+        padding: 7px 4px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      header {
+        padding: 10px 0;
+        gap: 6px;
+      }
+      .brand { gap: 8px; }
+      .brand h1 { font-size: 16px; }
+      .brand-icon-box { width: 30px; height: 30px; }
+      .brand-icon-box svg { width: 18px; height: 18px; }
+      .header-actions { gap: 5px; }
+      .btn {
+        padding: 6px 8px;
+        font-size: 11.5px;
+        height: 32px;
+        gap: 4px;
+      }
+      .btn svg { width: 14px; height: 14px; }
+      .section-title { font-size: 14px; margin: 20px 0 10px 0; }
+      .chart-tab { font-size: 11px; }
+      .stat-val { font-size: 16px; }
     }
   </style>
 </head>
@@ -1733,7 +1772,7 @@
           scales: {
             x: {
               grid: { color: gridColor },
-              ticks: { color: tickColor, font: { family: 'D2Coding', size: 10 }, maxTicksLimit: 8 }
+              ticks: { color: tickColor, font: { family: 'D2Coding', size: 10 }, maxTicksLimit: (window.innerWidth < 480 ? 5 : 8) }
             },
             y: {
               grid: { color: gridColor },
