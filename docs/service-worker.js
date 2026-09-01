@@ -1,11 +1,11 @@
 // 퀀트 코인 전략 웹 대시보드 PWA 서비스 워커
-const CACHE_NAME = 'quant-dashboard-v1.7.0';
+const CACHE_NAME = 'quant-dashboard-v1.8.0';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './manifest.json',
   './icons/icon.svg',
-  './data/status.json'
+  'https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js'
 ];
 
 // 1. 서비스 워커 설치 이벤트: 핵심 앱 셸 캐싱 및 즉시 대기열 통과
