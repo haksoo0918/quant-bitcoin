@@ -13,6 +13,11 @@
   - 매일 아침 데스크톱 봇 실행 시 `status.json`을 자동 생성하고 GitHub에 안전하게 커밋/푸시하는 `auto_push_status_json()` 함수 구현.
   - `pytest` 기반 TDD 단위 테스트 스위트(`tests/test_status_pipeline.py`) 구축 및 검증 완료 (4개 테스트 통과).
 
+### Changed (변경됨)
+- **의존성 및 설정 주석 정리 (`requirements.txt`, `src/config.py`)**:
+  - 단위 테스트 프레임워크 `pytest>=8.0.0`을 `requirements.txt`에 명시.
+  - `src/config.py`의 빗썸 서브 전략 주석 및 설정을 최신 '이더리움 SuperTrend + 50일 SMA' 사양으로 일원화.
+
 ## [1.8.1] - 2026-09-01
 
 ### Fixed (수정됨)
