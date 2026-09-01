@@ -1132,7 +1132,7 @@
       const yyyy = refDate.getFullYear();
       const mm = String(refDate.getMonth() + 1).padStart(2, '0');
       const dd = String(refDate.getDate()).padStart(2, '0');
-      return `quant_strategy_cache_${yyyy}-${mm}-${dd}`;
+      return `quant_chart_v3_${yyyy}-${mm}-${dd}`;
     }
 
     async function fetchJsonSafe(url) {
@@ -1170,9 +1170,11 @@
       if (cached) {
         try {
           const parsed = JSON.parse(cached);
-          globalStrategyData = parsed;
-          document.getElementById('cache-status-badge').textContent = `⚡ 스마트 로컬 캐싱 활성 (${cacheKey.replace('quant_strategy_cache_', '')})`;
-          return parsed;
+          if (parsed && parsed.chart && parsed.chart.btc && parsed.chart.btc.closes) {
+            globalStrategyData = parsed;
+            document.getElementById('cache-status-badge').textContent = `⚡ 스마트 로컬 캐싱 활성 (${cacheKey.replace('quant_chart_v3_', '')})`;
+            return parsed;
+          }
         } catch (e) {
           console.warn('Cache parsing failed:', e);
         }
@@ -1333,7 +1335,7 @@
           localStorage.setItem(cacheKey, JSON.stringify(computedData));
           for (let i = 0; i < localStorage.length; i++) {
             const k = localStorage.key(i);
-            if (k && k.startsWith('quant_strategy_cache_') && k !== cacheKey) {
+            if (k && k.startsWith('quant_chart_v3_') && k !== cacheKey) {
               localStorage.removeItem(k);
             }
           }
@@ -1342,7 +1344,7 @@
         }
 
         globalStrategyData = computedData;
-        document.getElementById('cache-status-badge').textContent = `⚡ 스마트 로컬 캐싱 활성 (${cacheKey.replace('quant_strategy_cache_', '')})`;
+        document.getElementById('cache-status-badge').textContent = `⚡ 스마트 로컬 캐싱 활성 (${cacheKey.replace('quant_chart_v3_', '')})`;
         return computedData;
       } catch (err) {
         console.warn('Compute failed, using fallback status:', err);
@@ -1519,7 +1521,8 @@
     function renderCurrentChart() {
       if (!globalStrategyData || !globalStrategyData.chart) return;
       if (typeof Chart === 'undefined') {
-        console.warn('Chart.js not loaded yet');
+        console.warn('Chart.js not loaded yet, retrying in 200ms...');
+        setTimeout(renderCurrentChart, 200);
         return;
       }
 
@@ -1763,9 +1766,13 @@
         const cacheKey = get9AmCycleKey();
         const cached = localStorage.getItem(cacheKey);
         if (cached) {
-          globalStrategyData = JSON.parse(cached);
-          renderStrategyView(globalStrategyData);
-        } else {
+          const parsed = JSON.parse(cached);
+          if (parsed && parsed.chart) {
+            globalStrategyData = parsed;
+            renderStrategyView(globalStrategyData);
+          }
+        }
+        if (!globalStrategyData) {
           // 캐시가 없으면 기본 status.json을 즉시 로드하여 0.05초 만에 표시
           const res = await fetch('./data/status.json');
           if (res.ok) {
