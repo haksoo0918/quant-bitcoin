@@ -659,6 +659,71 @@
       font-family: var(--font-mono);
     }
 
+    .backtest-tabs {
+      display: flex;
+      gap: 6px;
+      background: var(--bg-card-sub);
+      padding: 4px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-color);
+      margin-bottom: 14px;
+      width: 100%;
+    }
+
+    .backtest-tab {
+      flex: 1;
+      text-align: center;
+      padding: 8px 12px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .backtest-tab.active {
+      background: var(--accent-primary);
+      color: var(--on-primary);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+    }
+
+    .backtest-info-box {
+      background: var(--bg-card-sub);
+      border: 1px solid var(--border-color);
+      border-left: 3px solid var(--accent-primary);
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      margin-bottom: 14px;
+      font-size: 12.5px;
+      line-height: 1.5;
+      color: var(--text-primary);
+    }
+
+    .backtest-info-sub {
+      font-size: 11.5px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    .backtest-img-wrapper {
+      margin-top: 16px;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+      background: #ffffff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .backtest-img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
     footer {
       text-align: center;
       padding: 24px 0 10px 0;
@@ -741,7 +806,7 @@
       }
       .btn svg { width: 14px; height: 14px; }
       .section-title { font-size: 14px; margin: 20px 0 10px 0; }
-      .chart-tab { font-size: 11px; }
+      .chart-tab, .backtest-tab { font-size: 11px; padding: 7px 4px; }
       .stat-val { font-size: 16px; }
     }
   </style>
@@ -962,28 +1027,72 @@
     <!-- 역사적 백테스트 성과 요약 섹션 -->
     <div class="section-title">
       <svg class="icon icon-indigo" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-      <span>역사적 백테스트 검증 성과 (최근 4.3년)</span>
+      <span>역사적 백테스트 검증 성과 (1,500일 시뮬레이션)</span>
     </div>
 
     <div class="stats-card">
-      <div class="stats-card-desc">
-        1,500일 일봉 백테스트 (2022.04 ~ 현재) 시뮬레이션 결과
+      <div class="backtest-tabs">
+        <button class="backtest-tab active" id="btn-bt-main" onclick="switchBacktestTab('main')">메인 전략 (BTC/ETH 50:50)</button>
+        <button class="backtest-tab" id="btn-bt-sub" onclick="switchBacktestTab('sub')">서브 전략 (이더리움 SuperTrend)</button>
       </div>
-      <div class="stats-grid">
-        <div class="stat-box">
-          <div class="stat-label">전략 연평균 성장률 (CAGR)</div>
-          <div class="stat-val">+30.36%</div>
-          <div class="stat-sub">단순보유: +8.44%</div>
+
+      <!-- 1. 메인 전략 백테스트 패널 -->
+      <div id="backtest-panel-main">
+        <div class="backtest-info-box">
+          <div><strong>📌 검증 모델</strong>: 업비트 BTC(220일 SMA 버퍼 ±2%) & ETH(50일 SMA ± 1.5 ATR) 50:50 듀얼 모멘텀 리밸런싱</div>
+          <div class="backtest-info-sub">⏱️ <strong>시뮬레이션 기간</strong>: 2022-04-26 ~ 2026-08-21 (약 4.3년, 1,500일) | 초기 1,000만원 ➔ <strong>최종 3,144만원 (3.14배 달성)</strong></div>
         </div>
-        <div class="stat-box">
-          <div class="stat-label">최대 낙폭 방어 (MDD)</div>
-          <div class="stat-val stat-val-cyan">-28.07%</div>
-          <div class="stat-sub">단순보유: -59.09%</div>
+
+        <div class="stats-grid">
+          <div class="stat-box">
+            <div class="stat-label">전략 연평균 성장률 (CAGR)</div>
+            <div class="stat-val">+30.36%</div>
+            <div class="stat-sub">단순보유: +8.44%</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">최대 낙폭 방어 (MDD)</div>
+            <div class="stat-val stat-val-cyan">-28.07%</div>
+            <div class="stat-sub">단순보유: -59.09% (방어: -31.02%p)</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">전략 누적 수익률</div>
+            <div class="stat-val stat-val-green">+214.42%</div>
+            <div class="stat-sub">초과 성과: +172.51%p</div>
+          </div>
         </div>
-        <div class="stat-box">
-          <div class="stat-label">전략 누적 수익률</div>
-          <div class="stat-val stat-val-green">+214.42%</div>
-          <div class="stat-sub">초과 성과: +172.51%p</div>
+
+        <div class="backtest-img-wrapper">
+          <img src="./images/backtest_main.png" alt="메인 전략 4.3년 백테스트 누적 자산 성장 곡선" class="backtest-img" loading="eager">
+        </div>
+      </div>
+
+      <!-- 2. 서브 전략 백테스트 패널 -->
+      <div id="backtest-panel-sub" class="hidden">
+        <div class="backtest-info-box" style="border-left-color: var(--accent-green);">
+          <div><strong>📌 검증 모델</strong>: 이더리움 단독 SuperTrend(7, 3.5) + 50일 SMA 복합 대세 추세 추종 (100% 집중 매수 / 100% 현금화)</div>
+          <div class="backtest-info-sub">⏱️ <strong>시뮬레이션 기간</strong>: 2022-07-19 ~ 2026-08-26 (약 4.1년, 1,500일) | 초기 1,000만원 ➔ <strong>최종 4,388만원 (4.39배 달성)</strong></div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-box">
+            <div class="stat-label">전략 연평균 성장률 (CAGR)</div>
+            <div class="stat-val stat-val-green">+43.38%</div>
+            <div class="stat-sub">단순보유: +13.50%</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">최대 낙폭 방어 (MDD)</div>
+            <div class="stat-val stat-val-cyan">-31.28%</div>
+            <div class="stat-sub">단순보유: -64.30% (방어: -33.02%p)</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">전략 누적 수익률</div>
+            <div class="stat-val stat-val-green">+338.76%</div>
+            <div class="stat-sub">초과 성과: +270.63%p</div>
+          </div>
+        </div>
+
+        <div class="backtest-img-wrapper">
+          <img src="./images/backtest_sub_eth.png" alt="서브 전략 4.1년 백테스트 누적 자산 성장 곡선" class="backtest-img" loading="eager">
         </div>
       </div>
     </div>
@@ -1555,6 +1664,22 @@
       const activeBtn = document.getElementById(`tab-${tabName}`);
       if (activeBtn) activeBtn.classList.add('active');
       renderCurrentChart();
+    }
+
+    function switchBacktestTab(tabName) {
+      document.querySelectorAll('.backtest-tab').forEach(t => t.classList.remove('active'));
+      const activeBtn = document.getElementById(`btn-bt-${tabName}`);
+      if (activeBtn) activeBtn.classList.add('active');
+
+      const panelMain = document.getElementById('backtest-panel-main');
+      const panelSub = document.getElementById('backtest-panel-sub');
+      if (tabName === 'main') {
+        if (panelMain) panelMain.classList.remove('hidden');
+        if (panelSub) panelSub.classList.add('hidden');
+      } else {
+        if (panelMain) panelMain.classList.add('hidden');
+        if (panelSub) panelSub.classList.remove('hidden');
+      }
     }
 
     function renderCurrentChart() {
