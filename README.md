@@ -90,21 +90,14 @@ quant-bitcoin/
 
 ---
 
-### 2. PWA 웹 대시보드 & 실시간 전략 차트 (GitHub Pages)
+### 2. PWA 웹 대시보드 & 실시간 전략 차트
 
-별도의 유료 웹 서버 없이 **GitHub Pages** 무료 호스팅을 통해 모바일 및 PC 브라우저에서 실시간 전략 상태 대시보드를 열람하고, 모바일 홈 화면에 **PWA 앱(바로가기)** 으로 설치하여 편리하게 이용할 수 있습니다.
+모바일 및 PC 브라우저에서 실시간 전략 상태 대시보드를 열람하고, 모바일 홈 화면에 **PWA 앱(바로가기)** 으로 설치하여 편리하게 이용할 수 있습니다.
 
 * 🌐 **웹 대시보드 바로가기**: **[https://haksoo0918.github.io/quant-bitcoin/](https://haksoo0918.github.io/quant-bitcoin/)**
 * 🖥️ **로컬 PC 실행**: `scripts/view_dashboard.bat` 더블 클릭 (로컬 `http://localhost:8000` 즉시 오픈)
 
-#### 1) GitHub Pages 설정 안내 (저장소 기본 연동)
-1. 저장소 상단 메뉴의 **[Settings]** 클릭
-2. 왼쪽 사이드바의 **[Pages]** 클릭
-3. **Build and deployment** -> **Source** 항목에서 **Deploy from a branch** 선택
-4. **Branch** 를 **`main`**, 폴더를 **`/docs`** 로 설정한 후 **[Save]** 클릭
-5. `https://haksoo0918.github.io/quant-bitcoin/` 주소로 상시 서비스가 제공됩니다.
-
-#### 2) 대시보드 주요 기능
+#### 대시보드 주요 기능
 * **종합 매매 행동 가이드**: 오늘의 메인 전략(BTC/ETH 50:50) 및 서브 전략(이더리움 SuperTrend + 50일 SMA) 즉시 행동 요약
 * **전략별 인터랙티브 시각화 차트**: 최근 60일 비트코인 220일 버퍼 채널, 이더리움 50일 ATR 채널, ETH SuperTrend 추세선 Canvas 차트 탭 제공
 * **역사적 백테스트 검증 2종 탭 & 차트 이미지**: 메인 전략(4.3년, CAGR 30.36%, MDD -28.07%) 및 서브 전략(4.1년, CAGR 43.38%, MDD -31.28%)의 자산 성장 곡선 그래프 시각화
