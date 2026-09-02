@@ -5,6 +5,14 @@
 
 ---
 
+## [1.8.4] - 2026-09-02
+
+### Fixed (수정됨)
+- **실거래/모의매매 프로세스 status.json 변수 미정의 오류 수정 및 자동 푸시 인코딩 개선 (`src/main.py`, `tests/test_status_pipeline.py`)**:
+  - `run_live_trading` 함수에서 `live_status_data` 생성 시 `btc_upper`, `btc_lower`, `bithumb_data` 미정의로 인해 발생하던 `NameError` 버그 수정.
+  - Windows 환경(`cp949`)에서 git 커밋 한글 메시지 디코딩 시 발생하던 `UnicodeDecodeError` 방지를 위해 `subprocess.run`에 `encoding="utf-8", errors="replace"` 적용.
+  - 매매 모드(Live / Dry-Run)와 무관하게 봇 실행 시 항상 `status.json`이 GitHub에 안전하게 커밋/푸시되도록 로직 개선.
+
 ## [1.8.3] - 2026-09-01
 
 ### Fixed (수정됨)

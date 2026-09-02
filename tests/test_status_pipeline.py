@@ -94,8 +94,8 @@ class TestStatusPipeline(unittest.TestCase):
                 os.remove(temp_path)
 
     def test_auto_push_status_json_handles_exceptions(self):
-        success = auto_push_status_json(target_file="docs/data/status.json", dry_run=True)
-        self.assertIsInstance(success, bool)
+        success = auto_push_status_json(target_file="docs/data/status.json", skip_push=True)
+        self.assertTrue(success)
 
 
 if __name__ == "__main__":

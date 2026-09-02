@@ -387,13 +387,13 @@ def export_web_status_json(data_dict, file_path="docs/data/status.json"):
         logging.error(f"PWA 대시보드 상태 데이터 저장 실패: {e}")
 
 
-def auto_push_status_json(target_file="docs/data/status.json", dry_run=False):
+def auto_push_status_json(target_file="docs/data/status.json", skip_push=False):
     """
     PWA 웹 대시보드 데이터(status.json)를 GitHub에 자동 커밋 & 푸시.
     오류가 발생하더라도 매매 봇 프로세스가 중단되지 않도록 안전하게 예외 처리.
     """
-    if dry_run:
-        logging.info("[Dry-Run] status.json GitHub 자동 푸시 스킵")
+    if skip_push:
+        logging.info("status.json GitHub 자동 푸시 스킵")
         return True
 
     try:
@@ -403,6 +403,8 @@ def auto_push_status_json(target_file="docs/data/status.json", dry_run=False):
             ["git", "add", target_file],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             check=False
         )
         if add_res.returncode != 0:
@@ -415,6 +417,8 @@ def auto_push_status_json(target_file="docs/data/status.json", dry_run=False):
             ["git", "commit", "-m", f"data: 일일 대시보드 상태 및 차트 시계열 자동 갱신 ({today_str})"],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             check=False
         )
         if commit_res.returncode != 0:
@@ -430,6 +434,8 @@ def auto_push_status_json(target_file="docs/data/status.json", dry_run=False):
             ["git", "push", "origin", "main"],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             check=False
         )
         if push_res.returncode == 0:
@@ -620,7 +626,18 @@ def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STR
     btc_ind = calculate_btc_indicators(btc_df, sma_len=BTC_SMA_LEN, buffer_rate=BTC_BUFFER)
     
     btc_sma = btc_ind["sma"]
+    btc_upper = btc_ind["upper_buffer"]
+    btc_lower = btc_ind["lower_buffer"]
+    btc_status = btc_ind["status"]
+    btc_status_label = btc_ind["status_label"]
     market_filter_state = btc_ind["market_filter_state"]
+    
+    if btc_status == "bull":
+        btc_guide = "BTC 50% 비중 매수 또는 보유 유지"
+    elif btc_status == "bear":
+        btc_guide = "BTC 전량 매도 및 현금(KRW) 확보"
+    else:
+        btc_guide = "기존 보유 상태 유지 (신규 진입 자제)"
     
     eth_df = fetch_upbit_candles("KRW-ETH", count=max(200, ETH_SMA_LEN + 50))
     eth_current_price = fetch_upbit_current_price("KRW-ETH")
@@ -631,6 +648,15 @@ def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STR
     eth_atr_14 = eth_ind["atr_14"]
     eth_upper_band = eth_ind["upper_band"]
     eth_lower_band = eth_ind["lower_band"]
+    eth_status = eth_ind["status"]
+    eth_status_label = eth_ind["status_label"]
+    
+    if eth_status == "bull":
+        eth_guide = "ETH 50% 비중 매수 또는 보유 유지"
+    elif eth_status == "bear":
+        eth_guide = "ETH 전량 매도 및 현금(KRW) 확보"
+    else:
+        eth_guide = "기존 보유 상태 유지 (신규 진입 자제)"
     
     # 2.1 업비트 잔고 현황 조회
     upbit_balances_raw = fetch_upbit_balances(upbit, is_dry_run=is_dry_run)
@@ -832,8 +858,23 @@ def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STR
                     bithumb_order_history.append(f"📝 [모의 주문] 빗썸 ETH 100% 매수: {buy_amount:,.0f}원")
                     bithumb_krw -= buy_amount
 
+        bithumb_guide = "이더리움 100% 매수 집중 보유 🟢" if bithumb_action == "BUY" else "100% 원화 현금화 안전 관망 🔴"
+        bithumb_data = {
+            "enabled": True,
+            "strategy_name": "이더리움 SuperTrend + 50일 SMA 추세 추종",
+            "current_price": float(bithumb_eth_p),
+            "sma50": float(bithumb_eth_ind["sma50"]),
+            "supertrend_val": float(bithumb_eth_ind["supertrend_val"]),
+            "supertrend_trend": bithumb_eth_ind["supertrend_trend"],
+            "is_above_sma": bool(bithumb_eth_ind["is_above_sma"]),
+            "action": bithumb_action,
+            "guide": bithumb_guide
+        }
+
     else:
         logging.info("=== [빗썸 매매 제어 프로세스 비활성화] ===")
+        bithumb_guide = "서브 전략 미사용"
+        bithumb_data = {"enabled": False, "guide": bithumb_guide}
 
     # 5. 최종 잔고 업데이트 조회 및 디스코드 리포트 발송
     logging.info("=== [최종 포트폴리오 리포트 전송 시작] ===")
@@ -993,7 +1034,7 @@ def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STR
         "chart": build_chart_series(btc_df, eth_df)
     }
     export_web_status_json(live_status_data)
-    auto_push_status_json(dry_run=is_dry_run)
+    auto_push_status_json()
 
 
 def main():
