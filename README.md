@@ -10,12 +10,15 @@
 
 ```
 quant-bitcoin/
-├── docs/                         # PWA 웹 대시보드 소스 루트 (현재 GitHub Pages 비활성화 상태)
-│   ├── index.html                # 반응형 웹 대시보드 SPA
+├── docs/                         # PWA 웹 대시보드 소스 루트 (GitHub Pages 상시 서비스 중)
+│   ├── index.html                # 반응형 웹 대시보드 SPA (지표 차트 & 백테스트 탭)
 │   ├── manifest.json             # PWA 매니페스트 설정
 │   ├── service-worker.js         # PWA 오프라인 캐싱 서비스 워커
 │   ├── icons/                    # PWA 앱 아이콘
-│   └── data/status.json          # 최신 일일 전략 상태 데이터
+│   ├── images/                   # 백테스트 자산 성장 곡선 차트 이미지 (메인 / 서브)
+│   └── data/status.json          # 최신 일일 전략 상태 데이터 (60일 시계열 차트 데이터 동봉)
+├── tests/                        # TDD 단위 테스트 스위트 (pytest)
+│   └── test_status_pipeline.py   # 시계열 데이터 무결성 및 자동 푸시 파이프라인 검증
 ├── run_bot.bat                   # 윈도우 로컬 실행 래퍼 배치 파일
 ├── run_bot.example.bat           # 로컬 실행 배치 파일 템플릿
 ├── requirements.txt              # 파이썬 의존성 패키지 목록
@@ -54,7 +57,7 @@ quant-bitcoin/
   * BTC와 ETH 모두 추세 필터를 통과하여 보유 중일 때만 평가합니다.
   * 한쪽 자산의 비중이 목표 비중(50%) 대비 10%p를 초과하여 벗어날 때(40% 미만 혹은 60% 초과)만 50:50 비중으로 재조정 매매를 수행합니다.
 
-### 2. 서브 전략 (빗썸 이더리움 SuperTrend + 50일 SMA 추세 추종)
+### 2. 서브 전략 (이더리움 SuperTrend + 50일 SMA 추세 추종)
 * **대상 자산**: 이더리움(ETH)
 * **전략 모델**: SuperTrend(7, 3.5) 변동성 밴드와 50일 SMA 대추세 필터를 결합한 단독 고수익/저낙폭 추세 추종 모델
 * **진입/보유 조건 (100% 풀매수)**:
@@ -102,11 +105,10 @@ quant-bitcoin/
 5. `https://haksoo0918.github.io/quant-bitcoin/` 주소로 상시 서비스가 제공됩니다.
 
 #### 2) 대시보드 주요 기능
-* **종합 매매 행동 가이드**: 오늘의 업비트(BTC/ETH 50:50) 및 빗썸(이더리움 SuperTrend + 50일 SMA) 즉시 행동 요약
-* **전략별 인터랙티브 시각화 차트**: 최근 60일 비트코인 220일 버퍼 채널, 이더리움 50일 ATR 채널, 빗썸 ETH SuperTrend 추세선 Canvas 차트 제공
-* **오전 9시 기준 스마트 로컬 캐싱**: 당일 09:00 확정 일봉 지표를 브라우저가 직접 연산하고 `localStorage`에 캐싱하여 트래픽/연산 최소화
-* **업비트 50:50 듀얼 모멘텀**: BTC(220일 SMA ±2%) 및 ETH(50일 SMA ± 1.5 ATR) 현재가, 기준 채널 지표, 상태 뱃지 표시
-* **빗썸 이더리움 추세 추종**: SuperTrend(7, 3.5) 추세선 및 50일 SMA 기준선 실시간 비교와 당일 포지션(100% 매수 / 100% 현금화) 뱃지 표시
+* **종합 매매 행동 가이드**: 오늘의 메인 전략(BTC/ETH 50:50) 및 서브 전략(이더리움 SuperTrend + 50일 SMA) 즉시 행동 요약
+* **전략별 인터랙티브 시각화 차트**: 최근 60일 비트코인 220일 버퍼 채널, 이더리움 50일 ATR 채널, ETH SuperTrend 추세선 Canvas 차트 탭 제공
+* **역사적 백테스트 검증 2종 탭 & 차트 이미지**: 메인 전략(4.3년, CAGR 30.36%, MDD -28.07%) 및 서브 전략(4.1년, CAGR 43.38%, MDD -31.28%)의 자산 성장 곡선 그래프 시각화
+* **0.01초 즉시 렌더링 & CORS 방어**: 데스크톱 봇이 매일 아침 생성/푸시한 `status.json` 스냅샷을 1순위로 읽어 CORS 차단 없이 초고속 렌더링
 * **장중 실시간 시세 조회**: 우측 상단 `실시간 시세` 버튼 클릭 시 업비트 공개 시세 API를 실시간 호출하여 현재가 및 이탈 여부 즉시 갱신
 * **PWA 앱 설치 지원**: 브라우저 주소창 또는 `📲 앱 설치` 버튼을 통해 스마트폰 홈 화면에 단독 앱으로 설치 가능
 
@@ -202,7 +204,7 @@ DISCORD_WEBHOOK_URL=디스코드_웹훅_주소
   ```
   * 연산 완료 시 모든 SMA 조합의 성과가 분석되어 누적 수익률이 높은 순서로 정렬된 **`backtest/main/backtest_optimization_report_YYYYMMDD_HHMMSS.md`** 보고서가 생성되며, 상위 15개 최적 조합이 콘솔 창에 랭킹 표로 출력됩니다.
 
-#### 2) 빗썸 서브 전략 (이더리움 SuperTrend + 50일 SMA) 백테스트
+#### 2) 서브 전략 (이더리움 SuperTrend + 50일 SMA) 백테스트
 * **이더리움 단독 추세 추종 백테스트 수행**:
   ```bash
   python src/backtest_bithumb_eth.py --days 1500
@@ -213,4 +215,15 @@ DISCORD_WEBHOOK_URL=디스코드_웹훅_주소
     * `--sma 50`: 대추세 필터 SMA 기간 (기본값: 50일)
     * `--slippage 0.0005`: 슬리피지 비율 (기본값: 0.05%)
   * 실행 완료 시 **`backtest/sub_eth/`** 폴더에 **`backtest_bithumb_eth_report_YYYYMMDD_HHMMSS.md`** 보고서와 **`backtest_bithumb_eth_result_YYYYMMDD_HHMMSS.png`** 차트가 자동 저장됩니다.
+
+---
+
+### 5. TDD 단위 테스트 스위트 실행 (Test Suite)
+
+`pytest`를 통해 시계열 데이터 파이프라인 무결성, 엣지 케이스 처리, Git 자동 푸시 안정성을 검증합니다.
+
+```bash
+python -m pytest tests/
+```
+
 
