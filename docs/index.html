@@ -786,6 +786,18 @@
         font-size: 12px;
         padding: 7px 4px;
       }
+      #btn-theme .btn-text,
+      #btn-refresh .btn-text {
+        display: none;
+      }
+      #btn-theme,
+      #btn-refresh {
+        padding: 0;
+        width: 34px;
+        height: 34px;
+        justify-content: center;
+        flex-shrink: 0;
+      }
     }
 
     @media (max-width: 480px) {
@@ -803,6 +815,12 @@
         font-size: 11.5px;
         height: 32px;
         gap: 4px;
+      }
+      #btn-theme,
+      #btn-refresh {
+        width: 32px;
+        height: 32px;
+        padding: 0;
       }
       .btn svg { width: 14px; height: 14px; }
       .section-title { font-size: 14px; margin: 20px 0 10px 0; }
