@@ -5,6 +5,14 @@
 
 ---
 
+## [1.8.10] - 2026-09-04
+
+### Changed (변경됨)
+- **대시보드 상단 브랜드 로고 Lucide Bitcoin(₿) 아이콘 교체 (`docs/index.html`, `PRD.md`, `docs/service-worker.js`)**:
+  - 상단 브랜드 로고 아이콘을 기존 달러 기호(`dollar-sign`)에서 크립토 전문성을 상징하는 Lucide 공식 `bitcoin` (`₿`) 벡터 아이콘으로 교체.
+  - PWA 앱 아이콘(`docs/icons/icon.svg`) 및 '퀀트 코인 전략' 서비스 아이덴티티와의 시각적 통일성 완성.
+  - 서비스 워커 캐시 버전(`v1.8.10`) 갱신.
+
 ## [1.8.9] - 2026-09-04
 
 ### Changed (변경됨)
