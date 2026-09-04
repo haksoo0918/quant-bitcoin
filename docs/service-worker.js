@@ -1,5 +1,5 @@
 // 퀀트 코인 전략 웹 대시보드 PWA 서비스 워커
-const CACHE_NAME = 'quant-dashboard-v1.8.8';
+const CACHE_NAME = 'quant-dashboard-v1.8.9';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -7,6 +7,7 @@ const ASSETS_TO_CACHE = [
   './icons/icon.svg',
   './images/backtest_main.png',
   './images/backtest_sub_eth.png',
+  'https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css',
   'https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js'
 ];
 

@@ -5,6 +5,14 @@
 
 ---
 
+## [1.8.9] - 2026-09-04
+
+### Changed (변경됨)
+- **대시보드 전역 타이포그래피 프리텐다드(Pretendard) 모던 글꼴 일원화 (`docs/index.html`, `PRD.md`, `docs/service-worker.js`)**:
+  - `D2Coding` 및 `Noto Sans KR`의 혼용으로 인한 폰트 이질감을 해소하고, 국내 최신 핀테크 표준인 `Pretendard` 단일 웹폰트로 전면 일원화.
+  - 가격, 수치, 퍼센트, 지표 클래스에 `font-variant-numeric: tabular-nums` (고정폭 숫자 정렬) 속성을 적용하여 자릿수 흔들림 없는 반듯한 금융 UI 완성.
+  - 서비스 워커 캐시 버전(`v1.8.9`) 갱신 및 오프라인 Pretendard 웹폰트 캐싱 지원.
+
 ## [1.8.8] - 2026-09-04
 
 ### Changed (변경됨)
