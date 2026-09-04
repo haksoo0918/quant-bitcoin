@@ -876,7 +876,7 @@
       <div class="action-grid">
         <div class="action-item">
           <div class="action-label">🔵 메인 전략 (BTC / ETH)</div>
-          <div id="guide-upbit" class="action-value">BTC 50% 비중 매수 / ETH 50% 비중 매수</div>
+          <div id="guide-upbit" class="action-value">BTC: 매수 보유 🟢 | ETH: 매수 보유 🟢</div>
         </div>
         <div class="action-item bithumb">
           <div class="action-label">🟢 서브 전략 (이더리움 SuperTrend)</div>
@@ -1521,7 +1521,13 @@
       const b = data.bithumb;
 
       if (btc && eth) {
-        const upbitGuideText = `BTC: ${btc.market_filter === 'Bull' || btc.status === 'bull' ? '매수 보유' : '현금화'} | ETH: ${eth.status === 'bull' ? '매수 보유' : (eth.status === 'bear' ? '현금화' : '중립 유지')}`;
+        const btcIcon = (btc.market_filter === 'Bull' || btc.status === 'bull') ? '🟢' : (btc.status === 'bear' ? '🔴' : '🟡');
+        const btcAction = (btc.market_filter === 'Bull' || btc.status === 'bull') ? '매수 보유' : (btc.status === 'bear' ? '현금화' : '버퍼 대기');
+
+        const ethIcon = eth.status === 'bull' ? '🟢' : (eth.status === 'bear' ? '🔴' : '🟡');
+        const ethAction = eth.status === 'bull' ? '매수 보유' : (eth.status === 'bear' ? '현금화' : '중립 유지');
+
+        const upbitGuideText = `BTC: ${btcAction} ${btcIcon} | ETH: ${ethAction} ${ethIcon}`;
         document.getElementById('guide-upbit').textContent = upbitGuideText;
       }
       if (b) {
