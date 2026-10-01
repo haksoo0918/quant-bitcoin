@@ -1,5 +1,251 @@
 # -*- coding: utf-8 -*-
 """
+GCP Cloud Run Functions 올인원 자동매매 스크립트
+"""
+import os
+import sys
+import time
+import uuid
+import hmac
+import hashlib
+import jwt
+import requests
+import logging
+from urllib.parse import urlencode
+
+# ==========================================
+# 1. 설정 (Config)
+# ==========================================
+# -*- coding: utf-8 -*-
+import os
+from dotenv import load_dotenv
+
+# .env 파일이 프로젝트 루트에 존재할 경우 자동 로드
+load_dotenv()
+
+# ==========================================
+# [시스템 제어 및 환경 설정]
+# ==========================================
+
+# 1. 깃허브 액션 환경 감지
+IS_GITHUB_ACTIONS = os.getenv("GITHUB_ACTIONS", "").lower() == "true"
+
+# 2. 시그널 브리핑 전용 모드 여부
+# - GitHub Actions에서는 자동으로 True가 되어 API 키 및 잔고 조회 없이 순수 방향성 시그널만 발송합니다.
+# - 로컬에서도 SIGNAL_ONLY=true 환경변수로 방향성 시그널만 테스트할 수 있습니다.
+SIGNAL_ONLY = IS_GITHUB_ACTIONS or (os.getenv("SIGNAL_ONLY", "false").lower() == "true")
+
+# 3. 모의 투자 실행 여부 (드라이런)
+# - SIGNAL_ONLY 모드일 때는 주문을 실행하지 않으므로 항상 True로 처리됩니다.
+# - 로컬 실거래 실행 시에는 기본 False로 작동하며, DRY_RUN=true 설정 시 안전 모의 매매로 동작합니다.
+DRY_RUN = True if SIGNAL_ONLY else (os.getenv("DRY_RUN", "false").lower() == "true")
+
+# 4. 빗썸 서브 전략 (이더리움 SuperTrend + 50일 SMA 추세 추종) 실행 여부
+# - True: 업비트(BTC/ETH 50:50) 전략과 빗썸(이더리움 SuperTrend 추세 추종) 전략을 모두 동시에 실행합니다.
+# - False: 빗썸 연동 및 거래를 완전히 비활성화하고, 업비트 메인 전략만 실행합니다.
+USE_BITHUMB_STRATEGY = True
+USE_ALTCOIN_STRATEGY = USE_BITHUMB_STRATEGY  # 하위 호환성 유지 별칭
+
+
+# ==========================================
+# [보안 정보 설정] - API 키 및 디스코드 주소
+# ==========================================
+# API 키와 디스코드 주소는 보안을 위해 환경 변수(run_bot.bat)로부터 읽어옵니다.
+UPBIT_ACCESS_KEY = os.getenv("UPBIT_ACCESS_KEY", "")
+UPBIT_SECRET_KEY = os.getenv("UPBIT_SECRET_KEY", "")
+BITHUMB_ACCESS_KEY = os.getenv("BITHUMB_ACCESS_KEY", "")
+BITHUMB_SECRET_KEY = os.getenv("BITHUMB_SECRET_KEY", "")
+DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL", "")
+
+
+# ==========================================
+# [전략 세부 운용 상수]
+# ==========================================
+
+# 메인 전략 이동평균선(SMA) 기간 설정
+BTC_SMA_LEN = 220
+ETH_SMA_LEN = 50
+
+# 메인 전략 비중 밴드 범위 (목표 비중 50% 대비 ±10%p 이탈 시 리밸런싱 실행)
+MAIN_RATIO_BAND = 0.10
+
+# ETH ATR 승수 K값
+ETH_ATR_MULTIPLIER = 1.5
+
+# BTC 노이즈 필터 버퍼 (상하한 ±2% 적용)
+BTC_BUFFER = 0.02
+
+# 거래소별 원화(KRW) 마켓 최소 주문 제약 금액
+UPBIT_MIN_ORDER_KRW = 5000     # 업비트 최소 주문 금액: 5,000원
+BITHUMB_MIN_ORDER_KRW = 1000   # 빗썸 최소 주문 금액: 1,000원
+
+
+# ==========================================
+# 2. 빗썸 API 클라이언트
+# ==========================================
+# -*- coding: utf-8 -*-
+import time
+import uuid
+import hmac
+import hashlib
+import jwt
+import requests
+import logging
+from urllib.parse import urlencode
+# [Config already defined above]
+
+# 기본 로깅 설정
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+
+class BithumbClient:
+    def __init__(self, access_key=None, secret_key=None, dry_run=None):
+        self.access_key = access_key or BITHUMB_ACCESS_KEY
+        self.secret_key = secret_key or BITHUMB_SECRET_KEY
+        self.dry_run = dry_run if dry_run is not None else DRY_RUN
+        self.base_url = "https://api.bithumb.com"
+
+    def _get_headers(self, params=None):
+        """
+        빗썸 v1 Private API 요청을 위한 JWT 인증 헤더를 생성합니다.
+        """
+        payload = {
+            "access_key": self.access_key,
+            "nonce": str(uuid.uuid4()),
+            "timestamp": int(time.time() * 1000)
+        }
+        
+        # 파라미터가 있을 경우 쿼리 스트링으로 변환하여 SHA512 해싱 후 payload에 추가
+        if params:
+            # 쿼리 해싱 시 문자열 정렬 등을 보장하기 위해 쿼리 스트링으로 변환
+            query_string = urlencode(params)
+            query_hash = hashlib.sha512(query_string.encode("utf-8")).hexdigest()
+            payload["query_hash"] = query_hash
+            payload["query_hash_alg"] = "SHA512"
+            
+        token = jwt.encode(payload, self.secret_key, algorithm="HS256")
+        
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json; charset=utf-8"
+        }
+        return headers
+
+    def get_balances(self):
+        """
+        전체 계좌 잔고를 조회합니다.
+        """
+        url = f"{self.base_url}/v1/accounts"
+        headers = self._get_headers()
+        
+        response = requests.get(url, headers=headers, timeout=10)
+        if response.status_code != 200:
+            raise Exception(f"빗썸 잔고 조회 실패 (상태 코드: {response.status_code}): {response.text}")
+        return response.json()
+
+    def get_balance(self, currency):
+        """
+        특정 통화(예: KRW, BTC, XRP)의 사용 가능한 잔액(balance)을 반환합니다.
+        """
+        balances = self.get_balances()
+        for asset in balances:
+            if asset.get("currency") == currency:
+                return float(asset.get("balance", 0.0))
+        return 0.0
+
+    def get_balance_detail(self, currency):
+        """
+        특정 통화의 잔고 상세 정보(balance, locked, avg_buy_price)를 딕셔너리로 반환합니다.
+        """
+        balances = self.get_balances()
+        for asset in balances:
+            if asset.get("currency") == currency:
+                return {
+                    "balance": float(asset.get("balance", 0.0)),
+                    "locked": float(asset.get("locked", 0.0)),
+                    "avg_buy_price": float(asset.get("avg_buy_price", 0.0))
+                }
+        return {"balance": 0.0, "locked": 0.0, "avg_buy_price": 0.0}
+
+    def get_markets(self):
+        """
+        거래 가능한 모든 마켓 정보를 가져옵니다. (공용 API)
+        """
+        url = f"{self.base_url}/v1/market/all"
+        response = requests.get(url, timeout=10)
+        if response.status_code != 200:
+            raise Exception(f"빗썸 마켓 목록 조회 실패 (상태 코드: {response.status_code}): {response.text}")
+        return response.json()
+
+    def get_ohlcv(self, market, count=200):
+        """
+        지정한 마켓의 최근 일봉 캔들 정보를 가져옵니다. (공용 API)
+        반환 결과는 최신 캔들(오늘)부터 과거 캔들 순(내림차순)으로 정렬되어 있습니다.
+        """
+        url = f"{self.base_url}/v1/candles/days"
+        params = {"market": market, "count": count}
+        
+        response = requests.get(url, params=params, timeout=10)
+        if response.status_code != 200:
+            raise Exception(f"빗썸 {market} 캔들 조회 실패 (상태 코드: {response.status_code}): {response.text}")
+        return response.json()
+
+    def buy_market_order(self, market, price):
+        """
+        시장가 매수 주문을 요청합니다.
+        market: 마켓 심볼 (예: 'KRW-XRP')
+        price: 매수 총액 (KRW 단위)
+        """
+        params = {
+            "market": market,
+            "side": "bid",
+            "price": str(price),
+            "ord_type": "price"
+        }
+        
+        if self.dry_run:
+            logging.info(f"[드라이런] 빗썸 시장가 매수 주문 모의 실행: {market} - {price} KRW")
+            return {"uuid": f"dryrun-buy-{uuid.uuid4()}", "side": "bid", "ord_type": "price", "price": str(price), "state": "done"}
+
+        url = f"{self.base_url}/v1/orders"
+        headers = self._get_headers(params)
+        
+        # POST 요청 본문은 JSON 문자열로 전송
+        response = requests.post(url, json=params, headers=headers, timeout=10)
+        if response.status_code not in (200, 201):
+            raise Exception(f"빗썸 시장가 매수 주문 실패 (상태 코드: {response.status_code}): {response.text}")
+        return response.json()
+
+    def sell_market_order(self, market, volume):
+        """
+        시장가 매도 주문을 요청합니다.
+        market: 마켓 심볼 (예: 'KRW-XRP')
+        volume: 매도 수량
+        """
+        params = {
+            "market": market,
+            "side": "ask",
+            "volume": str(volume),
+            "ord_type": "market"
+        }
+        
+        if self.dry_run:
+            logging.info(f"[드라이런] 빗썸 시장가 매도 주문 모의 실행: {market} - {volume} 수량")
+            return {"uuid": f"dryrun-sell-{uuid.uuid4()}", "side": "ask", "ord_type": "market", "volume": str(volume), "state": "done"}
+
+        url = f"{self.base_url}/v1/orders"
+        headers = self._get_headers(params)
+        
+        response = requests.post(url, json=params, headers=headers, timeout=10)
+        if response.status_code not in (200, 201):
+            raise Exception(f"빗썸 시장가 매도 주문 실패 (상태 코드: {response.status_code}): {response.text}")
+        return response.json()
+
+
+# ==========================================
+# 3. 메인 트레이딩 엔진 로직
+# ==========================================
+# -*- coding: utf-8 -*-
+"""
 암호화폐 듀얼 모멘텀 퀀트 자동매매 봇
 - 메인 전략: 업비트 BTC/ETH 듀얼 모멘텀 및 50:50 분할 리밸런싱
 - 서브 전략: 빗썸 BTC vs ETH 최근 30일 상대 모멘텀 100% 스위칭
@@ -22,15 +268,8 @@ try:
 except ImportError:
     pass
 
-from config import (
-    UPBIT_ACCESS_KEY, UPBIT_SECRET_KEY,
-    BITHUMB_ACCESS_KEY, BITHUMB_SECRET_KEY,
-    DISCORD_WEBHOOK_URL,
-    UPBIT_MIN_ORDER_KRW, BITHUMB_MIN_ORDER_KRW, DRY_RUN,
-    BTC_SMA_LEN, ETH_SMA_LEN, BTC_BUFFER, ETH_ATR_MULTIPLIER,
-    MAIN_RATIO_BAND, USE_ALTCOIN_STRATEGY
-)
-from bithumb_api import BithumbClient
+# [Config already imported above]
+# [BithumbClient already imported above]
 import pyupbit
 
 # 로깅 설정
@@ -1155,3 +1394,26 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
+# ==========================================
+# [Cloud Run Functions HTTP Entry Point]
+# ==========================================
+try:
+    import functions_framework
+    @functions_framework.http
+    def hello_http(request):
+        kst_now = get_kst_now()
+        logging.info("Cloud Run 봇 실행 시작 (KST: %s)", kst_now.strftime("%Y-%m-%d %H:%M:%S"))
+        try:
+            # 실거래/모의투자 루틴 집행
+            run_live_trading(kst_now, is_dry_run=DRY_RUN, use_alt_strategy=USE_ALTCOIN_STRATEGY)
+            return ("Trading routine completed successfully", 200)
+        except Exception as e:
+            logging.error("Cloud Run 실행 중 오류: %s", e)
+            send_discord_message(f"🚨 [Cloud Run] 실행 중 에러 발생: {e}")
+            return (f"Error: {e}", 500)
+except ImportError:
+    pass
+
