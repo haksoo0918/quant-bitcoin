@@ -77,21 +77,18 @@ quant-bitcoin/
 
 ## 🚀 실행 환경 및 사용 방법
 
-본 시스템은 **GitHub Actions(클라우드 시그널 브리핑)** 와 **Local PC(로컬 시그널 확인, 모의매매, 실거래 자동매매)** 로 명확히 구분되어 구동됩니다.
+본 시스템은 **오라클 클라우드(24시간 무인 실거래 메인 환경)**, **Local PC(개발·모의매매·백테스트)**, **GitHub Actions(보조 시그널 브리핑)** 로 역할이 명확히 구분되어 운영됩니다.
 
 ---
 
-### 1. GitHub Actions 자동 시그널 브리핑 (매일 09:05 KST 자동 실행)
+### 1. 오라클 클라우드 Always Free 24시간 무인 실거래 (메인 운영 환경)
 
-개인 PC를 켜둘 필요 없이 깃허브 서버에서 매일 아침 전략 방향성 및 추천 매매 가이드를 디스코드로 무료 수신합니다.
+개인 PC를 24시간 켜둘 필요 없이, **오라클 클라우드 Always Free(도쿄 리전) 평생 무료 Linux VM + 영구 고정 공인 IP** 환경에서 매일 아침 09:05 KST 무인으로 실거래를 집행합니다.
 
-* **API 키 불필요**: 공개 시세 API만 사용하므로 거래소 API 키 등록이나 잔고 조회가 필요 없습니다.
-* **GitHub Secrets 등록**:
-  1. 저장소 상단 메뉴의 **[Settings]** 클릭
-  2. 왼쪽 사이드바의 **[Secrets and variables] -> [Actions]** 클릭
-  3. **[New repository secret]** 버튼 클릭 후 **`DISCORD_WEBHOOK_URL`** 1개만 등록
-* **작동 확인 및 수동 테스트**:
-  * **[Actions]** -> **[Crypto Quantitative Trading Signal Bot]** -> **[Run workflow]** 를 클릭하여 즉시 테스트 가능합니다.
+* **완전 무료 ($0)**: OCI Always Free 티어(`VM.Standard.E2.1.Micro`)로 추가 비용 발생 없음.
+* **거래소 IP 보안 완비**: 고정 공인 IP를 할당받아 업비트 및 빗썸 API 화이트리스트에 사전 등록하여 안전하게 통신.
+* **Crontab 자동화**: 한국 표준시(KST) 기준 매일 09:05 정시에 봇이 실행되고, 디스코드로 체결 결과가 즉시 전송됩니다.
+* 📖 **서버 구축 및 설정 매뉴얼**: 상세한 단계별 매뉴얼은 **[docs/ORACLE_CLOUD_GUIDE.md](file:///c:/Users/hakso/_work/quant-bitcoin/docs/ORACLE_CLOUD_GUIDE.md)** 를 참고하세요.
 
 ---
 
@@ -172,12 +169,26 @@ DISCORD_WEBHOOK_URL=디스코드_웹훅_주소
     * **스케줄러/CLI 인자 전달 시 (`run_bot.bat --live` 등)**: 매매 완료 즉시 터미널 창이 자동으로 닫힙니다 (24시간 무인 자동화).
     * **사용자 수동 더블 클릭 시 (인자 없음)**: 실행 로그를 확인할 수 있도록 `pause` 대기 상태가 유지됩니다.
 
-* **Windows 작업 스케줄러 자동 실행 등록 (로컬 24시간 무인 매매)**:
-  `scripts/setup_scheduler.bat`을 실행하면 매일 오전 09:05 KST에 `run_bot.bat --live`가 자동으로 실행되도록 Windows 작업 스케줄러에 즉시 등록됩니다. (해제 시 `scripts/remove_scheduler.bat` 실행)
+* **Windows 작업 스케줄러 자동 실행 (로컬 보조 옵션)**:
+  `scripts/setup_scheduler.bat`을 실행하면 매일 오전 09:05 KST에 `run_bot.bat --live`가 실행되도록 로컬 PC에 등록할 수 있습니다. (현재는 오라클 클라우드 Always Free 서버에서 365일 무인 구동되므로 로컬 등록은 해제되어 있으며, 로컬 대체 구동이 필요할 때만 활용합니다.)
 
 ---
 
-### 4. 로컬 백테스트 및 파라미터 최적화 실행
+### 4. GitHub Actions 자동 시그널 브리핑 (보조 브리핑)
+
+개인 PC를 켜둘 필요 없이 깃허브 서버에서 매일 아침 전략 방향성 및 추천 매매 가이드를 디스코드로 무료 수신합니다.
+
+* **API 키 불필요**: 공개 시세 API만 사용하므로 거래소 API 키 등록이나 잔고 조회가 필요 없습니다.
+* **GitHub Secrets 등록**:
+  1. 저장소 상단 메뉴의 **[Settings]** 클릭
+  2. 왼쪽 사이드바의 **[Secrets and variables] -> [Actions]** 클릭
+  3. **[New repository secret]** 버튼 클릭 후 **`DISCORD_WEBHOOK_URL`** 1개만 등록
+* **작동 확인 및 수동 테스트**:
+  * **[Actions]** -> **[Crypto Quantitative Trading Signal Bot]** -> **[Run workflow]** 를 클릭하여 즉시 테스트 가능합니다.
+
+---
+
+### 5. 로컬 백테스트 및 파라미터 최적화 실행
 
 실제 업비트 과거 일봉 데이터를 다운로드하여 전략 수익률을 검증하거나 이동평균 최적 기간을 도출할 수 있습니다. (다운로드한 데이터는 `data/` 디렉토리에 캐싱됩니다.)
 
@@ -216,7 +227,7 @@ DISCORD_WEBHOOK_URL=디스코드_웹훅_주소
 
 ---
 
-### 5. TDD 단위 테스트 스위트 실행 (Test Suite)
+### 6. TDD 단위 테스트 스위트 실행 (Test Suite)
 
 `pytest`를 통해 시계열 데이터 파이프라인 무결성, 엣지 케이스 처리, Git 자동 푸시 안정성을 검증합니다.
 

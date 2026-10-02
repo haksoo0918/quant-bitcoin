@@ -5,10 +5,10 @@
 ---
 
 ## 1. 시스템 개요
-- **목표**: 퀀트 전략(업비트 메인 & 빗썸 서브)에 따라 신호를 분석하고, 실행 환경에 따라 시그널 알림 또는 실거래 자동 주문을 완전히 분리하여 수행합니다.
-- **실행 환경 이원화**:
-  - **GitHub Actions (클라우드)**: **시그널 전용 모드 (`SIGNAL_ONLY`)** — 매일 09:05 KST 자동 실행. API 키 및 거래소 잔고 조회 없이 오직 **공개 시세 데이터** 만을 바탕으로 전략 방향성(매수/매도/홀딩 및 시장 상태)을 판단하여 디스코드로 브리핑합니다.
-  - **Local PC (로컬 환경)**: **실제 자동매매 실행 모드 (`LIVE_TRADING`)** — `run_bot.bat` 실행 시 발급된 API 키로 실계좌 잔고를 조회하고, 전략에 따라 **거래소에 실제 매수/매도 주문을 직접 집행** 한 뒤 체결 내역과 실제 잔고 현황을 디스코드로 보고합니다.
+- **실행 환경 구조**:
+  - **오라클 클라우드 Always Free (운영 환경 - `LIVE_TRADING`)**: 24시간 무중단 클라우드 Linux VM(`VM.Standard.E2.1.Micro`)에 평생 고정 공인 IP를 할당받아 업비트/빗썸 화이트리스트를 등록하고, 매일 09:05 KST Crontab을 통해 365일 무인 실거래 주문 집행 및 디스코드 리포트를 발송합니다.
+  - **Local PC (개발 및 검증 환경)**: `.env` 기반 CLI 옵션(`--dry-run`, `--live`, `--signal-only`)을 통해 모의매매 검증, 백테스트 및 단위 테스트를 수행합니다. (기존 로컬 Windows 스케줄러는 클라우드 단독 운영으로 이관 및 해제)
+  - **GitHub Actions (보조 브리핑 - `SIGNAL_ONLY`)**: 수동 트리거(`workflow_dispatch`) 지원. API 키 없이 공개 시세 데이터만을 바탕으로 전략 방향성을 디스코드로 브리핑합니다.
 
 ---
 
@@ -70,20 +70,23 @@
 ---
 
 ## 4. 실행 환경 및 운영 구조
-- **GitHub Actions (수동 실행 `workflow_dispatch` 지원)**:
-  - Repository Secrets: `DISCORD_WEBHOOK_URL` (1개만 등록, 거래소 API Key 불필요)
-  - 실행 명령: `python src/main.py --signal-only`
-  - 역할: 자동 스케줄(Cron) 지연 이슈 방지를 위해 수동 트리거 지원으로 전환. (시세 및 전략 확인은 PWA 대시보드의 실시간 시세 조회 기능 및 로컬 스케줄러 자동 실행 활용)
-- **로컬 환경 (CLI 및 `.env` 기반 실행)**:
+- **오라클 클라우드 Always Free (실거래 24시간 무인 운영)**:
+  - 인스턴스: `VM.Standard.E2.1.Micro` (Ubuntu 24.04, 1GB RAM + 1GB Swap)
+  - 네트워크: 평생 고정 예약 공인 IP 발급 및 업비트/빗썸 API 화이트리스트 등록
+  - 자동화 스케줄러: Crontab (매일 09:05 KST 일봉 종가 확정 후 `/usr/bin/python3 src/main.py` 자동 실행 및 `cron.log` 실시간 기록)
+  - 상세 구축 매뉴얼: [docs/ORACLE_CLOUD_GUIDE.md](file:///c:/Users/hakso/_work/quant-bitcoin/docs/ORACLE_CLOUD_GUIDE.md) 참조
+- **로컬 PC 환경 (개발, 모의매매 및 백테스트)**:
   - `.env` 파일에 API Key 및 `DISCORD_WEBHOOK_URL` 설정
   - CLI 명령어로 실행:
     - 시그널 확인: `python src/main.py --signal-only`
     - 모의 매매: `python src/main.py --dry-run`
     - 실거래 주문: `python src/main.py --live`
-  - 배치 파일(`run_bot.bat`): CLI 인자 전달 및 실행 자동화 래퍼
-    - **스케줄러/CLI 인자 전달 시 (`run_bot.bat --live` 등)**: 프로세스 완료 즉시 `pause` 없이 터미널 창 자동 닫힘 (무인 백그라운드 자동화).
-    - **사용자 수동 더블 클릭 시 (인자 없음)**: 실행 결과 및 로그 확인을 위해 대기(`pause`) 유지.
-  - Windows 작업 스케줄러 등록 스크립트(`scripts/setup_scheduler.bat`, `scripts/remove_scheduler.bat`): 매일 09:05 KST `run_bot.bat --live` 자동 등록 지원.
+  - 배치 파일(`run_bot.bat`): CLI 인자 전달 및 로컬 수동 테스트 래퍼
+  - 기존 로컬 Windows 작업 스케줄러는 클라우드 서버 단독 운영 체제로 이관되어 등록 해제(삭제)됨.
+- **GitHub Actions (보조 수동 실행 `workflow_dispatch` 지원)**:
+  - Repository Secrets: `DISCORD_WEBHOOK_URL` (1개만 등록, 거래소 API Key 불필요)
+  - 실행 명령: `python src/main.py --signal-only`
+  - 역할: 자동 스케줄(Cron) 지연 이슈 방지를 위해 수동 트리거 지원으로 전환. (시세 및 전략 확인은 PWA 대시보드의 실시간 시세 조회 기능 및 클라우드 자동 실행 활용)
 
 ---
 

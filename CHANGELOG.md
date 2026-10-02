@@ -5,6 +5,28 @@
 
 ---
 
+## [1.9.0] - 2026-10-02
+
+### Added (추가됨)
+- **오라클 클라우드 Always Free 24시간 무인 실거래 인프라 배포 (`docs/ORACLE_CLOUD_GUIDE.md`, `PRD.md`, `README.md`)**:
+  - 오라클 클라우드 Always Free 도쿄 리전 Linux VM(`VM.Standard.E2.1.Micro`, Ubuntu 24.04, 1GB Swap) 인스턴스 구축 및 영구 고정 공인 IP 할당.
+  - 업비트 및 빗썸 Open API 관리 페이지에 고정 IP 화이트리스트 사전 등록 완료.
+  - 한국 표준시(`Asia/Seoul`) 기준 매일 09:05 KST 일봉 종가 확정 후 봇 자동 실행 및 디스코드 리포트 발송 Crontab 스케줄러 등록 완료.
+  - 비전공자도 이해하기 쉬운 핵심 클라우드 용어 사전(인스턴스, VCN, 서브넷, VNIC, 고정 IP, SSH 키 등)과 전체 9단계 구축 절차를 담은 `docs/ORACLE_CLOUD_GUIDE.md` 공식 매뉴얼 배포.
+
+### Fixed (수정됨)
+- **업비트 메인 전략 유휴 현금(KRW) 방치 결함 해결 및 분할 매수 메커니즘 개선 (`src/main.py`, `tests/test_cash_allocation.py`, `PRD.md`)**:
+  - 코인을 5,000원 이상 보유 중(`is_held=True`)일 때 계좌에 원화(KRW) 현금이 남아 있어도 신규 매수를 건너뛰고 매도 리밸런싱만 대기하던 결함 수정.
+  - 업비트 총 자산(KRW + 코인 평가액) 기준 50:50 목표 평가액을 산출하여 상승 추세인 코인이 목표치보다 부족할 경우 유휴 현금을 활용해 추가 분할 매수 집행.
+  - 신규 단위 테스트 스위트(`tests/test_cash_allocation.py`) 추가 및 전체 테스트 100% 통과 검증.
+
+### Changed (변경됨)
+- **실거래 실행 주체 클라우드 단독 운영 이관**:
+  - 기존 로컬 Windows 작업 스케줄러(`QuantCryptoLiveTrader`)를 완전 삭제(Unregister)하여 데스크톱 전원 의존성 및 중복 실행 방지.
+  - 로컬 환경은 개발, 모의매매(`--dry-run`), 백테스트 및 단위 테스트 용도로 전환.
+
+---
+
 ## [1.8.11] - 2026-09-21
 
 ### Added (추가됨)
