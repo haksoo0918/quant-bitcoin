@@ -8,6 +8,7 @@ on:
       - 'tests/**'
       - 'requirements.txt'
       - '.github/workflows/deploy.yml'
+  workflow_dispatch: # 수동 원클릭 배포 지원
 
 jobs:
   test-and-deploy:
