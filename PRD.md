@@ -87,6 +87,12 @@
   - Repository Secrets: `DISCORD_WEBHOOK_URL` (1개만 등록, 거래소 API Key 불필요)
   - 실행 명령: `python src/main.py --signal-only`
   - 역할: 자동 스케줄(Cron) 지연 이슈 방지를 위해 수동 트리거 지원으로 전환. (시세 및 전략 확인은 PWA 대시보드의 실시간 시세 조회 기능 및 클라우드 자동 실행 활용)
+- **GitHub Actions CI/CD 푸시 연동 자동 배포 파이프라인 (`.github/workflows/deploy.yml`)**:
+  - 트리거: `main` 브랜치로 실제 코드(`src/**`, `requirements.txt` 등) 푸시 시 자동 동작 (문서 및 대시보드 정적 파일 제외)
+  - 1단계 (CI 품질 게이트): `pytest tests/` 단위 테스트 전수 검증 (실패 시 서버 배포 자동 차단)
+  - 2단계 (CD 무인 배포): GitHub Secrets 기반으로 오라클 서버에 SSH 접속하여 `git pull origin main` 및 라이브러리 갱신 수행
+  - 3단계 (스모크 테스트): 배포 즉시 `python3 src/main.py --dry-run` 모의 주문 1회 실행 및 디스코드 알림을 통해 정상 배포 최종 검증
+  - 보안 원칙: 서버 접속 IP, 계정, SSH 프라이빗 키는 깃허브 Repository Secrets로 암호화 관리되어 외부에 일절 노출되지 않음
 
 ---
 

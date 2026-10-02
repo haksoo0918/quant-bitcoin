@@ -148,3 +148,15 @@
   tail -f /home/ubuntu/quant-bitcoin/cron.log
   ```
 * **PC/브라우저 상태**: 이제 PC를 끄거나 오라클 클라우드 브라우저 창을 닫아도 365일 자동 구동됩니다.
+
+---
+
+## 10단계. 코드 수정 시 무인 자동 배포 (GitHub Actions CD)
+* **원리**: PC에서 봇 코드를 수정한 뒤 깃허브에 푸시하면, 깃허브 액션이 ①단위 테스트(`pytest`) 전수 검증 ➔ ②오라클 서버에 SSH 접속하여 `git pull` ➔ ③모의실행(`--dry-run`)까지 완전 자동으로 마칩니다.
+* **1회 사전 설정 (GitHub Secrets 등록)**:
+  1. GitHub 저장소 상단 **[Settings]** ➔ 좌측 **[Secrets and variables]** ➔ **[Actions]** 이동.
+  2. **[New repository secret]** 클릭 후 아래 3개 등록:
+     * `ORACLE_HOST`: 오라클 고정 공인 IP (`<내_고정_IP>`)
+     * `ORACLE_USER`: `ubuntu`
+     * `ORACLE_SSH_KEY`: PC에 보관된 키 파일(`~/.ssh/ssh-key-2026-10-02.key`)의 내용 전체 텍스트 복사하여 붙여넣기.
+* **효과**: 이제 코드를 수정할 때 오라클 콘솔에 접속할 필요 없이, PC에서 `git push`만 하면 서버 배포까지 원클릭으로 끝납니다.

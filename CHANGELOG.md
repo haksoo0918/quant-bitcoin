@@ -5,6 +5,20 @@
 
 ---
 
+## [1.9.2] - 2026-10-02
+
+### Added (추가됨)
+- **GitHub Actions CD 푸시 연동 오라클 서버 자동 배포 파이프라인 구축 (`.github/workflows/deploy.yml`, `PRD.md`, `docs/ORACLE_CLOUD_GUIDE.md`)**:
+  - `main` 브랜치 소스코드(`src/**`, `requirements.txt` 등) 푸시 시 `pytest` 단위 테스트를 먼저 전수 검증하는 CI 품질 게이트 구축.
+  - 테스트 통과 시 GitHub Actions가 암호화된 Secrets를 기반으로 오라클 서버에 SSH 접속하여 `git pull origin main` 및 의존성 라이브러리 자동 갱신 집행.
+  - 배포 완료 직후 `python3 src/main.py --dry-run` 모의 주문 1회 스모크 테스트 및 디스코드 알림을 발송하여 배포 성공 여부를 즉시 검증.
+
+### Removed (삭제됨)
+- **구버전 아마존/AWS 가이드 문서 2종 정리 (`docs/AWS_EC2_FREE_TIER_GUIDE.md`, `docs/AWS_LIGHTSAIL_GUIDE.md`)**:
+  - 오라클 클라우드 단독 24시간 무인 운영 체제로 확정됨에 따라 불필요해진 기존 AWS EC2 및 Lightsail 가이드 문서 완전 삭제.
+
+---
+
 ## [1.9.1] - 2026-10-02
 
 ### Added (추가됨)
