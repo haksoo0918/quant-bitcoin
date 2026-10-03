@@ -127,7 +127,7 @@
    ```
 2. **크론탭(Crontab) 등록 (매일 09:05 KST 실행)**:
    ```bash
-   (crontab -l 2>/dev/null; echo "5 9 * * * cd /home/ubuntu/quant-bitcoin && /usr/bin/python3 src/main.py >> /home/ubuntu/quant-bitcoin/cron.log 2>&1") | crontab -
+   (crontab -l 2>/dev/null; echo "5 9 * * * cd /home/ubuntu/quant-bitcoin && /usr/bin/python3 src/main.py --live >> /home/ubuntu/quant-bitcoin/cron.log 2>&1") | crontab -
    ```
 3. **등록 확인**: `crontab -l` 실행 시 `5 9 * * * ...` 출력 확인.
 

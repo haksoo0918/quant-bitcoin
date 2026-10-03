@@ -5,6 +5,15 @@
 
 ---
 
+## [1.9.5] - 2026-10-03
+
+### Fixed (수정됨)
+- **오라클 클라우드 크론탭 스케줄러 실거래(`--live`) 플래그 누락 결함 수정 (`.github/workflows/deploy.yml`, `PRD.md`, `docs/ORACLE_CLOUD_GUIDE.md`)**:
+  - 오라클 서버 크론탭에 `--live` 옵션이 누락되어 기본 안전 모드(시그널 브리핑)로 실행되던 현상 해결.
+  - GitHub Actions CD 배포 스크립트(`deploy.yml`)에서 서버 크론탭을 `python3 src/main.py --live`로 자동 교체하도록 강화하여 배포 즉시 서버 스케줄이 정상 갱신되도록 개선.
+
+---
+
 ## [1.9.4] - 2026-10-02
 
 ### Added (추가됨)

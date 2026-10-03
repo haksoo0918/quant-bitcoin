@@ -73,7 +73,7 @@
 - **오라클 클라우드 Always Free (실거래 24시간 무인 운영)**:
   - 인스턴스: `VM.Standard.E2.1.Micro` (Ubuntu 24.04, 1GB RAM + 1GB Swap)
   - 네트워크: 평생 고정 예약 공인 IP 발급 및 업비트/빗썸 API 화이트리스트 등록
-  - 자동화 스케줄러: Crontab (매일 09:05 KST 일봉 종가 확정 후 `/usr/bin/python3 src/main.py` 자동 실행 및 `cron.log` 실시간 기록)
+  - 자동화 스케줄러: Crontab (매일 09:05 KST 일봉 종가 확정 후 `/usr/bin/python3 src/main.py --live` 자동 실행 및 `cron.log` 실시간 기록)
   - 상세 구축 매뉴얼: [docs/ORACLE_CLOUD_GUIDE.md](file:///c:/Users/hakso/_work/quant-bitcoin/docs/ORACLE_CLOUD_GUIDE.md) 참조
 - **로컬 PC 환경 (개발, 모의매매 및 백테스트)**:
   - `.env` 파일에 API Key 및 `DISCORD_WEBHOOK_URL` 설정

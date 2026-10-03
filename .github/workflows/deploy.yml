@@ -42,4 +42,5 @@ jobs:
           cd /home/ubuntu/quant-bitcoin
           git pull origin main
           pip install -r requirements.txt --break-system-packages
+          (crontab -l 2>/dev/null | grep -v 'quant-bitcoin'; echo "5 9 * * * cd /home/ubuntu/quant-bitcoin && /usr/bin/python3 src/main.py --live >> /home/ubuntu/quant-bitcoin/cron.log 2>&1") | crontab -
           python3 src/main.py --dry-run
