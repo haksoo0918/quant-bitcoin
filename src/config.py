@@ -59,4 +59,4 @@ BTC_BUFFER = 0.02
 
 # 거래소별 원화(KRW) 마켓 최소 주문 제약 금액
 UPBIT_MIN_ORDER_KRW = 5000     # 업비트 최소 주문 금액: 5,000원
-BITHUMB_MIN_ORDER_KRW = 1000   # 빗썸 최소 주문 금액: 1,000원
+BITHUMB_MIN_ORDER_KRW = 5000   # 빗썸 최소 주문 금액: 5,000원 (최신 정책 반영)
