@@ -28,15 +28,22 @@ DRY_RUN = True if SIGNAL_ONLY else (os.getenv("DRY_RUN", "false").lower() == "tr
 USE_BITHUMB_STRATEGY = True
 USE_ALTCOIN_STRATEGY = USE_BITHUMB_STRATEGY  # 하위 호환성 유지 별칭
 
+# 5. 바이낸스 메인 전략 (BTC/ETH 50:50 동적 리밸런싱) 실행 여부
+# - True: 바이낸스 USDT 마켓 메인 전략을 함께 실행합니다.
+# - False: 바이낸스 전략 실행 비활성화
+USE_BINANCE_STRATEGY = os.getenv("USE_BINANCE_STRATEGY", "true").lower() == "true"
+
 
 # ==========================================
 # [보안 정보 설정] - API 키 및 디스코드 주소
 # ==========================================
-# API 키와 디스코드 주소는 보안을 위해 환경 변수(run_bot.bat)로부터 읽어옵니다.
+# API 키와 디스코드 주소는 보안을 위해 환경 변수(.env 또는 서버 OS 환경변수)로부터 읽어옵니다.
 UPBIT_ACCESS_KEY = os.getenv("UPBIT_ACCESS_KEY", "")
 UPBIT_SECRET_KEY = os.getenv("UPBIT_SECRET_KEY", "")
 BITHUMB_ACCESS_KEY = os.getenv("BITHUMB_ACCESS_KEY", "")
 BITHUMB_SECRET_KEY = os.getenv("BITHUMB_SECRET_KEY", "")
+BINANCE_ACCESS_KEY = os.getenv("BINANCE_ACCESS_KEY", os.getenv("BINANCE_API_KEY", ""))
+BINANCE_SECRET_KEY = os.getenv("BINANCE_SECRET_KEY", os.getenv("BINANCE_SECRET", ""))
 DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL", "")
 
 
@@ -44,19 +51,27 @@ DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL", "")
 # [전략 세부 운용 상수]
 # ==========================================
 
-# 메인 전략 이동평균선(SMA) 기간 설정
+# 업비트 메인 전략 이동평균선(SMA) 기간 설정
 BTC_SMA_LEN = 220
 ETH_SMA_LEN = 50
+
+# 바이낸스 메인 전략 이동평균선(SMA) 및 ATR 기간 설정 (최근 5.2년 실데이터 백테스트 최적치)
+BINANCE_BTC_SMA_LEN = 200
+BINANCE_BTC_BUFFER = 0.02
+BINANCE_ETH_SMA_LEN = 40
+BINANCE_ETH_ATR_MULTIPLIER = 1.2
 
 # 메인 전략 비중 밴드 범위 (목표 비중 50% 대비 ±10%p 이탈 시 리밸런싱 실행)
 MAIN_RATIO_BAND = 0.10
 
-# ETH ATR 승수 K값
+# ETH ATR 승수 K값 (업비트)
 ETH_ATR_MULTIPLIER = 1.5
 
-# BTC 노이즈 필터 버퍼 (상하한 ±2% 적용)
+# BTC 노이즈 필터 버퍼 (상하한 ±2% 적용 - 업비트)
 BTC_BUFFER = 0.02
 
-# 거래소별 원화(KRW) 마켓 최소 주문 제약 금액
-UPBIT_MIN_ORDER_KRW = 5000     # 업비트 최소 주문 금액: 5,000원
-BITHUMB_MIN_ORDER_KRW = 5000   # 빗썸 최소 주문 금액: 5,000원 (최신 정책 반영)
+# 거래소별 마켓 최소 주문 제약 금액
+UPBIT_MIN_ORDER_KRW = 5000       # 업비트 최소 주문 금액: 5,000원
+BITHUMB_MIN_ORDER_KRW = 5000     # 빗썸 최소 주문 금액: 5,000원 (최신 정책 반영)
+BINANCE_MIN_ORDER_USDT = 5.0     # 바이낸스 최소 주문 금액: 5 USDT (안전 버퍼 포함)
+

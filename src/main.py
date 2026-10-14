@@ -25,12 +25,15 @@ except ImportError:
 from config import (
     UPBIT_ACCESS_KEY, UPBIT_SECRET_KEY,
     BITHUMB_ACCESS_KEY, BITHUMB_SECRET_KEY,
+    BINANCE_ACCESS_KEY, BINANCE_SECRET_KEY,
     DISCORD_WEBHOOK_URL,
-    UPBIT_MIN_ORDER_KRW, BITHUMB_MIN_ORDER_KRW, DRY_RUN,
+    UPBIT_MIN_ORDER_KRW, BITHUMB_MIN_ORDER_KRW, BINANCE_MIN_ORDER_USDT, DRY_RUN,
     BTC_SMA_LEN, ETH_SMA_LEN, BTC_BUFFER, ETH_ATR_MULTIPLIER,
-    MAIN_RATIO_BAND, USE_ALTCOIN_STRATEGY
+    BINANCE_BTC_SMA_LEN, BINANCE_BTC_BUFFER, BINANCE_ETH_SMA_LEN, BINANCE_ETH_ATR_MULTIPLIER,
+    MAIN_RATIO_BAND, USE_ALTCOIN_STRATEGY, USE_BINANCE_STRATEGY
 )
 from bithumb_api import BithumbClient
+from binance_api import BinanceClient
 import pyupbit
 
 # 로깅 설정
@@ -41,6 +44,25 @@ logging.basicConfig(
         logging.StreamHandler(sys.stdout)
     ]
 )
+
+
+def fetch_usd_krw_rate() -> float:
+    """
+    실시간 USD/KRW 환율을 조회합니다. (실패 시 기본 fallback 1,380.0원 적용)
+    """
+    try:
+        url = "https://open.er-api.com/v6/latest/USD"
+        res = requests.get(url, timeout=5)
+        if res.status_code == 200:
+            rates = res.json().get("rates", {})
+            if "KRW" in rates:
+                krw_rate = float(rates["KRW"])
+                logging.info(f"실시간 USD/KRW 환율 조회 성공: {krw_rate:,.1f}원")
+                return krw_rate
+    except Exception as e:
+        logging.warning(f"실시간 환율 조회 실패 ({e}), fallback 환율(1,380원) 적용")
+    return 1380.0
+
 
 
 def get_kst_now():
@@ -450,10 +472,10 @@ def auto_push_status_json(target_file="docs/data/status.json", skip_push=False):
         return False
 
 
-def run_signal_briefing(kst_now, use_alt_strategy=USE_ALTCOIN_STRATEGY):
+def run_signal_briefing(kst_now, use_alt_strategy=USE_ALTCOIN_STRATEGY, use_binance_strategy=USE_BINANCE_STRATEGY):
     """
     GitHub Actions 및 --signal-only 실행 모드:
-    순수 공개 API 시세 데이터만으로 시장 지표, 업비트/빗썸 방향성 신호 브리핑을 디스코드로 전송.
+    순수 공개 API 시세 데이터만으로 시장 지표, 업비트/빗썸/바이낸스 방향성 신호 브리핑을 디스코드로 전송.
     """
     logging.info("=== [GitHub Actions 시그널 브리핑 모드 가동] ===")
     
@@ -545,7 +567,86 @@ def run_signal_briefing(kst_now, use_alt_strategy=USE_ALTCOIN_STRATEGY):
         bithumb_guide = "서브 전략 미사용"
         bithumb_data = {"enabled": False, "guide": bithumb_guide}
 
-    # 4. 디스코드 메시지 구성
+    # 4. 바이낸스 메인 전략 (BTCUSDT & ETHUSDT 50:50 동적 리밸런싱)
+    binance_report_lines = []
+    binance_data = {}
+    binance_guide = "바이낸스 미사용"
+    usd_krw_rate = fetch_usd_krw_rate()
+
+    if use_binance_strategy:
+        try:
+            binance_client = BinanceClient(dry_run=True)
+            # 일봉 캔들 조회
+            bin_btc_df = binance_client.get_daily_candles("BTCUSDT", limit=BINANCE_BTC_SMA_LEN + 35)
+            bin_eth_df = binance_client.get_daily_candles("ETHUSDT", limit=max(200, BINANCE_ETH_SMA_LEN + 50))
+            
+            bin_btc_price = binance_client.get_current_price("BTCUSDT")
+            bin_eth_price = binance_client.get_current_price("ETHUSDT")
+            
+            bin_btc_df.iloc[-1, bin_btc_df.columns.get_loc('close')] = bin_btc_price
+            bin_eth_df.iloc[-1, bin_eth_df.columns.get_loc('close')] = bin_eth_price
+            
+            bin_btc_ind = calculate_btc_indicators(bin_btc_df, sma_len=BINANCE_BTC_SMA_LEN, buffer_rate=BINANCE_BTC_BUFFER)
+            bin_eth_ind = calculate_eth_indicators(bin_eth_df, sma_len=BINANCE_ETH_SMA_LEN, atr_len=14, atr_multiplier=BINANCE_ETH_ATR_MULTIPLIER)
+            
+            if bin_btc_ind["status"] == "bull":
+                bin_btc_str = f"🟢 **[매수 유지 / 신규 진입]** ({bin_btc_ind['status_label']})"
+                bin_btc_guide = "BTC 50% 비중 매수 또는 보유 유지"
+            elif bin_btc_ind["status"] == "bear":
+                bin_btc_str = f"🔴 **[매도 / USDT 관망]** ({bin_btc_ind['status_label']})"
+                bin_btc_guide = "BTC 전량 매도 및 USDT 현금 확보"
+            else:
+                bin_btc_str = f"⏳ **[버퍼 구간 대기]** ({bin_btc_ind['status_label']})"
+                bin_btc_guide = "기존 보유 상태 유지 (신규 진입 자제)"
+                
+            if bin_eth_ind["status"] == "bull":
+                bin_eth_str = f"🟢 **[매수 유지 / 신규 진입]** ({bin_eth_ind['status_label']})"
+                bin_eth_guide = "ETH 50% 비중 매수 또는 보유 유지"
+            elif bin_eth_ind["status"] == "bear":
+                bin_eth_str = f"🔴 **[매도 / USDT 관망]** ({bin_eth_ind['status_label']})"
+                bin_eth_guide = "ETH 전량 매도 및 USDT 현금 확보"
+            else:
+                bin_eth_str = f"🔍 **[밴드 내 중립]** ({bin_eth_ind['status_label']})"
+                bin_eth_guide = "기존 보유 상태 유지 (신규 진입 자제)"
+                
+            binance_guide = f"{bin_btc_guide} / {bin_eth_guide}"
+            
+            binance_report_lines.append(f"• **환율 기준**: 1 USD = {usd_krw_rate:,.1f} 원")
+            binance_report_lines.append(f"• **BTCUSDT ({BINANCE_BTC_SMA_LEN}일 SMA)**: ${bin_btc_price:,.2f} (약 {bin_btc_price * usd_krw_rate:,.0f}원)")
+            binance_report_lines.append(f"  - 기준 이평: ${bin_btc_ind['sma']:,.2f} (상한: ${bin_btc_ind['upper_buffer']:,.2f} / 하한: ${bin_btc_ind['lower_buffer']:,.2f})")
+            binance_report_lines.append(f"  - 전략 방향성: {bin_btc_str}")
+            binance_report_lines.append(f"• **ETHUSDT ({BINANCE_ETH_SMA_LEN}일 SMA + {BINANCE_ETH_ATR_MULTIPLIER} ATR)**: ${bin_eth_price:,.2f} (약 {bin_eth_price * usd_krw_rate:,.0f}원)")
+            binance_report_lines.append(f"  - 기준 이평: ${bin_eth_ind['sma']:,.2f} (상한밴드: ${bin_eth_ind['upper_band']:,.2f} / 하한밴드: ${bin_eth_ind['lower_band']:,.2f})")
+            binance_report_lines.append(f"  - 전략 방향성: {bin_eth_str}")
+            
+            binance_data = {
+                "enabled": True,
+                "usd_krw_rate": usd_krw_rate,
+                "btc": {
+                    "current_price": bin_btc_price,
+                    "sma": bin_btc_ind['sma'],
+                    "status": bin_btc_ind['status'],
+                    "status_label": bin_btc_ind['status_label'],
+                    "guide": bin_btc_guide
+                },
+                "eth": {
+                    "current_price": bin_eth_price,
+                    "sma": bin_eth_ind['sma'],
+                    "status": bin_eth_ind['status'],
+                    "status_label": bin_eth_ind['status_label'],
+                    "guide": bin_eth_guide
+                },
+                "guide": binance_guide
+            }
+        except Exception as e:
+            logging.error(f"바이낸스 시그널 조회 중 오류: {e}")
+            binance_report_lines.append(f"• ⚠️ 바이낸스 시세 조회 실패: {e}")
+            binance_data = {"enabled": False, "error": str(e)}
+    else:
+        binance_report_lines.append("• **상태**: 비활성화됨 (Disabled)")
+        binance_data = {"enabled": False, "guide": "바이낸스 전략 미사용"}
+
+    # 5. 디스코드 메시지 구성
     report = []
     report.append("📢 **[GitHub Actions] 퀀트 전략 일일 방향성 시그널 브리핑**")
     report.append(f"⏱️ **기준 일시**: {kst_now.strftime('%Y-%m-%d %H:%M')} KST")
@@ -561,9 +662,15 @@ def run_signal_briefing(kst_now, use_alt_strategy=USE_ALTCOIN_STRATEGY):
     report.append("\n🟢 **서브 전략 (빗썸 - 이더리움 SuperTrend + 50일 SMA)**")
     report.extend(bithumb_report_lines)
     
+    if use_binance_strategy:
+        report.append("\n🟡 **메인 전략 (바이낸스 - BTC & ETH 50:50)**")
+        report.extend(binance_report_lines)
+    
     report.append("\n💡 **모바일 직접 매매 가이드 요약**")
     report.append(f"• **업비트**: {btc_guide} / {eth_guide}")
     report.append(f"• **빗썸**: {bithumb_guide}")
+    if use_binance_strategy:
+        report.append(f"• **바이낸스**: {binance_guide}")
     report.append("==================================")
     
     send_discord_message("\n".join(report))
@@ -608,7 +715,7 @@ def run_signal_briefing(kst_now, use_alt_strategy=USE_ALTCOIN_STRATEGY):
     auto_push_status_json()
 
 
-def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STRATEGY):
+def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STRATEGY, use_binance_strategy=USE_BINANCE_STRATEGY):
     """
     로컬 실거래 또는 모의매매 실행 함수
     """
@@ -618,6 +725,7 @@ def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STR
     # 1. 거래소 클라이언트 초기화
     upbit = pyupbit.Upbit(UPBIT_ACCESS_KEY, UPBIT_SECRET_KEY) if (UPBIT_ACCESS_KEY and UPBIT_SECRET_KEY) else None
     bithumb = BithumbClient(dry_run=is_dry_run)
+    binance = BinanceClient(dry_run=is_dry_run)
     
     # 2. 업비트 시세 및 지표 연산
     btc_df = fetch_upbit_candles("KRW-BTC", count=BTC_SMA_LEN + 35)
@@ -937,6 +1045,196 @@ def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STR
         bithumb_guide = "서브 전략 미사용"
         bithumb_data = {"enabled": False, "guide": bithumb_guide}
 
+    # 4.5 바이낸스 메인 전략 (BTCUSDT & ETHUSDT 50:50 동적 리밸런싱) 매매 프로세스
+    binance_order_history = []
+    binance_data = {}
+    binance_guide = "바이낸스 전략 미사용"
+    usd_krw_rate = fetch_usd_krw_rate()
+    bin_btc_price = 0.0
+    bin_eth_price = 0.0
+
+    if use_binance_strategy:
+        logging.info("=== [바이낸스 메인 전략 매매 제어 프로세스 가동] ===")
+        try:
+            # 바이낸스 일봉 캔들 조회 및 지표 연산
+            bin_btc_df = binance.get_daily_candles("BTCUSDT", limit=BINANCE_BTC_SMA_LEN + 35)
+            bin_eth_df = binance.get_daily_candles("ETHUSDT", limit=max(200, BINANCE_ETH_SMA_LEN + 50))
+
+            bin_btc_price = binance.get_current_price("BTCUSDT")
+            bin_eth_price = binance.get_current_price("ETHUSDT")
+
+            bin_btc_df.iloc[-1, bin_btc_df.columns.get_loc('close')] = bin_btc_price
+            bin_eth_df.iloc[-1, bin_eth_df.columns.get_loc('close')] = bin_eth_price
+
+            bin_btc_ind = calculate_btc_indicators(bin_btc_df, sma_len=BINANCE_BTC_SMA_LEN, buffer_rate=BINANCE_BTC_BUFFER)
+            bin_eth_ind = calculate_eth_indicators(bin_eth_df, sma_len=BINANCE_ETH_SMA_LEN, atr_len=14, atr_multiplier=BINANCE_ETH_ATR_MULTIPLIER)
+
+            # 잔고 현황 조회
+            bin_balances = binance.get_balances()
+            binance_usdt = bin_balances.get("USDT", {}).get("free", 0.0)
+            binance_btc_bal = bin_balances.get("BTC", {}).get("total", 0.0)
+            binance_eth_bal = bin_balances.get("ETH", {}).get("total", 0.0)
+
+            # 실거래 시 잡코인 정리 (BTC, ETH, USDT, BNB 외의 자산이 5 USDT 이상 있을 경우 시장가 매도 정리)
+            if not is_dry_run:
+                for asset_name, asset_info in list(bin_balances.items()):
+                    if asset_name not in ["USDT", "BTC", "ETH", "BNB"]:
+                        asset_qty = asset_info.get("free", 0.0)
+                        pair = f"{asset_name}USDT"
+                        try:
+                            asset_p = binance.get_current_price(pair)
+                            asset_val = asset_qty * asset_p
+                            if asset_val >= BINANCE_MIN_ORDER_USDT:
+                                logging.info(f"[바이낸스 잡코인 정리] {asset_name} 매도 (금액: ${asset_val:.2f} USDT)")
+                                binance.sell_market(pair, asset_qty)
+                                binance_order_history.append(f"✅ 바이낸스 잔여 {asset_name} 정리 매도: ${asset_val:.2f} USDT")
+                                time.sleep(1)
+                        except Exception as e:
+                            logging.debug(f"{asset_name} 정리 시도 스킵: {e}")
+                # 정리 후 가용 USDT 잔고 갱신
+                binance_usdt = binance.get_balance("USDT")
+
+            is_holding_bin_btc = (binance_btc_bal * bin_btc_price) >= BINANCE_MIN_ORDER_USDT
+            is_holding_bin_eth = (binance_eth_bal * bin_eth_price) >= BINANCE_MIN_ORDER_USDT
+
+            # 목표 포지션 결정
+            if not is_holding_bin_btc:
+                bin_btc_target = 'hold' if bin_btc_price >= bin_btc_ind['upper_buffer'] else 'cash'
+            else:
+                bin_btc_target = 'cash' if bin_btc_price < bin_btc_ind['lower_buffer'] else 'hold'
+
+            if not is_holding_bin_eth:
+                bin_eth_target = 'hold' if bin_eth_price >= bin_eth_ind['upper_band'] else 'cash'
+            else:
+                bin_eth_target = 'cash' if bin_eth_price < bin_eth_ind['lower_band'] else 'hold'
+
+            logging.info(f"바이낸스 판정 - BTC: {bin_btc_target} | ETH: {bin_eth_target}")
+
+            # (1) 선매도 처리
+            if bin_btc_target == 'cash' and is_holding_bin_btc:
+                val = binance_btc_bal * bin_btc_price
+                logging.info(f"[바이낸스 매도] BTC 청산 (수량: {binance_btc_bal:.6f}, 금액: ${val:.2f})")
+                try:
+                    binance.sell_market("BTCUSDT", binance_btc_bal)
+                    binance_order_history.append(f"✅ 바이낸스 BTC 청산: ${val:,.2f} USDT ({binance_btc_bal:.6f} BTC)")
+                    binance_btc_bal = 0.0
+                except Exception as e:
+                    binance_order_history.append(f"❌ 바이낸스 BTC 매도 실패: {e}")
+                time.sleep(1)
+
+            if bin_eth_target == 'cash' and is_holding_bin_eth:
+                val = binance_eth_bal * bin_eth_price
+                logging.info(f"[바이낸스 매도] ETH 청산 (수량: {binance_eth_bal:.4f}, 금액: ${val:.2f})")
+                try:
+                    binance.sell_market("ETHUSDT", binance_eth_bal)
+                    binance_order_history.append(f"✅ 바이낸스 ETH 청산: ${val:,.2f} USDT ({binance_eth_bal:.4f} ETH)")
+                    binance_eth_bal = 0.0
+                except Exception as e:
+                    binance_order_history.append(f"❌ 바이낸스 ETH 매도 실패: {e}")
+                time.sleep(1)
+
+            if not is_dry_run:
+                binance_usdt = binance.get_balance("USDT")
+
+            # (2) 총 평가 자산 및 목표 비중 산출
+            binance_btc_val = binance_btc_bal * bin_btc_price
+            binance_eth_val = binance_eth_bal * bin_eth_price
+            total_binance_value = binance_usdt + binance_btc_val + binance_eth_val
+
+            target_val_bin_btc = total_binance_value * 0.5 if bin_btc_target == 'hold' else 0.0
+            target_val_bin_eth = total_binance_value * 0.5 if bin_eth_target == 'hold' else 0.0
+
+            # (3) 비중 초과 리밸런싱 매도 (목표 50% 대비 10%p 초과 편차 시)
+            if bin_btc_target == 'hold' and bin_eth_target == 'hold' and is_holding_bin_btc and is_holding_bin_eth:
+                total_coins = binance_btc_val + binance_eth_val
+                if total_coins > 0:
+                    btc_ratio = binance_btc_val / total_coins
+                    if abs(btc_ratio - 0.5) > MAIN_RATIO_BAND:
+                        if btc_ratio > 0.5:
+                            excess = binance_btc_val - (total_coins * 0.5)
+                            excess_qty = excess / bin_btc_price
+                            if excess >= BINANCE_MIN_ORDER_USDT:
+                                try:
+                                    binance.sell_market("BTCUSDT", excess_qty)
+                                    binance_order_history.append(f"⚖️ 바이낸스 BTC 비중 축소: ${excess:,.2f} USDT")
+                                    binance_btc_bal -= excess_qty
+                                    binance_usdt += excess
+                                except Exception as e:
+                                    binance_order_history.append(f"❌ 바이낸스 BTC 리밸런싱 실패: {e}")
+                        else:
+                            excess = binance_eth_val - (total_coins * 0.5)
+                            excess_qty = excess / bin_eth_price
+                            if excess >= BINANCE_MIN_ORDER_USDT:
+                                try:
+                                    binance.sell_market("ETHUSDT", excess_qty)
+                                    binance_order_history.append(f"⚖️ 바이낸스 ETH 비중 축소: ${excess:,.2f} USDT")
+                                    binance_eth_bal -= excess_qty
+                                    binance_usdt += excess
+                                except Exception as e:
+                                    binance_order_history.append(f"❌ 바이낸스 ETH 리밸런싱 실패: {e}")
+
+            if not is_dry_run:
+                binance_usdt = binance.get_balance("USDT")
+
+            # (4) 매수 및 리밸런싱 (미체결/유휴 USDT 투입)
+            if bin_btc_target == 'hold':
+                binance_btc_val = binance_btc_bal * bin_btc_price
+                needed = target_val_bin_btc - binance_btc_val
+                if needed >= BINANCE_MIN_ORDER_USDT and binance_usdt >= BINANCE_MIN_ORDER_USDT:
+                    buy_amt = min(needed, binance_usdt * 0.995)
+                    if buy_amt >= BINANCE_MIN_ORDER_USDT:
+                        try:
+                            binance.buy_market("BTCUSDT", buy_amt)
+                            binance_order_history.append(f"✅ 바이낸스 BTC 매수: ${buy_amt:,.2f} USDT")
+                            binance_usdt -= buy_amt
+                        except Exception as e:
+                            binance_order_history.append(f"❌ 바이낸스 BTC 매수 실패: {e}")
+
+            if bin_eth_target == 'hold':
+                binance_eth_val = binance_eth_bal * bin_eth_price
+                needed = target_val_bin_eth - binance_eth_val
+                if needed >= BINANCE_MIN_ORDER_USDT and binance_usdt >= BINANCE_MIN_ORDER_USDT:
+                    buy_amt = min(needed, binance_usdt * 0.995)
+                    if buy_amt >= BINANCE_MIN_ORDER_USDT:
+                        try:
+                            binance.buy_market("ETHUSDT", buy_amt)
+                            binance_order_history.append(f"✅ 바이낸스 ETH 매수: ${buy_amt:,.2f} USDT")
+                            binance_usdt -= buy_amt
+                        except Exception as e:
+                            binance_order_history.append(f"❌ 바이낸스 ETH 매수 실패: {e}")
+
+            bin_btc_guide = "BTC 50% 매수/보유" if bin_btc_target == 'hold' else "BTC 현금화(USDT)"
+            bin_eth_guide = "ETH 50% 매수/보유" if bin_eth_target == 'hold' else "ETH 현금화(USDT)"
+            binance_guide = f"{bin_btc_guide} / {bin_eth_guide}"
+
+            binance_data = {
+                "enabled": True,
+                "strategy_name": "바이낸스 BTC/ETH 50:50 동적 리밸런싱",
+                "usd_krw_rate": usd_krw_rate,
+                "btc": {
+                    "current_price": bin_btc_price,
+                    "sma": bin_btc_ind['sma'],
+                    "status": bin_btc_ind['status'],
+                    "status_label": bin_btc_ind['status_label'],
+                    "target_state": bin_btc_target
+                },
+                "eth": {
+                    "current_price": bin_eth_price,
+                    "sma": bin_eth_ind['sma'],
+                    "status": bin_eth_ind['status'],
+                    "status_label": bin_eth_ind['status_label'],
+                    "target_state": bin_eth_target
+                },
+                "guide": binance_guide
+            }
+        except Exception as e:
+            logging.error(f"바이낸스 매매 제어 중 오류: {e}")
+            binance_order_history.append(f"⚠️ 바이낸스 매매 오류: {e}")
+            binance_data = {"enabled": False, "error": str(e), "guide": f"오류 발생: {e}"}
+    else:
+        logging.info("=== [바이낸스 매매 제어 프로세스 비활성화] ===")
+        binance_data = {"enabled": False, "guide": "바이낸스 전략 미사용"}
+
     # 5. 최종 잔고 업데이트 조회 및 디스코드 리포트 발송
     logging.info("=== [최종 포트폴리오 리포트 전송 시작] ===")
     
@@ -986,7 +1284,33 @@ def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STR
         bithumb_eth_val_fin = bithumb_eth_bal_fin * float(bithumb_ticker_fin.get("ETH", {}).get("closing_price", eth_price_fin))
         total_bithumb_fin = bithumb_krw_fin + bithumb_eth_val_fin
 
-    # 5.3 디스코드 본문 포맷팅
+    # 5.3 바이낸스 최종 잔고 파싱
+    binance_usdt_fin = 0.0
+    binance_btc_bal_fin = 0.0
+    binance_eth_bal_fin = 0.0
+    binance_btc_val_fin = 0.0
+    binance_eth_val_fin = 0.0
+    total_binance_usdt_fin = 0.0
+    total_binance_krw_fin = 0.0
+
+    if use_binance_strategy:
+        try:
+            bin_balances_fin = binance.get_balances()
+            binance_usdt_fin = bin_balances_fin.get("USDT", {}).get("free", 0.0)
+            binance_btc_bal_fin = bin_balances_fin.get("BTC", {}).get("total", 0.0)
+            binance_eth_bal_fin = bin_balances_fin.get("ETH", {}).get("total", 0.0)
+            
+            bin_btc_p_fin = binance.get_current_price("BTCUSDT") if bin_btc_price == 0 else bin_btc_price
+            bin_eth_p_fin = binance.get_current_price("ETHUSDT") if bin_eth_price == 0 else bin_eth_price
+            
+            binance_btc_val_fin = binance_btc_bal_fin * bin_btc_p_fin
+            binance_eth_val_fin = binance_eth_bal_fin * bin_eth_p_fin
+            total_binance_usdt_fin = binance_usdt_fin + binance_btc_val_fin + binance_eth_val_fin
+            total_binance_krw_fin = total_binance_usdt_fin * usd_krw_rate
+        except Exception as e:
+            logging.error(f"바이낸스 최종 잔고 파싱 실패: {e}")
+
+    # 5.4 수익률 및 통합 총자산 계산
     upbit_btc_cost = btc_bal_fin * upbit_balances.get("BTC", {}).get("avg_buy", 0.0)
     upbit_eth_cost = eth_bal_fin * upbit_balances.get("ETH", {}).get("avg_buy", 0.0)
     upbit_total_invested = upbit_krw_fin + upbit_btc_cost + upbit_eth_cost
@@ -999,21 +1323,25 @@ def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STR
     bithumb_total_invested = bithumb_krw_fin + bithumb_eth_cost
     bithumb_total_ret = ((total_bithumb_fin - bithumb_total_invested) / bithumb_total_invested * 100) if bithumb_total_invested > 0 else 0.0
 
-    grand_total_val = total_upbit_fin + (total_bithumb_fin if use_alt_strategy else 0.0)
-    grand_total_invested = upbit_total_invested + (bithumb_total_invested if use_alt_strategy else 0.0)
+    grand_total_val = total_upbit_fin + (total_bithumb_fin if use_alt_strategy else 0.0) + (total_binance_krw_fin if use_binance_strategy else 0.0)
+    grand_total_invested = upbit_total_invested + (bithumb_total_invested if use_alt_strategy else 0.0) + (total_binance_krw_fin if use_binance_strategy else 0.0)
     grand_total_ret = ((grand_total_val - grand_total_invested) / grand_total_invested * 100) if grand_total_invested > 0 else 0.0
 
+    # 5.5 디스코드 본문 포맷팅
     report = []
     if is_dry_run:
         report.append("⚡ **[로컬 모의매매] 모의 주문 체결 및 포트폴리오 잔고 보고서**")
     else:
-        report.append("⚡ **[로컬 자동매매] 실거래 주문 체결 및 포트폴리오 잔고 보고서**")
+        report.append("⚡ **[실거래 자동매매] 실거래 주문 체결 및 포트폴리오 잔고 보고서**")
     report.append(f"⏱️ **실행 일시**: {kst_now.strftime('%Y-%m-%d %H:%M')} KST")
     report.append("==================================")
     
-    if use_alt_strategy:
-        report.append(f"💰 **통합 총 자산**: {grand_total_val:,.0f} 원 (전체 평가수익률: `{grand_total_ret:+.2f}%`)")
+    # 통합 총자산 표시 (복수 거래소 사용 시)
+    if use_alt_strategy or use_binance_strategy:
+        binance_desc = f" (바이낸스 환산 포함: 1 USD = {usd_krw_rate:,.1f}원)" if use_binance_strategy else ""
+        report.append(f"💰 **통합 총 자산**: {grand_total_val:,.0f} 원{binance_desc}")
     
+    # 1. 업비트 메인
     report.append("\n🔵 **메인 전략 (업비트 - BTC & ETH 50:50)**")
     report.append(f"• **총 자산 가치**: {total_upbit_fin:,.0f} 원 (전체 수익률: `{upbit_total_ret:+.2f}%`)")
     report.append(f"• **보유 현금 (KRW)**: {upbit_krw_fin:,.0f} 원 ({upbit_krw_fin/total_upbit_fin*100:.1f}%)" if total_upbit_fin > 0 else f"• **보유 현금 (KRW)**: {upbit_krw_fin:,.0f} 원 (0.0%)")
@@ -1028,6 +1356,7 @@ def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STR
     else:
         report.append("• **ETH**: 미보유 (현금화)")
         
+    # 2. 빗썸 서브
     report.append("\n🟢 **서브 전략 (빗썸 - 이더리움 SuperTrend + 50일 SMA)**")
     if use_alt_strategy:
         st_badge = "🟢 매수 유지 (ETH 100%)" if bithumb_action == "BUY" else "🔴 100% 원화 현금화 관망"
@@ -1045,9 +1374,26 @@ def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STR
     else:
         report.append("• **상태**: 비활성화됨 (Disabled)")
 
-    # 5.4 당일 매매 내역 요약 추가
+    # 3. 바이낸스 메인
+    if use_binance_strategy:
+        report.append("\n🟡 **메인 전략 (바이낸스 - BTC & ETH 50:50)**")
+        report.append(f"• **총 자산 가치**: ${total_binance_usdt_fin:,.2f} USDT (약 {total_binance_krw_fin:,.0f} 원)")
+        if total_binance_usdt_fin > 0:
+            report.append(f"• **보유 현금 (USDT)**: ${binance_usdt_fin:,.2f} ({binance_usdt_fin/total_binance_usdt_fin*100:.1f}%)")
+            if binance_btc_bal_fin > 0:
+                report.append(f"• **BTC**: ${binance_btc_val_fin:,.2f} ({binance_btc_val_fin/total_binance_usdt_fin*100:.1f}%) | {binance_btc_bal_fin:.6f} BTC")
+            else:
+                report.append("• **BTC**: 미보유 (USDT 현금화)")
+            if binance_eth_bal_fin > 0:
+                report.append(f"• **ETH**: ${binance_eth_val_fin:,.2f} ({binance_eth_val_fin/total_binance_usdt_fin*100:.1f}%) | {binance_eth_bal_fin:.4f} ETH")
+            else:
+                report.append("• **ETH**: 미보유 (USDT 현금화)")
+        else:
+            report.append(f"• **보유 현금 (USDT)**: ${binance_usdt_fin:,.2f}")
+
+    # 5.6 당일 매매 내역 요약 추가
     report.append("\n🛠️ **당일 실거래 체결 내역**" if not is_dry_run else "\n🛠️ **당일 모의 매매 체결 내역**")
-    all_orders = upbit_order_history + bithumb_order_history
+    all_orders = upbit_order_history + bithumb_order_history + binance_order_history
     if all_orders:
         for order in all_orders:
             report.append(f"• {order}")
@@ -1088,9 +1434,11 @@ def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STR
             }
         },
         "bithumb": bithumb_data,
+        "binance": binance_data,
         "guides": {
             "upbit": f"{btc_guide} / {eth_guide}",
-            "bithumb": bithumb_guide
+            "bithumb": bithumb_guide,
+            "binance": binance_guide
         },
         "chart": build_chart_series(btc_df, eth_df)
     }
@@ -1103,14 +1451,15 @@ def main():
     logging.info(f"퀀트 매매 시스템 기동 - 실행 시각 (KST): {kst_now.strftime('%Y-%m-%d %H:%M:%S')}")
     
     parser = argparse.ArgumentParser(
-        description="암호화폐 퀀트 매매 봇 (Upbit BTC/ETH 듀얼 모멘텀 + Bithumb BTC/ETH 100%% 스위칭)",
+        description="암호화폐 퀀트 매매 봇 (Upbit + Bithumb + Binance 3대 거래소 통합)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 실행 예시:
-  python src/main.py --signal-only      # 시그널 방향성 브리핑만 실행 (API 키 불필요)
-  python src/main.py --dry-run          # 로컬 모의 매매 시뮬레이션
-  python src/main.py --live             # 로컬 실거래 자동 매수/매도 주문 집행
-  python src/main.py --live --no-alt    # 빗썸 서브 전략 제외하고 업비트 메인만 실거래
+  python src/main.py --signal-only      # 3대 거래소 시그널 방향성 브리핑 (API 키 불필요)
+  python src/main.py --dry-run          # 3대 거래소 모의 매매 시뮬레이션
+  python src/main.py --live             # 3대 거래소 실거래 자동 매수/매도 주문 집행
+  python src/main.py --live --no-alt    # 빗썸 제외하고 업비트/바이낸스만 실거래
+  python src/main.py --live --no-binance # 바이낸스 제외하고 국내 거래소만 실거래
         """
     )
     
@@ -1125,7 +1474,9 @@ def main():
                             help="실거래(Live Trading) 모드 (실제 계좌 잔고 조회 및 거래소 주문 집행)")
     
     parser.add_argument("--no-alt", action="store_true",
-                        help="빗썸 서브 전략을 비활성화하고 업비트 메인 전략만 실행")
+                        help="빗썸 서브 전략을 비활성화")
+    parser.add_argument("--no-binance", action="store_true",
+                        help="바이낸스 메인 전략을 비활성화")
     
     args = parser.parse_args()
     
@@ -1142,16 +1493,18 @@ def main():
         target_mode = "dry-run" if DRY_RUN else "signal"
         
     use_alt = not args.no_alt if args.no_alt else USE_ALTCOIN_STRATEGY
+    use_bin = not args.no_binance if args.no_binance else USE_BINANCE_STRATEGY
     
-    logging.info(f"선택된 실행 모드: [{target_mode}] | 빗썸 서브 전략 활성화: [{use_alt}]")
+    logging.info(f"선택된 실행 모드: [{target_mode}] | 빗썸: [{use_alt}] | 바이낸스: [{use_bin}]")
     
     if target_mode == "signal":
-        run_signal_briefing(kst_now, use_alt_strategy=use_alt)
+        run_signal_briefing(kst_now, use_alt_strategy=use_alt, use_binance_strategy=use_bin)
     elif target_mode == "dry-run":
-        run_live_trading(kst_now, is_dry_run=True, use_alt_strategy=use_alt)
+        run_live_trading(kst_now, is_dry_run=True, use_alt_strategy=use_alt, use_binance_strategy=use_bin)
     elif target_mode == "live":
-        run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=use_alt)
+        run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=use_alt, use_binance_strategy=use_bin)
 
 
 if __name__ == "__main__":
     main()
+
