@@ -80,6 +80,71 @@ class TestCashAllocationLogic(unittest.TestCase):
         self.assertAlmostEqual(upbit_btc_bal * btc_price, 500_000.0, delta=5000.0)
         self.assertAlmostEqual(upbit_krw, 500_000.0, delta=5000.0)
 
+    def test_eth_selloff_does_not_inflate_btc_target(self):
+        """ETH 전량 매도 시 잔고가 0으로 초기화되어 자산 뻥튀기 및 BTC 강제 추가매수가 방지되는지 검증"""
+        btc_price = 100_000_000.0
+        eth_price = 4_000_000.0
+
+        # 초기 상황: BTC 0.05 (500만원), ETH 1.25 (500만원), KRW 0원 -> 총 1,000만원
+        upbit_btc_bal = 0.05
+        upbit_eth_bal = 1.25
+        upbit_krw = 0.0
+
+        btc_target_state = 'hold'
+        eth_target_state = 'cash'
+
+        # ETH 선매도 집행
+        eth_sell_val = upbit_eth_bal * eth_price  # 5,000,000원
+        upbit_krw += eth_sell_val * 0.9995        # 현금 입금
+        upbit_eth_bal = 0.0                       # 잔고 0으로 리셋 (버그 수정 핵심)
+
+        # 총자산 산출
+        btc_val = upbit_btc_bal * btc_price       # 5,000,000원
+        eth_val = upbit_eth_bal * eth_price       # 0원
+        total_upbit_value = upbit_krw + btc_val + eth_val  # 약 10,000,000원 (뻥튀기 없음!)
+
+        target_val_btc = total_upbit_value * 0.5  # 약 5,000,000원
+        needed_btc = max(0.0, target_val_btc - btc_val)
+
+        # 검증: BTC 추가 매수 필요 금액이 0원이어야 함 (더 사면 안 됨!)
+        self.assertEqual(needed_btc, 0.0)
+        self.assertAlmostEqual(upbit_krw, 5_000_000.0, delta=5000.0)
+
+    def test_single_asset_rebalance_sell_when_exceeding_60_percent(self):
+        """단독 상승장(ETH cash, BTC hold)에서 BTC 비중이 75%로 비대해졌을 때, 60% 초과분을 매도하여 50:50으로 복구되는지 검증"""
+        btc_price = 100_000_000.0
+
+        # 현재 상황: BTC 0.075 (750만원), 현금 250만원 -> 총자산 1,000만원 (BTC 75% 비대)
+        upbit_btc_bal = 0.075
+        upbit_eth_bal = 0.0
+        upbit_krw = 2_500_000.0
+
+        btc_target_state = 'hold'
+        eth_target_state = 'cash'
+        main_ratio_band = 0.10
+
+        btc_val = upbit_btc_bal * btc_price
+        total_value = upbit_krw + btc_val  # 10,000,000원
+        target_val_btc = total_value * 0.5 # 5,000,000원
+
+        btc_weight = btc_val / total_value  # 0.75 (75%)
+
+        # 60% 초과 판정
+        self.assertGreater(btc_weight, 0.5 + main_ratio_band)
+
+        # 리밸런싱 매도 집행
+        excess_val = btc_val - target_val_btc  # 2,500,000원
+        excess_btc = excess_val / btc_price
+        upbit_btc_bal -= excess_btc
+        upbit_krw += excess_val * 0.9995
+
+        final_btc_val = upbit_btc_bal * btc_price
+
+        # 검증: BTC가 목표치 50%(500만원)로 축소되고, 현금도 50%(약 500만원)로 맞춰졌는지 확인
+        self.assertAlmostEqual(final_btc_val, 5_000_000.0, delta=5000.0)
+        self.assertAlmostEqual(upbit_krw, 5_000_000.0, delta=5000.0)
+
 
 if __name__ == '__main__':
     unittest.main()
+

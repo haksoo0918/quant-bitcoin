@@ -809,10 +809,12 @@ def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STR
             try:
                 order_res = upbit.sell_market_order("KRW-BTC", upbit_btc_bal)
                 upbit_order_history.append(f"✅ 업비트 BTC 청산: {val:,.0f}원 ({upbit_btc_bal:.4f} BTC)")
+                upbit_btc_bal = 0.0
             except Exception as e:
                 upbit_order_history.append(f"❌ 업비트 BTC 매도 실패: {e}")
         else:
             upbit_order_history.append(f"📝 [모의 주문] 업비트 BTC 청산: {val:,.0f}원 ({upbit_btc_bal:.4f} BTC)")
+            upbit_btc_bal = 0.0
         time.sleep(2)
         
     if eth_target_state == 'cash' and is_holding_eth:
@@ -822,67 +824,81 @@ def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STR
             try:
                 order_res = upbit.sell_market_order("KRW-ETH", upbit_eth_bal)
                 upbit_order_history.append(f"✅ 업비트 ETH 청산: {val:,.0f}원 ({upbit_eth_bal:.4f} ETH)")
+                upbit_eth_bal = 0.0
             except Exception as e:
                 upbit_order_history.append(f"❌ 업비트 ETH 매도 실패: {e}")
         else:
             upbit_order_history.append(f"📝 [모의 주문] 업비트 ETH 청산: {val:,.0f}원 ({upbit_eth_bal:.4f} ETH)")
+            upbit_eth_bal = 0.0
         time.sleep(2)
 
-    # 실거래 모드일 경우 선매도 체결 후 실제 가용 KRW 잔고 재조회
+    # 실거래 모드일 경우 선매도 체결 후 실제 가용 잔고(KRW, BTC, ETH) 전수 재조회하여 자산 뻥튀기 원천 차단
     if not is_dry_run and upbit:
         try:
-            upbit_krw = float(upbit.get_balance("KRW"))
+            balances_synced = fetch_upbit_balances(upbit, is_dry_run=False)
+            for asset in balances_synced:
+                curr = asset.get("currency")
+                bal = float(asset.get("balance", 0.0)) + float(asset.get("locked", 0.0))
+                if curr == "KRW":
+                    upbit_krw = bal
+                elif curr == "BTC":
+                    upbit_btc_bal = bal
+                elif curr == "ETH":
+                    upbit_eth_bal = bal
         except Exception as e:
-            logging.warning(f"업비트 KRW 잔고 재조회 실패: {e}")
+            logging.warning(f"업비트 잔고 재동기화 실패: {e}")
 
     # 3.2 총 평가 자산 및 목표치 산출
     btc_val = upbit_btc_bal * btc_current_price
     eth_val = upbit_eth_bal * eth_current_price
     total_upbit_value = upbit_krw + btc_val + eth_val
 
-    # 목표 자산 평가액 설정 (BTC 50%, ETH 50% 분할 전략)
+    # 목표 자산 평가액 설정 (BTC 50%, ETH 50% 분할 전략: hold일 때 총자산의 50%, cash일 때 0%)
     target_val_btc = total_upbit_value * 0.5 if btc_target_state == 'hold' else 0.0
     target_val_eth = total_upbit_value * 0.5 if eth_target_state == 'hold' else 0.0
 
-    # 3.3 비중 초과 자산 리밸런싱 매도 (두 자산 모두 상승장일 때 특정 코인이 목표비중 50% 대비 10%p 이상 비대해진 경우)
-    if btc_target_state == 'hold' and eth_target_state == 'hold' and is_holding_btc and is_holding_eth:
-        total_coins_val = btc_val + eth_val
-        if total_coins_val > 0:
-            btc_weight = btc_val / total_coins_val
-            if abs(btc_weight - 0.5) > MAIN_RATIO_BAND:
-                logging.info(f"[업비트 리밸런싱 발동] 현재 코인 비중 BTC: {btc_weight*100:.1f}%")
-                if btc_weight > 0.5:
-                    excess_val = btc_val - (total_coins_val * 0.5)
-                    excess_btc = excess_val / btc_current_price
-                    if excess_val >= UPBIT_MIN_ORDER_KRW:
-                        if not is_dry_run and upbit:
-                            try:
-                                upbit.sell_market_order("KRW-BTC", excess_btc)
-                                upbit_order_history.append(f"✅ 업비트 BTC 일부 매도: {excess_val:,.0f}원")
-                                upbit_btc_bal -= excess_btc
-                                upbit_krw += excess_val * 0.9995
-                            except Exception as e:
-                                upbit_order_history.append(f"❌ 업비트 BTC 리밸런싱 실패: {e}")
-                        else:
-                            upbit_order_history.append(f"📝 [모의 주문] 업비트 BTC 일부 매도: {excess_val:,.0f}원")
-                            upbit_btc_bal -= excess_btc
-                            upbit_krw += excess_val * 0.9995
+    # 3.3 비중 초과 자산 리밸런싱 매도 (총자산 대비 허용 상한인 60% = 50% + 10%p 초과 시 매도하여 현금 50% 회수)
+    # 단독 상승장이든, 동시 상승장이든 상관없이 총자산 기준 60%를 초과한 비대 포지션은 목표치(50%)까지 매도
+    if btc_target_state == 'hold' and total_upbit_value > 0:
+        btc_weight = btc_val / total_upbit_value
+        if btc_weight > (0.5 + MAIN_RATIO_BAND):
+            excess_val = btc_val - target_val_btc
+            excess_btc = excess_val / btc_current_price
+            if excess_val >= UPBIT_MIN_ORDER_KRW:
+                logging.info(f"[업비트 BTC 비중 초과 매도] 총자산 비중: {btc_weight*100:.1f}%, 초과액: {excess_val:,.0f}원")
+                if not is_dry_run and upbit:
+                    try:
+                        upbit.sell_market_order("KRW-BTC", excess_btc)
+                        upbit_order_history.append(f"⚖️ 업비트 BTC 비중 축소: {excess_val:,.0f}원")
+                        upbit_btc_bal -= excess_btc
+                        upbit_krw += excess_val * 0.9995
+                    except Exception as e:
+                        upbit_order_history.append(f"❌ 업비트 BTC 리밸런싱 실패: {e}")
                 else:
-                    excess_val = eth_val - (total_coins_val * 0.5)
-                    excess_eth = excess_val / eth_current_price
-                    if excess_val >= UPBIT_MIN_ORDER_KRW:
-                        if not is_dry_run and upbit:
-                            try:
-                                upbit.sell_market_order("KRW-ETH", excess_eth)
-                                upbit_order_history.append(f"✅ 업비트 ETH 일부 매도: {excess_val:,.0f}원")
-                                upbit_eth_bal -= excess_eth
-                                upbit_krw += excess_val * 0.9995
-                            except Exception as e:
-                                upbit_order_history.append(f"❌ 업비트 ETH 리밸런싱 실패: {e}")
-                        else:
-                            upbit_order_history.append(f"📝 [모의 주문] 업비트 ETH 일부 매도: {excess_val:,.0f}원")
-                            upbit_eth_bal -= excess_eth
-                            upbit_krw += excess_val * 0.9995
+                    upbit_order_history.append(f"📝 [모의 주문] 업비트 BTC 비중 축소: {excess_val:,.0f}원")
+                    upbit_btc_bal -= excess_btc
+                    upbit_krw += excess_val * 0.9995
+                time.sleep(2)
+
+    if eth_target_state == 'hold' and total_upbit_value > 0:
+        eth_weight = eth_val / total_upbit_value
+        if eth_weight > (0.5 + MAIN_RATIO_BAND):
+            excess_val = eth_val - target_val_eth
+            excess_eth = excess_val / eth_current_price
+            if excess_val >= UPBIT_MIN_ORDER_KRW:
+                logging.info(f"[업비트 ETH 비중 초과 매도] 총자산 비중: {eth_weight*100:.1f}%, 초과액: {excess_val:,.0f}원")
+                if not is_dry_run and upbit:
+                    try:
+                        upbit.sell_market_order("KRW-ETH", excess_eth)
+                        upbit_order_history.append(f"⚖️ 업비트 ETH 비중 축소: {excess_val:,.0f}원")
+                        upbit_eth_bal -= excess_eth
+                        upbit_krw += excess_val * 0.9995
+                    except Exception as e:
+                        upbit_order_history.append(f"❌ 업비트 ETH 리밸런싱 실패: {e}")
+                else:
+                    upbit_order_history.append(f"📝 [모의 주문] 업비트 ETH 비중 축소: {excess_val:,.0f}원")
+                    upbit_eth_bal -= excess_eth
+                    upbit_krw += excess_val * 0.9995
                 time.sleep(2)
 
     # 실거래 모드일 경우 리밸런싱 매도 후 실제 KRW 잔고 재확인
@@ -1144,34 +1160,35 @@ def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STR
             target_val_bin_btc = total_binance_value * 0.5 if bin_btc_target == 'hold' else 0.0
             target_val_bin_eth = total_binance_value * 0.5 if bin_eth_target == 'hold' else 0.0
 
-            # (3) 비중 초과 리밸런싱 매도 (목표 50% 대비 10%p 초과 편차 시)
-            if bin_btc_target == 'hold' and bin_eth_target == 'hold' and is_holding_bin_btc and is_holding_bin_eth:
-                total_coins = binance_btc_val + binance_eth_val
-                if total_coins > 0:
-                    btc_ratio = binance_btc_val / total_coins
-                    if abs(btc_ratio - 0.5) > MAIN_RATIO_BAND:
-                        if btc_ratio > 0.5:
-                            excess = binance_btc_val - (total_coins * 0.5)
-                            excess_qty = excess / bin_btc_price
-                            if excess >= BINANCE_MIN_ORDER_USDT:
-                                try:
-                                    binance.sell_market("BTCUSDT", excess_qty)
-                                    binance_order_history.append(f"⚖️ 바이낸스 BTC 비중 축소: ${excess:,.2f} USDT")
-                                    binance_btc_bal -= excess_qty
-                                    binance_usdt += excess
-                                except Exception as e:
-                                    binance_order_history.append(f"❌ 바이낸스 BTC 리밸런싱 실패: {e}")
-                        else:
-                            excess = binance_eth_val - (total_coins * 0.5)
-                            excess_qty = excess / bin_eth_price
-                            if excess >= BINANCE_MIN_ORDER_USDT:
-                                try:
-                                    binance.sell_market("ETHUSDT", excess_qty)
-                                    binance_order_history.append(f"⚖️ 바이낸스 ETH 비중 축소: ${excess:,.2f} USDT")
-                                    binance_eth_bal -= excess_qty
-                                    binance_usdt += excess
-                                except Exception as e:
-                                    binance_order_history.append(f"❌ 바이낸스 ETH 리밸런싱 실패: {e}")
+            # (3) 비중 초과 리밸런싱 매도 (총자산 대비 허용 상한인 60% = 50% + 10%p 초과 시 매도하여 USDT 50% 회수)
+            # 단독 상승장이든, 동시 상승장이든 상관없이 총자산 기준 60%를 초과한 비대 포지션은 목표치(50%)까지 매도
+            if bin_btc_target == 'hold' and total_binance_value > 0:
+                btc_weight = binance_btc_val / total_binance_value
+                if btc_weight > (0.5 + MAIN_RATIO_BAND):
+                    excess = binance_btc_val - target_val_bin_btc
+                    excess_qty = excess / bin_btc_price
+                    if excess >= BINANCE_MIN_ORDER_USDT:
+                        try:
+                            binance.sell_market("BTCUSDT", excess_qty)
+                            binance_order_history.append(f"⚖️ 바이낸스 BTC 비중 축소: ${excess:,.2f} USDT")
+                            binance_btc_bal -= excess_qty
+                            binance_usdt += excess
+                        except Exception as e:
+                            binance_order_history.append(f"❌ 바이낸스 BTC 리밸런싱 실패: {e}")
+
+            if bin_eth_target == 'hold' and total_binance_value > 0:
+                eth_weight = binance_eth_val / total_binance_value
+                if eth_weight > (0.5 + MAIN_RATIO_BAND):
+                    excess = binance_eth_val - target_val_bin_eth
+                    excess_qty = excess / bin_eth_price
+                    if excess >= BINANCE_MIN_ORDER_USDT:
+                        try:
+                            binance.sell_market("ETHUSDT", excess_qty)
+                            binance_order_history.append(f"⚖️ 바이낸스 ETH 비중 축소: ${excess:,.2f} USDT")
+                            binance_eth_bal -= excess_qty
+                            binance_usdt += excess
+                        except Exception as e:
+                            binance_order_history.append(f"❌ 바이낸스 ETH 리밸런싱 실패: {e}")
 
             if not is_dry_run:
                 binance_usdt = binance.get_balance("USDT")
