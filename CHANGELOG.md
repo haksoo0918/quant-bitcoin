@@ -3,6 +3,16 @@
 이 프로젝트의 모든 중요한 변경 사항은 이 파일에 기록됩니다.
 이 프로젝트는 유의적 버전(Semantic Versioning)을 준수합니다.
 
+## [1.12.1] - 2026-10-16
+
+### Changed (변경됨)
+- **로컬 에이전트 및 오라클 클라우드 VM 양방향 Git 동기화(`git pull`) 자동화 강화 (`AGENTS.md`, `src/main.py`, `.github/workflows/deploy.yml`)**:
+  - `AGENTS.md`: 에이전트가 파일 수정이나 작업을 시작하기 전에 사용자 승인 없이 먼저 `git pull origin main`을 알아서 실행하도록 0순위 원칙 명문화.
+  - `src/main.py` (`auto_push_status_json`): 오라클 서버가 `status.json`, `trade_history.csv`, `asset_history.csv`를 커밋한 뒤 푸시하기 직전에 `git pull --rebase -X theirs origin main`을 자동 수행하여 원격 브랜치 선행 커밋과의 충돌(Rejected) 방지.
+  - `.github/workflows/deploy.yml`: 오라클 클라우드 VM의 매일 09:05 KST 크론탭 실행 직전에도 `git pull --rebase --autostash origin main`을 선행하도록 개선.
+
+---
+
 ## [1.12.0] - 2026-10-16
 
 ### Added (추가됨)

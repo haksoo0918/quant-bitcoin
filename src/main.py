@@ -662,7 +662,19 @@ def auto_push_status_json(target_file="docs/data/status.json", skip_push=False):
             logging.warning(f"git commit 실패: {commit_res.stderr.strip()}")
             return False
 
-        # 3. git push
+        # 3. 원격 최신 변경사항 동기화 (PC에서 문서/대시보드만 푸시한 경우 충돌 방지)
+        pull_res = subprocess.run(
+            ["git", "pull", "--rebase", "-X", "theirs", "origin", "main"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False
+        )
+        if pull_res.returncode != 0:
+            logging.warning(f"git pull --rebase 경고 (푸시 계속 시도): {pull_res.stderr.strip()}")
+
+        # 4. git push
         push_res = subprocess.run(
             ["git", "push", "origin", "main"],
             capture_output=True,
