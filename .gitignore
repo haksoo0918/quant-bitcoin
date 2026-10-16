@@ -24,7 +24,8 @@ Thumbs.db
 run_bot.bat
 trading_log.txt
 logs/
-/data/
+/data/*
+!/data/trade_history.csv
 !docs/data/status.json
 
 # 백테스트 실행 결과물 및 보고서 디렉터리 전체 무시

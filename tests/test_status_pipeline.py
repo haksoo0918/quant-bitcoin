@@ -9,7 +9,13 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from main import build_chart_series, export_web_status_json, auto_push_status_json
+from main import (
+    build_chart_series,
+    export_web_status_json,
+    auto_push_status_json,
+    record_trade_history,
+    load_recent_trade_history
+)
 
 
 class TestStatusPipeline(unittest.TestCase):
@@ -89,9 +95,58 @@ class TestStatusPipeline(unittest.TestCase):
             self.assertEqual(loaded["mode"], "live")
             self.assertIn("chart", loaded)
             self.assertEqual(loaded["chart"]["btc"]["closes"], [100000000])
+            self.assertIn("trade_history", loaded)
+            self.assertIsInstance(loaded["trade_history"], list)
         finally:
             if os.path.exists(temp_path):
                 os.remove(temp_path)
+
+    def test_trade_history_recording_and_loading(self):
+        with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as tf:
+            temp_csv = tf.name
+
+        try:
+            # 1. Record trades
+            record_trade_history(
+                exchange="UPBIT",
+                symbol="BTC",
+                side="BUY",
+                reason="TREND_BUY",
+                price=105000000,
+                quantity=0.01,
+                amount=1050000,
+                currency="KRW",
+                total_asset=10000000,
+                csv_path=temp_csv
+            )
+            record_trade_history(
+                exchange="BINANCE",
+                symbol="BTC",
+                side="SELL",
+                reason="REBALANCE_SELL",
+                price=82000.5,
+                quantity=0.05,
+                amount=4100.025,
+                currency="USDT",
+                total_asset=8200.0,
+                csv_path=temp_csv
+            )
+
+            # 2. Load trades
+            history = load_recent_trade_history(limit=10, csv_path=temp_csv)
+            self.assertEqual(len(history), 2)
+            # Most recent trade should be first
+            self.assertEqual(history[0]["exchange"], "BINANCE")
+            self.assertEqual(history[0]["side"], "SELL")
+            self.assertEqual(history[0]["reason"], "REBALANCE_SELL")
+            self.assertEqual(history[0]["currency"], "USDT")
+            
+            self.assertEqual(history[1]["exchange"], "UPBIT")
+            self.assertEqual(history[1]["side"], "BUY")
+            self.assertEqual(history[1]["reason"], "TREND_BUY")
+        finally:
+            if os.path.exists(temp_csv):
+                os.remove(temp_csv)
 
     def test_auto_push_status_json_handles_exceptions(self):
         success = auto_push_status_json(target_file="docs/data/status.json", skip_push=True)

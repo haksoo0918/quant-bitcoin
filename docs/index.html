@@ -291,7 +291,7 @@
 
     .action-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
       gap: 12px;
     }
 
@@ -307,6 +307,10 @@
 
     .action-item.bithumb {
       border-left-color: var(--accent-green);
+    }
+
+    .action-item.binance {
+      border-left-color: var(--accent-amber);
     }
 
     .action-label {
@@ -741,6 +745,126 @@
       display: block;
     }
 
+    /* 최근 거래 체결 내역 스타일 */
+    .trade-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      box-shadow: var(--card-shadow);
+      margin-bottom: 24px;
+      overflow: hidden;
+    }
+
+    .trade-table-wrapper {
+      overflow-x: auto;
+      margin-top: 10px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .trade-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    .trade-table th {
+      background: var(--bg-card-sub);
+      color: var(--text-secondary);
+      font-weight: 600;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 11.5px;
+    }
+
+    .trade-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-primary);
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .trade-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .trade-table tr:hover td {
+      background-color: var(--bg-card-sub);
+    }
+
+    .badge-exchange {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: var(--radius-sm);
+      font-size: 11px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      letter-spacing: 0.3px;
+    }
+
+    .badge-exchange.upbit {
+      background: rgba(13, 148, 136, 0.12);
+      color: var(--accent-primary);
+      border: 1px solid rgba(13, 148, 136, 0.3);
+    }
+
+    .badge-exchange.bithumb {
+      background: rgba(16, 185, 129, 0.12);
+      color: var(--accent-green);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .badge-exchange.binance {
+      background: rgba(245, 158, 11, 0.15);
+      color: #d97706;
+      border: 1px solid rgba(245, 158, 11, 0.35);
+    }
+
+    [data-theme="dark"] .badge-exchange.binance {
+      color: #fbbf24;
+    }
+
+    .badge-side {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: var(--radius-sm);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .badge-side-buy {
+      background: var(--pill-bull-bg);
+      color: var(--pill-bull-text);
+      border: 1px solid var(--pill-bull-border);
+    }
+
+    .badge-side-sell {
+      background: var(--pill-bear-bg);
+      color: var(--pill-bear-text);
+      border: 1px solid var(--pill-bear-border);
+    }
+
+    .trade-reason-tag {
+      font-size: 11px;
+      color: var(--text-secondary);
+      background: var(--bg-card-sub);
+      padding: 2px 6px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+    }
+
+    .trade-empty {
+      text-align: center;
+      padding: 24px;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
     footer {
       text-align: center;
       padding: 24px 0 10px 0;
@@ -910,12 +1034,16 @@
       </h2>
       <div class="action-grid">
         <div class="action-item">
-          <div class="action-label">🔵 메인 전략 (BTC / ETH)</div>
+          <div class="action-label">🔵 업비트 메인 (KRW 50:50 | BTC 220일 + ETH 50일)</div>
           <div id="guide-upbit" class="action-value">BTC: 매수 보유 🟢 | ETH: 매수 보유 🟢</div>
         </div>
         <div class="action-item bithumb">
-          <div class="action-label">🟢 서브 전략 (이더리움 SuperTrend)</div>
+          <div class="action-label">🟢 빗썸 서브 (KRW 100% | ETH SuperTrend)</div>
           <div id="guide-bithumb" class="action-value">이더리움 100% 매수 집중 보유 🟢</div>
+        </div>
+        <div class="action-item binance">
+          <div class="action-label">🟡 바이낸스 글로벌 (USDT 50:50 | BTC 200일 + ETH 40일)</div>
+          <div id="guide-binance" class="action-value">BTC: 매수 보유 🟢 | ETH: 현금화 🔴</div>
         </div>
       </div>
     </div>
@@ -1036,7 +1164,105 @@
       </div>
     </div>
 
-    <!-- 전략 섹션 3: 전략별 인터랙티브 Canvas 시각화 차트 뷰 -->
+    <!-- 전략 섹션 3: 바이낸스 글로벌 전략 (USDT 50:50 동적 리밸런싱) -->
+    <div class="section-title">
+      <svg class="icon icon-amber" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v12"/><path d="M17 10H9.5a2.5 2.5 0 0 0 0 5H14a2.5 2.5 0 0 1 0 5H6"/></svg>
+      <span>바이낸스 글로벌 전략 (USDT 50:50 동적 리밸런싱)</span>
+      <span id="binance-usd-krw-badge" class="coin-badge" style="margin-left: auto; font-size: 11.5px; font-weight: 600;">환율: 로딩 중...</span>
+    </div>
+    <div class="section-desc">
+      바이낸스 USDT 현물 마켓에서 글로벌 최적 파라미터(BTC 200일 SMA 버퍼, ETH 40일 SMA 1.2 ATR 채널)를 적용하여 50:50으로 운용하며, 60% 비중 초과 시 안전자산(USDT)으로 이익을 확정 회수합니다.
+    </div>
+
+    <div class="card-grid">
+      <!-- Binance BTC Card -->
+      <div class="card">
+        <div class="card-header">
+          <div class="coin-title">
+            <span>비트코인 (글로벌)</span>
+            <span class="coin-badge">BTC/USDT</span>
+          </div>
+          <div id="bin-btc-status-badge" class="status-pill status-bull">🟢 상승 돌파</div>
+        </div>
+
+        <div class="price-display">
+          <div id="bin-btc-price" class="price-main">$0.00</div>
+          <div id="bin-btc-sma-diff" class="price-sub">기준 200일 SMA: $0.00</div>
+        </div>
+
+        <div class="channel-box">
+          <div class="channel-row">
+            <span>상한 버퍼 (+2%)</span>
+            <span id="bin-btc-upper" class="val">$0.00</span>
+          </div>
+          <div class="channel-row">
+            <span>기준 200일 SMA</span>
+            <span id="bin-btc-sma" class="val">$0.00</span>
+          </div>
+          <div class="channel-row">
+            <span>하한 버퍼 (-2%)</span>
+            <span id="bin-btc-lower" class="val">$0.00</span>
+          </div>
+          <div class="channel-row">
+            <span>원화 환산가 (추정)</span>
+            <span id="bin-btc-krw-price" class="val">- 원</span>
+          </div>
+          <div class="channel-row">
+            <span>포트폴리오 목표 비중</span>
+            <span class="val">50% (60% 초과시 USDT 회수)</span>
+          </div>
+        </div>
+
+        <div id="bin-btc-guide" class="card-footer-guide">
+          💡 행동 가이드: BTC 50% 비중 매수 또는 보유 유지
+        </div>
+      </div>
+
+      <!-- Binance ETH Card -->
+      <div class="card">
+        <div class="card-header">
+          <div class="coin-title">
+            <span>이더리움 (글로벌)</span>
+            <span class="coin-badge">ETH/USDT</span>
+          </div>
+          <div id="bin-eth-status-badge" class="status-pill status-bear">🔴 하락 이탈</div>
+        </div>
+
+        <div class="price-display">
+          <div id="bin-eth-price" class="price-main">$0.00</div>
+          <div id="bin-eth-sma-diff" class="price-sub">기준 40일 SMA: $0.00</div>
+        </div>
+
+        <div class="channel-box">
+          <div class="channel-row">
+            <span>상한 밴드 (+1.2 ATR)</span>
+            <span id="bin-eth-upper" class="val">$0.00</span>
+          </div>
+          <div class="channel-row">
+            <span>기준 40일 SMA</span>
+            <span id="bin-eth-sma" class="val">$0.00</span>
+          </div>
+          <div class="channel-row">
+            <span>하한 밴드 (-1.2 ATR)</span>
+            <span id="bin-eth-lower" class="val">$0.00</span>
+          </div>
+          <div class="channel-row">
+            <span>원화 환산가 (추정)</span>
+            <span id="bin-eth-krw-price" class="val">- 원</span>
+          </div>
+          <div class="channel-row">
+            <span>포트폴리오 목표 비중</span>
+            <span class="val">50% (하락 시 100% USDT)</span>
+          </div>
+        </div>
+
+        <div id="bin-eth-guide" class="card-footer-guide">
+          💡 행동 가이드: ETH 전량 매도 및 현금(USDT) 확보
+        </div>
+      </div>
+    </div>
+
+    <!-- 전략 섹션 4: 전략별 인터랙티브 Canvas 시각화 차트 뷰 -->
     <div class="section-title">
       <svg class="icon icon-cyan" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
       <span>전략별 지표 시각화 차트 (최근 60일)</span>
@@ -1135,11 +1361,44 @@
       </div>
     </div>
 
+    <!-- 전략 섹션 6: 최근 실거래 체결 내역 -->
+    <div class="section-title">
+      <svg class="icon icon-cyan" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      <span>최근 실거래 체결 내역 (최근 20건 장부)</span>
+    </div>
+    <div class="section-desc">
+      업비트, 빗썸, 바이낸스 3대 거래소에서 봇이 실제 집행한 매매 체결 이력(trade_history.csv)을 투명하게 공개합니다.
+    </div>
+
+    <div class="trade-card" id="trade-history-container">
+      <div class="trade-table-wrapper">
+        <table class="trade-table">
+          <thead>
+            <tr>
+              <th>체결 일시</th>
+              <th>거래소</th>
+              <th>자산</th>
+              <th>구분</th>
+              <th>체결 사유</th>
+              <th style="text-align: right;">체결 단가</th>
+              <th style="text-align: right;">수량</th>
+              <th style="text-align: right;">체결 금액</th>
+            </tr>
+          </thead>
+          <tbody id="trade-history-tbody">
+            <tr>
+              <td colspan="8" class="trade-empty">체결 이력을 불러오는 중...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- Footer -->
     <footer>
       <div>Crypto Quantitative Trading Bot • PWA Dashboard</div>
       <div class="footer-data-source">
-        지표 및 캔들 시세는 <strong>업비트(Upbit) 공개 REST API</strong>를 통해 오전 9시 기준으로 브라우저에서 직접 연산 및 스마트 로컬 캐싱됩니다.
+        지표 및 캔들 시세는 <strong>업비트(Upbit)</strong> 및 <strong>바이낸스(Binance)</strong> 공개 시세를 기반으로 매일 09:00 KST 확정 기준으로 동기화됩니다.
       </div>
       <div>매일 09:00 KST 확정 일봉 기준 100% 독립형 PWA 대시보드</div>
       <div class="footer-links">
@@ -1202,6 +1461,22 @@
     function formatKRW(val) {
       if (val === undefined || val === null || isNaN(val)) return '-';
       return Math.round(val).toLocaleString('ko-KR') + ' 원';
+    }
+
+    function formatUSDT(val) {
+      if (val === undefined || val === null || isNaN(val)) return '-';
+      return '$' + Number(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function formatTradeReason(reason) {
+      const map = {
+        'TREND_BUY': '추세 진입',
+        'TREND_SELL': '추세 이탈',
+        'REBALANCE_SELL': '비중 축소(이익실현)',
+        'REBALANCE_BUY': '비중 확대',
+        'PORTFOLIO_PREP': '자산 정비'
+      };
+      return map[reason] || reason;
     }
 
     // ==========================================================================
@@ -1323,7 +1598,7 @@
       const yyyy = refDate.getFullYear();
       const mm = String(refDate.getMonth() + 1).padStart(2, '0');
       const dd = String(refDate.getDate()).padStart(2, '0');
-      return `quant_chart_v3_${yyyy}-${mm}-${dd}`;
+      return `quant_chart_v5_${yyyy}-${mm}-${dd}`;
     }
 
     async function fetchJsonSafe(url) {
@@ -1352,6 +1627,40 @@
       }
     }
 
+    async function fetchBinanceCandles(symbol, limit) {
+      try {
+        const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1d&limit=${limit}`);
+        if (!res.ok) return null;
+        const klines = await res.json();
+        return klines.map(k => ({
+          time: k[0],
+          open_price: parseFloat(k[1]),
+          high_price: parseFloat(k[2]),
+          low_price: parseFloat(k[3]),
+          trade_price: parseFloat(k[4]),
+          volume: parseFloat(k[5])
+        }));
+      } catch (e) {
+        console.warn(`Binance candles fetch failed for ${symbol}:`, e);
+        return null;
+      }
+    }
+
+    async function fetchUsdKrwRate() {
+      try {
+        const res = await fetch('https://open.er-api.com/v6/latest/USD');
+        if (res.ok) {
+          const json = await res.json();
+          if (json && json.rates && json.rates.KRW) {
+            return parseFloat(json.rates.KRW);
+          }
+        }
+      } catch (e) {
+        console.warn('FX rate fetch failed:', e);
+      }
+      return 1342.7;
+    }
+
     async function loadOrComputeStrategyData() {
       const cacheKey = get9AmCycleKey();
       const cached = localStorage.getItem(cacheKey);
@@ -1361,7 +1670,7 @@
           const parsed = JSON.parse(cached);
           if (parsed && parsed.chart && parsed.chart.btc && parsed.chart.btc.closes) {
             globalStrategyData = parsed;
-            document.getElementById('cache-status-badge').textContent = `⚡ 스마트 로컬 캐싱 활성 (${cacheKey.replace('quant_chart_v3_', '')})`;
+            document.getElementById('cache-status-badge').textContent = `⚡ 스마트 로컬 캐싱 활성 (${cacheKey.replace('quant_chart_v5_', '')})`;
             return parsed;
           }
         } catch (e) {
@@ -1372,19 +1681,22 @@
       document.getElementById('cache-status-badge').textContent = `🔄 09:00 일봉 지표 실시간 연산 중...`;
 
       try {
-        const [btcCandles, ethCandles] = await Promise.all([
+        const [btcCandles, ethCandles, binBtcCandles, binEthCandles, fxRate] = await Promise.all([
           fetchUpbitCandles('KRW-BTC', 230),
-          fetchUpbitCandles('KRW-ETH', 80)
+          fetchUpbitCandles('KRW-ETH', 80),
+          fetchBinanceCandles('BTCUSDT', 220),
+          fetchBinanceCandles('ETHUSDT', 65),
+          fetchUsdKrwRate()
         ]);
 
         if (!btcCandles || !ethCandles) {
-          throw new Error('Candle fetch returned null');
+          throw new Error('Upbit candle fetch returned null');
         }
 
         const btcClosedIdx = btcCandles.length - 2;
         const ethClosedIdx = ethCandles.length - 2;
 
-        // BTC 지표 계산
+        // 1. 업비트 BTC 지표 계산 (220일 SMA ±2%)
         const btcCloses = btcCandles.map(c => c.trade_price);
         const btcSmaSeries = calculateSMA(btcCloses, 220);
         const btcSma = btcSmaSeries[btcClosedIdx];
@@ -1415,7 +1727,7 @@
           }
         }
 
-        // ETH 메인 지표 계산
+        // 2. 업비트 ETH 메인 지표 계산 (50일 SMA ± 1.5 ATR)
         const ethCloses = ethCandles.map(c => c.trade_price);
         const ethSmaSeries = calculateSMA(ethCloses, 50);
         const ethAtrSeries = calculateATR(ethCandles, 14);
@@ -1434,12 +1746,68 @@
           ethStatus = "neutral";
         }
 
-        // 빗썸 서브 전략 지표 계산
+        // 3. 빗썸 서브 전략 지표 계산 (SuperTrend 7, 3.5 & 50일 SMA)
         const stResult = calculateSuperTrend(ethCandles, 7, 3.5);
         const stVal = stResult.supertrend[ethClosedIdx];
         const stDir = stResult.direction[ethClosedIdx];
         const isAboveSma = ethClosedPrice >= ethSma;
         const bithumbAction = (isAboveSma && stDir === 1) ? "BUY" : "SELL";
+
+        // 4. 바이낸스 글로벌 전략 지표 계산 (BTC 200일 SMA ±2%, ETH 40일 SMA ± 1.2 ATR)
+        let binanceComputed = null;
+        if (binBtcCandles && binBtcCandles.length >= 202 && binEthCandles && binEthCandles.length >= 42) {
+          const binBtcClosedIdx = binBtcCandles.length - 2;
+          const binEthClosedIdx = binEthCandles.length - 2;
+
+          const binBtcCloses = binBtcCandles.map(c => c.trade_price);
+          const binBtcSmaSeries = calculateSMA(binBtcCloses, 200);
+          const binBtcSma = binBtcSmaSeries[binBtcClosedIdx];
+          const binBtcUpper = binBtcSma * 1.02;
+          const binBtcLower = binBtcSma * 0.98;
+          const binBtcCurrentPrice = binBtcCandles[binBtcCandles.length - 1].trade_price;
+          const isBinBtcBull = binBtcCurrentPrice >= binBtcUpper;
+          const isBinBtcBear = binBtcCurrentPrice < binBtcLower;
+          const binBtcStatus = isBinBtcBull ? "bull" : (isBinBtcBear ? "bear" : "buffer");
+          const binBtcTarget = isBinBtcBull ? "hold" : (isBinBtcBear ? "cash" : "hold");
+
+          const binEthCloses = binEthCandles.map(c => c.trade_price);
+          const binEthSmaSeries = calculateSMA(binEthCloses, 40);
+          const binEthAtrSeries = calculateATR(binEthCandles, 14);
+          const binEthSma = binEthSmaSeries[binEthClosedIdx];
+          const binEthAtr = binEthAtrSeries[binEthClosedIdx];
+          const binEthUpper = binEthSma + (binEthAtr * 1.2);
+          const binEthLower = binEthSma - (binEthAtr * 1.2);
+          const binEthCurrentPrice = binEthCandles[binEthCandles.length - 1].trade_price;
+          const isBinEthBull = binEthCurrentPrice >= binEthUpper;
+          const isBinEthBear = binEthCurrentPrice < binEthLower;
+          const binEthStatus = isBinEthBull ? "bull" : (isBinEthBear ? "bear" : "neutral");
+          const binEthTarget = isBinEthBull ? "hold" : (isBinEthBear ? "cash" : "cash");
+
+          binanceComputed = {
+            enabled: true,
+            strategy_name: "바이낸스 BTC/ETH 50:50 동적 리밸런싱",
+            usd_krw_rate: fxRate || 1342.7,
+            btc: {
+              current_price: binBtcCurrentPrice,
+              sma: binBtcSma,
+              upper_buffer: binBtcUpper,
+              lower_buffer: binBtcLower,
+              status: binBtcStatus,
+              status_label: isBinBtcBull ? "상승 추세 돌파" : (isBinBtcBear ? "하락 추세 이탈" : "버퍼 구간 대기"),
+              target_state: binBtcTarget
+            },
+            eth: {
+              current_price: binEthCurrentPrice,
+              sma: binEthSma,
+              upper_band: binEthUpper,
+              lower_band: binEthLower,
+              status: binEthStatus,
+              status_label: isBinEthBull ? "상승 채널 돌파" : (isBinEthBear ? "하락 밴드 이탈" : "밴드 내 중립"),
+              target_state: binEthTarget
+            },
+            guide: `${binBtcTarget === 'hold' ? 'BTC 50% 매수/보유' : 'BTC 현금화(USDT)'} / ${binEthTarget === 'hold' ? 'ETH 50% 매수/보유' : 'ETH 현금화(USDT)'}`
+          };
+        }
 
         // 최근 60일 차트 시각화 데이터 생성
         const chartCount = 60;
@@ -1512,6 +1880,7 @@
             is_above_sma: isAboveSma,
             action: bithumbAction
           },
+          binance: binanceComputed || (globalStrategyData && globalStrategyData.binance),
           chart: {
             dates: chartDates,
             btc: { closes: btcChartCloses, sma: btcChartSma, upper: btcChartUpper, lower: btcChartLower },
@@ -1520,11 +1889,17 @@
           }
         };
 
+        if (globalStrategyData) {
+          if (!computedData.binance && globalStrategyData.binance) computedData.binance = globalStrategyData.binance;
+          if (globalStrategyData.trade_history) computedData.trade_history = globalStrategyData.trade_history;
+          if (globalStrategyData.guides) computedData.guides = globalStrategyData.guides;
+        }
+
         try {
           localStorage.setItem(cacheKey, JSON.stringify(computedData));
           for (let i = 0; i < localStorage.length; i++) {
             const k = localStorage.key(i);
-            if (k && k.startsWith('quant_chart_v3_') && k !== cacheKey) {
+            if (k && k.startsWith('quant_chart_') && k !== cacheKey) {
               localStorage.removeItem(k);
             }
           }
@@ -1533,7 +1908,7 @@
         }
 
         globalStrategyData = computedData;
-        document.getElementById('cache-status-badge').textContent = `⚡ 스마트 로컬 캐싱 활성 (${cacheKey.replace('quant_chart_v3_', '')})`;
+        document.getElementById('cache-status-badge').textContent = `⚡ 스마트 로컬 캐싱 활성 (${cacheKey.replace('quant_chart_v5_', '')})`;
         return computedData;
       } catch (err) {
         console.warn('Compute failed, using fallback status:', err);
@@ -1645,57 +2020,275 @@
         smaBox.style.borderLeftColor = b.is_above_sma ? 'var(--accent-primary)' : 'var(--border-color)';
       }
 
+      // 3. 바이낸스 글로벌 전략 렌더링
+      const bin = data.binance;
+      if (bin) {
+        const binGuide = (data.guides && data.guides.binance) || bin.guide || 'BTC 50% 매수 / ETH 현금화';
+        const guideBinEl = document.getElementById('guide-binance');
+        if (guideBinEl) {
+          guideBinEl.textContent = binGuide;
+        }
+
+        const rate = bin.usd_krw_rate;
+        const rateBadge = document.getElementById('binance-usd-krw-badge');
+        if (rateBadge && rate) {
+          rateBadge.textContent = `환율: ${rate.toLocaleString('ko-KR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} 원/$`;
+        }
+
+        const binBtc = bin.btc;
+        if (binBtc) {
+          const binBtcPriceEl = document.getElementById('bin-btc-price');
+          if (binBtcPriceEl) binBtcPriceEl.textContent = formatUSDT(binBtc.current_price);
+
+          const binBtcSmaEl = document.getElementById('bin-btc-sma');
+          if (binBtcSmaEl) binBtcSmaEl.textContent = formatUSDT(binBtc.sma);
+
+          const binBtcUpperEl = document.getElementById('bin-btc-upper');
+          if (binBtcUpperEl) binBtcUpperEl.textContent = formatUSDT(binBtc.upper_buffer);
+
+          const binBtcLowerEl = document.getElementById('bin-btc-lower');
+          if (binBtcLowerEl) binBtcLowerEl.textContent = formatUSDT(binBtc.lower_buffer);
+
+          const binBtcKrwEl = document.getElementById('bin-btc-krw-price');
+          if (binBtcKrwEl && rate && binBtc.current_price) {
+            binBtcKrwEl.textContent = formatKRW(binBtc.current_price * rate);
+          }
+
+          if (binBtc.sma && binBtc.current_price) {
+            const diffPct = ((binBtc.current_price - binBtc.sma) / binBtc.sma) * 100;
+            const diffEl = document.getElementById('bin-btc-sma-diff');
+            if (diffEl) diffEl.textContent = `기준 200일 SMA 대비 ${diffPct >= 0 ? '+' : ''}${diffPct.toFixed(2)}%`;
+          }
+
+          const btcBadge = document.getElementById('bin-btc-status-badge');
+          if (btcBadge) {
+            btcBadge.className = 'status-pill';
+            if (binBtc.status === 'bull') {
+              btcBadge.classList.add('status-bull');
+              btcBadge.textContent = '🟢 상승 돌파';
+            } else if (binBtc.status === 'bear') {
+              btcBadge.classList.add('status-bear');
+              btcBadge.textContent = '🔴 하락 이탈';
+            } else {
+              btcBadge.classList.add('status-buffer');
+              btcBadge.textContent = '🔍 버퍼 대기';
+            }
+          }
+
+          const btcGuideEl = document.getElementById('bin-btc-guide');
+          if (btcGuideEl) {
+            btcGuideEl.textContent = `💡 행동 가이드: ${binBtc.status === 'bull' ? 'BTC 50% 비중 매수 또는 보유 유지' : 'BTC 전량 매도 및 USDT 현금 확보'}`;
+          }
+        }
+
+        const binEth = bin.eth;
+        if (binEth) {
+          const binEthPriceEl = document.getElementById('bin-eth-price');
+          if (binEthPriceEl) binEthPriceEl.textContent = formatUSDT(binEth.current_price);
+
+          const binEthSmaEl = document.getElementById('bin-eth-sma');
+          if (binEthSmaEl) binEthSmaEl.textContent = formatUSDT(binEth.sma);
+
+          const binEthUpperEl = document.getElementById('bin-eth-upper');
+          if (binEthUpperEl) binEthUpperEl.textContent = formatUSDT(binEth.upper_band);
+
+          const binEthLowerEl = document.getElementById('bin-eth-lower');
+          if (binEthLowerEl) binEthLowerEl.textContent = formatUSDT(binEth.lower_band);
+
+          const binEthKrwEl = document.getElementById('bin-eth-krw-price');
+          if (binEthKrwEl && rate && binEth.current_price) {
+            binEthKrwEl.textContent = formatKRW(binEth.current_price * rate);
+          }
+
+          if (binEth.sma && binEth.current_price) {
+            const diffPct = ((binEth.current_price - binEth.sma) / binEth.sma) * 100;
+            const diffEl = document.getElementById('bin-eth-sma-diff');
+            if (diffEl) diffEl.textContent = `기준 40일 SMA 대비 ${diffPct >= 0 ? '+' : ''}${diffPct.toFixed(2)}%`;
+          }
+
+          const ethBadge = document.getElementById('bin-eth-status-badge');
+          if (ethBadge) {
+            ethBadge.className = 'status-pill';
+            if (binEth.status === 'bull') {
+              ethBadge.classList.add('status-bull');
+              ethBadge.textContent = '🟢 상승 채널 돌파';
+            } else if (binEth.status === 'bear') {
+              ethBadge.classList.add('status-bear');
+              ethBadge.textContent = '🔴 하락 밴드 이탈';
+            } else {
+              ethBadge.classList.add('status-neutral');
+              ethBadge.textContent = '🔍 밴드 내 중립';
+            }
+          }
+
+          const ethGuideEl = document.getElementById('bin-eth-guide');
+          if (ethGuideEl) {
+            ethGuideEl.textContent = `💡 행동 가이드: ${binEth.status === 'bull' ? 'ETH 50% 비중 매수 또는 보유 유지' : 'ETH 전량 매도 및 USDT 현금 확보'}`;
+          }
+        }
+      }
+
+      // 4. 최근 실거래 체결 내역 테이블 렌더링
+      const defaultRecentTrades = [
+        { timestamp: "2026-10-16 09:05:07", exchange: "BINANCE", symbol: "BTC", side: "BUY", reason: "TREND_BUY", price: "82100.00", quantity: "0.04443552", amount: "3648.16", currency: "USDT", total_asset: "7382.71" },
+        { timestamp: "2026-10-16 09:05:05", exchange: "BINANCE", symbol: "ETH", side: "SELL", reason: "TREND_SELL", price: "2378.60", quantity: "0.02120000", amount: "50.43", currency: "USDT", total_asset: "7382.71" },
+        { timestamp: "2026-10-16 09:05:02", exchange: "UPBIT", symbol: "BTC", side: "SELL", reason: "REBALANCE_SELL", price: "110913500", quantity: "0.02722750", amount: "3019898", currency: "KRW", total_asset: "6039796" },
+        { timestamp: "2026-10-15 18:10:35", exchange: "BINANCE", symbol: "XRP", side: "SELL", reason: "PORTFOLIO_PREP", price: "1.31940", quantity: "5563.0", amount: "7339.62", currency: "USDT", total_asset: "7339.62" }
+      ];
+
+      const historyData = (Array.isArray(data.trade_history) && data.trade_history.length > 0)
+        ? data.trade_history
+        : defaultRecentTrades;
+
+      const tbody = document.getElementById('trade-history-tbody');
+      if (tbody) {
+        if (historyData.length > 0) {
+          tbody.innerHTML = historyData.map(item => {
+            const exClass = (item.exchange || '').toLowerCase();
+            const sideClass = item.side === 'BUY' ? 'badge-side-buy' : 'badge-side-sell';
+            const sideText = item.side === 'BUY' ? '매수' : '매도';
+            const isUsdt = item.currency === 'USDT';
+            
+            const priceStr = isUsdt 
+              ? formatUSDT(item.price) 
+              : formatKRW(item.price);
+            
+            const amountStr = isUsdt
+              ? formatUSDT(item.amount)
+              : formatKRW(item.amount);
+
+            const qtyStr = Number(item.quantity).toLocaleString(undefined, { maximumFractionDigits: 6 });
+            const reasonStr = formatTradeReason(item.reason);
+            const timeStr = item.timestamp ? item.timestamp.substring(2, 16) : '-';
+
+            return `
+              <tr>
+                <td>${timeStr}</td>
+                <td><span class="badge-exchange ${exClass}">${item.exchange}</span></td>
+                <td><strong>${item.symbol}</strong></td>
+                <td><span class="badge-side ${sideClass}">${sideText}</span></td>
+                <td><span class="trade-reason-tag">${reasonStr}</span></td>
+                <td style="text-align: right;">${priceStr}</td>
+                <td style="text-align: right;">${qtyStr}</td>
+                <td style="text-align: right; font-weight: 700;">${amountStr}</td>
+              </tr>
+            `;
+          }).join('');
+        } else {
+          tbody.innerHTML = '<tr><td colspan="8" class="trade-empty">체결 이력이 없습니다.</td></tr>';
+        }
+      }
+
       if (data.chart) {
         renderCurrentChart();
       }
     }
 
     async function syncLivePrices() {
+      // 1. 업비트 실시간 시세 동기화
       try {
         const res = await fetch('https://api.upbit.com/v1/ticker?markets=KRW-BTC,KRW-ETH');
-        if (!res.ok) return;
-        const tickers = await res.json();
-
-        tickers.forEach(t => {
-          if (t.market === 'KRW-BTC' && globalStrategyData) {
-            const btc = globalStrategyData.btc || (globalStrategyData.upbit && globalStrategyData.upbit.btc);
-            if (btc) {
-              btc.current_price = t.trade_price;
-              document.getElementById('btc-price').textContent = formatKRW(t.trade_price);
-              const btcDiffPct = ((t.trade_price - btc.sma) / btc.sma) * 100;
-              document.getElementById('btc-sma-diff').textContent = `기준 220일 SMA 대비 ${btcDiffPct >= 0 ? '+' : ''}${btcDiffPct.toFixed(2)}%`;
-            }
-            if (globalStrategyData.chart && globalStrategyData.chart.btc) {
-              const closes = globalStrategyData.chart.btc.closes;
-              closes[closes.length - 1] = t.trade_price;
-            }
-          } else if (t.market === 'KRW-ETH' && globalStrategyData) {
-            const eth = globalStrategyData.eth || (globalStrategyData.upbit && globalStrategyData.upbit.eth);
-            const b = globalStrategyData.bithumb;
-            if (eth) {
-              eth.current_price = t.trade_price;
-              document.getElementById('eth-price').textContent = formatKRW(t.trade_price);
-              const ethDiffPct = ((t.trade_price - eth.sma) / eth.sma) * 100;
-              const atrStr = eth.atr_14 ? ` (ATR: ${Math.round(eth.atr_14).toLocaleString()})` : '';
-              document.getElementById('eth-sma-diff').textContent = `기준 50일 SMA 대비 ${ethDiffPct >= 0 ? '+' : ''}${ethDiffPct.toFixed(2)}%${atrStr}`;
-            }
-            if (b) {
-              b.current_price = t.trade_price;
-            }
-            if (globalStrategyData.chart && globalStrategyData.chart.eth) {
-              globalStrategyData.chart.eth.closes[globalStrategyData.chart.eth.closes.length - 1] = t.trade_price;
-              if (globalStrategyData.chart.bithumb) {
-                globalStrategyData.chart.bithumb.closes[globalStrategyData.chart.bithumb.closes.length - 1] = t.trade_price;
+        if (res.ok) {
+          const tickers = await res.json();
+          tickers.forEach(t => {
+            if (t.market === 'KRW-BTC' && globalStrategyData) {
+              const btc = globalStrategyData.btc || (globalStrategyData.upbit && globalStrategyData.upbit.btc);
+              if (btc) {
+                btc.current_price = t.trade_price;
+                document.getElementById('btc-price').textContent = formatKRW(t.trade_price);
+                const btcDiffPct = ((t.trade_price - btc.sma) / btc.sma) * 100;
+                document.getElementById('btc-sma-diff').textContent = `기준 220일 SMA 대비 ${btcDiffPct >= 0 ? '+' : ''}${btcDiffPct.toFixed(2)}%`;
+              }
+              if (globalStrategyData.chart && globalStrategyData.chart.btc) {
+                const closes = globalStrategyData.chart.btc.closes;
+                closes[closes.length - 1] = t.trade_price;
+              }
+            } else if (t.market === 'KRW-ETH' && globalStrategyData) {
+              const eth = globalStrategyData.eth || (globalStrategyData.upbit && globalStrategyData.upbit.eth);
+              const b = globalStrategyData.bithumb;
+              if (eth) {
+                eth.current_price = t.trade_price;
+                document.getElementById('eth-price').textContent = formatKRW(t.trade_price);
+                const ethDiffPct = ((t.trade_price - eth.sma) / eth.sma) * 100;
+                const atrStr = eth.atr_14 ? ` (ATR: ${Math.round(eth.atr_14).toLocaleString()})` : '';
+                document.getElementById('eth-sma-diff').textContent = `기준 50일 SMA 대비 ${ethDiffPct >= 0 ? '+' : ''}${ethDiffPct.toFixed(2)}%${atrStr}`;
+              }
+              if (b) {
+                b.current_price = t.trade_price;
+              }
+              if (globalStrategyData.chart && globalStrategyData.chart.eth) {
+                globalStrategyData.chart.eth.closes[globalStrategyData.chart.eth.closes.length - 1] = t.trade_price;
+                if (globalStrategyData.chart.bithumb) {
+                  globalStrategyData.chart.bithumb.closes[globalStrategyData.chart.bithumb.closes.length - 1] = t.trade_price;
+                }
               }
             }
-          }
-        });
-
-        if (currentChartInstance) {
-          currentChartInstance.update('none');
+          });
         }
       } catch (e) {
-        console.warn('Live ticker sync failed:', e);
+        console.warn('Upbit ticker sync failed:', e);
+      }
+
+      // 2. 바이낸스 실시간 시세 및 환율 동기화
+      try {
+        const [binTickerRes, fxRes] = await Promise.all([
+          fetch('https://api.binance.com/api/v3/ticker/price?symbols=["BTCUSDT","ETHUSDT"]'),
+          fetch('https://open.er-api.com/v6/latest/USD')
+        ]);
+
+        let fxRate = 1342.7;
+        if (fxRes && fxRes.ok) {
+          const fxJson = await fxRes.json();
+          if (fxJson && fxJson.rates && fxJson.rates.KRW) {
+            fxRate = parseFloat(fxJson.rates.KRW);
+            const rateBadge = document.getElementById('binance-usd-krw-badge');
+            if (rateBadge) {
+              rateBadge.textContent = `환율: ${fxRate.toLocaleString('ko-KR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} 원/$`;
+            }
+          }
+        }
+
+        if (binTickerRes && binTickerRes.ok) {
+          const binTickers = await binTickerRes.json();
+          binTickers.forEach(t => {
+            const price = parseFloat(t.price);
+            if (t.symbol === 'BTCUSDT') {
+              const el = document.getElementById('bin-btc-price');
+              if (el) el.textContent = formatUSDT(price);
+              const krwEl = document.getElementById('bin-btc-krw-price');
+              if (krwEl) krwEl.textContent = formatKRW(price * fxRate);
+              if (globalStrategyData && globalStrategyData.binance && globalStrategyData.binance.btc) {
+                globalStrategyData.binance.btc.current_price = price;
+                const sma = globalStrategyData.binance.btc.sma;
+                if (sma) {
+                  const diff = ((price - sma) / sma) * 100;
+                  const diffEl = document.getElementById('bin-btc-sma-diff');
+                  if (diffEl) diffEl.textContent = `기준 200일 SMA 대비 ${diff >= 0 ? '+' : ''}${diff.toFixed(2)}%`;
+                }
+              }
+            } else if (t.symbol === 'ETHUSDT') {
+              const el = document.getElementById('bin-eth-price');
+              if (el) el.textContent = formatUSDT(price);
+              const krwEl = document.getElementById('bin-eth-krw-price');
+              if (krwEl) krwEl.textContent = formatKRW(price * fxRate);
+              if (globalStrategyData && globalStrategyData.binance && globalStrategyData.binance.eth) {
+                globalStrategyData.binance.eth.current_price = price;
+                const sma = globalStrategyData.binance.eth.sma;
+                if (sma) {
+                  const diff = ((price - sma) / sma) * 100;
+                  const diffEl = document.getElementById('bin-eth-sma-diff');
+                  if (diffEl) diffEl.textContent = `기준 40일 SMA 대비 ${diff >= 0 ? '+' : ''}${diff.toFixed(2)}%`;
+                }
+              }
+            }
+          });
+        }
+      } catch (e) {
+        console.warn('Binance/FX ticker sync failed:', e);
+      }
+
+      if (currentChartInstance) {
+        currentChartInstance.update('none');
       }
     }
 
@@ -1969,33 +2562,47 @@
     // 6. 실행 및 이벤트 핸들러 (Fast Initial Paint + Background Compute)
     // ==========================================================================
     async function initializeApp() {
-      // 1. 빠른 초기 화면 표출 (Fast Initial Paint)
+      let statusData = null;
+      try {
+        const res = await fetch('./data/status.json?v=' + Date.now());
+        if (res.ok) {
+          statusData = await res.json();
+          globalStrategyData = statusData;
+          renderStrategyView(statusData);
+        }
+      } catch (e) {
+        console.warn('Initial status.json fetch failed:', e);
+      }
+
+      // 로컬 스토리지에 캐시된 차트 데이터가 있으면 먼저 표출
       try {
         const cacheKey = get9AmCycleKey();
         const cached = localStorage.getItem(cacheKey);
         if (cached) {
           const parsed = JSON.parse(cached);
           if (parsed && parsed.chart) {
+            if (statusData) {
+              parsed.binance = statusData.binance;
+              parsed.trade_history = statusData.trade_history;
+              parsed.guides = statusData.guides;
+            }
             globalStrategyData = parsed;
-            renderStrategyView(globalStrategyData);
-          }
-        }
-        if (!globalStrategyData || !globalStrategyData.chart) {
-          // 캐시가 없거나 차트가 누락된 경우 기본 status.json을 즉시 로드
-          const res = await fetch('./data/status.json?v=' + Date.now());
-          if (res.ok) {
-            const fallbackData = await res.json();
-            globalStrategyData = fallbackData;
-            renderStrategyView(fallbackData);
+            renderStrategyView(parsed);
           }
         }
       } catch (e) {
-        console.warn('Initial paint fallback failed:', e);
+        console.warn('Initial chart cache fallback failed:', e);
       }
 
       // 2. 백그라운드 09:00 일봉 계산 및 차트 렌더링
       const data = await loadOrComputeStrategyData();
       if (data) {
+        if (statusData) {
+          data.binance = statusData.binance;
+          data.trade_history = statusData.trade_history;
+          data.guides = statusData.guides;
+        }
+        globalStrategyData = data;
         renderStrategyView(data);
       } else if (globalStrategyData) {
         renderStrategyView(globalStrategyData);

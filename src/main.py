@@ -12,6 +12,7 @@ import json
 import logging
 import argparse
 from datetime import datetime, timezone, timedelta
+import csv
 import pandas as pd
 import requests
 
@@ -398,9 +399,97 @@ def build_chart_series(btc_df, eth_df, chart_count=60):
         return None
 
 
-def export_web_status_json(data_dict, file_path="docs/data/status.json"):
-    """PWA 웹 대시보드 연동용 status.json 파일 저장"""
+
+def record_trade_history(*args, **kwargs):
+    """체결된 거래 내역을 data/trade_history.csv 파일에 누적 기록합니다."""
     try:
+        # Positional arguments unpacking
+        if len(args) == 10:
+            timestamp, exchange, symbol, side, reason, price, quantity, amount, currency, total_asset = args
+        elif len(args) == 9:
+            exchange, symbol, side, reason, price, quantity, amount, currency, total_asset = args
+            timestamp = None
+        else:
+            timestamp = kwargs.get("timestamp")
+            exchange = kwargs.get("exchange", "")
+            symbol = kwargs.get("symbol", "")
+            side = kwargs.get("side", "")
+            reason = kwargs.get("reason", "")
+            price = float(kwargs.get("price", 0.0))
+            quantity = float(kwargs.get("quantity", 0.0))
+            amount = float(kwargs.get("amount", 0.0))
+            currency = kwargs.get("currency", "KRW")
+            total_asset = float(kwargs.get("total_asset", 0.0))
+
+        # Override with kwargs if provided
+        timestamp = kwargs.get("timestamp", timestamp)
+        exchange = kwargs.get("exchange", exchange)
+        symbol = kwargs.get("symbol", symbol)
+        side = kwargs.get("side", side)
+        reason = kwargs.get("reason", reason)
+        price = float(kwargs.get("price", price))
+        quantity = float(kwargs.get("quantity", quantity))
+        amount = float(kwargs.get("amount", amount))
+        currency = kwargs.get("currency", currency)
+        total_asset = float(kwargs.get("total_asset", total_asset))
+        csv_path = kwargs.get("csv_path", None)
+
+        if not timestamp:
+            timestamp = get_kst_now().strftime("%Y-%m-%d %H:%M:%S")
+
+        if not csv_path:
+            csv_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
+            os.makedirs(csv_dir, exist_ok=True)
+            csv_path = os.path.join(csv_dir, "trade_history.csv")
+        else:
+            os.makedirs(os.path.dirname(os.path.abspath(csv_path)), exist_ok=True)
+
+        headers = ["timestamp", "exchange", "symbol", "side", "reason", "price", "quantity", "amount", "currency", "total_asset"]
+        file_has_content = os.path.exists(csv_path) and os.path.getsize(csv_path) > 0
+
+        with open(csv_path, mode="a", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=headers)
+            if not file_has_content:
+                writer.writeheader()
+            writer.writerow({
+                "timestamp": timestamp,
+                "exchange": exchange,
+                "symbol": symbol,
+                "side": side,
+                "reason": reason,
+                "price": f"{price:.2f}" if currency == "USDT" else f"{price:,.0f}".replace(",", ""),
+                "quantity": f"{quantity:.8f}".rstrip("0").rstrip("."),
+                "amount": f"{amount:.2f}" if currency == "USDT" else f"{amount:,.0f}".replace(",", ""),
+                "currency": currency,
+                "total_asset": f"{total_asset:.2f}" if currency == "USDT" else f"{total_asset:,.0f}".replace(",", "")
+            })
+        logging.info(f"거래 기록 누적 저장 완료: [{exchange}] {symbol} {side} {amount} {currency}")
+    except Exception as e:
+        logging.warning(f"trade_history.csv 저장 실패: {e}")
+
+
+def load_recent_trade_history(limit: int = 20, csv_path: str = None) -> list:
+    """data/trade_history.csv 에서 최근 체결 내역을 역순(최신순)으로 최대 limit개 조회합니다."""
+    if not csv_path:
+        csv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "trade_history.csv")
+    if not os.path.exists(csv_path):
+        return []
+    records = []
+    try:
+        with open(csv_path, mode="r", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                records.append(row)
+        return records[-limit:][::-1]
+    except Exception as e:
+        logging.warning(f"trade_history.csv 읽기 실패: {e}")
+        return []
+
+
+def export_web_status_json(data_dict, file_path="docs/data/status.json"):
+    """PWA 웹 대시보드 연동용 status.json 파일 저장 (최근 거래 이력 자동 포함)"""
+    try:
+        data_dict["trade_history"] = load_recent_trade_history(limit=20)
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
         with open(file_path, "w", encoding="utf-8") as f:
             json.dump(data_dict, f, ensure_ascii=False, indent=2)
@@ -411,7 +500,7 @@ def export_web_status_json(data_dict, file_path="docs/data/status.json"):
 
 def auto_push_status_json(target_file="docs/data/status.json", skip_push=False):
     """
-    PWA 웹 대시보드 데이터(status.json)를 GitHub에 자동 커밋 & 푸시.
+    PWA 웹 대시보드 데이터(status.json) 및 trade_history.csv를 GitHub에 자동 커밋 & 푸시.
     오류가 발생하더라도 매매 봇 프로세스가 중단되지 않도록 안전하게 예외 처리.
     """
     if skip_push:
@@ -420,9 +509,9 @@ def auto_push_status_json(target_file="docs/data/status.json", skip_push=False):
 
     try:
         import subprocess
-        # 1. git add
+        # 1. git add (status.json 및 trade_history.csv 동반 추가)
         add_res = subprocess.run(
-            ["git", "add", target_file],
+            ["git", "add", target_file, "data/trade_history.csv"],
             capture_output=True,
             text=True,
             encoding="utf-8",
@@ -809,6 +898,7 @@ def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STR
             try:
                 order_res = upbit.sell_market_order("KRW-BTC", upbit_btc_bal)
                 upbit_order_history.append(f"✅ 업비트 BTC 청산: {val:,.0f}원 ({upbit_btc_bal:.4f} BTC)")
+                record_trade_history(kst_now.strftime("%Y-%m-%d %H:%M:%S"), "UPBIT", "BTC", "SELL", "TREND_SELL", btc_current_price, upbit_btc_bal, val, "KRW", total_upbit_value if 'total_upbit_value' in locals() else val)
                 upbit_btc_bal = 0.0
             except Exception as e:
                 upbit_order_history.append(f"❌ 업비트 BTC 매도 실패: {e}")
@@ -824,6 +914,7 @@ def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STR
             try:
                 order_res = upbit.sell_market_order("KRW-ETH", upbit_eth_bal)
                 upbit_order_history.append(f"✅ 업비트 ETH 청산: {val:,.0f}원 ({upbit_eth_bal:.4f} ETH)")
+                record_trade_history(kst_now.strftime("%Y-%m-%d %H:%M:%S"), "UPBIT", "ETH", "SELL", "TREND_SELL", eth_current_price, upbit_eth_bal, val, "KRW", total_upbit_value if 'total_upbit_value' in locals() else val)
                 upbit_eth_bal = 0.0
             except Exception as e:
                 upbit_order_history.append(f"❌ 업비트 ETH 매도 실패: {e}")
@@ -870,6 +961,7 @@ def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STR
                     try:
                         upbit.sell_market_order("KRW-BTC", excess_btc)
                         upbit_order_history.append(f"⚖️ 업비트 BTC 비중 축소: {excess_val:,.0f}원")
+                        record_trade_history(kst_now.strftime("%Y-%m-%d %H:%M:%S"), "UPBIT", "BTC", "SELL", "REBALANCE_SELL", btc_current_price, excess_btc, excess_val, "KRW", total_upbit_value)
                         upbit_btc_bal -= excess_btc
                         upbit_krw += excess_val * 0.9995
                     except Exception as e:
@@ -891,6 +983,7 @@ def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STR
                     try:
                         upbit.sell_market_order("KRW-ETH", excess_eth)
                         upbit_order_history.append(f"⚖️ 업비트 ETH 비중 축소: {excess_val:,.0f}원")
+                        record_trade_history(kst_now.strftime("%Y-%m-%d %H:%M:%S"), "UPBIT", "ETH", "SELL", "REBALANCE_SELL", eth_current_price, excess_eth, excess_val, "KRW", total_upbit_value)
                         upbit_eth_bal -= excess_eth
                         upbit_krw += excess_val * 0.9995
                     except Exception as e:
@@ -933,6 +1026,7 @@ def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STR
                     upbit.buy_market_order(f"KRW-{coin}", buy_amount)
                     upbit_order_history.append(f"✅ 업비트 {coin} {action_type}: {buy_amount:,.0f}원")
                     curr_p = btc_current_price if coin == "BTC" else eth_current_price
+                    record_trade_history(kst_now.strftime("%Y-%m-%d %H:%M:%S"), "UPBIT", coin, "BUY", "TREND_BUY" if "신규" in action_type else "REBALANCE_BUY", curr_p, buy_amount / curr_p, buy_amount, "KRW", total_upbit_value)
                     if coin == "BTC":
                         upbit_btc_bal += buy_amount / curr_p
                         is_holding_btc = True
@@ -1015,6 +1109,7 @@ def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STR
                     try:
                         order_res = bithumb.sell_market_order("KRW-ETH", bithumb_eth_bal)
                         bithumb_order_history.append(f"✅ 빗썸 ETH 청산 (100% 현금화): {val:,.0f}원 ({bithumb_eth_bal:.4f} ETH)")
+                        record_trade_history(kst_now.strftime("%Y-%m-%d %H:%M:%S"), "BITHUMB", "ETH", "SELL", "TREND_SELL", bithumb_eth_p, bithumb_eth_bal, val, "KRW", total_bithumb_value)
                     except Exception as e:
                         bithumb_order_history.append(f"❌ 빗썸 ETH 청산 실패: {e}")
                 else:
@@ -1036,6 +1131,7 @@ def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STR
                     try:
                         order_res = bithumb.buy_market_order("KRW-ETH", buy_amount)
                         bithumb_order_history.append(f"✅ 빗썸 ETH 100% 매수: {buy_amount:,.0f}원")
+                        record_trade_history(kst_now.strftime("%Y-%m-%d %H:%M:%S"), "BITHUMB", "ETH", "BUY", "TREND_BUY", bithumb_eth_p, buy_amount / bithumb_eth_p, buy_amount, "KRW", total_bithumb_value)
                         bithumb_krw -= buy_amount
                     except Exception as e:
                         bithumb_order_history.append(f"❌ 빗썸 ETH 매수 실패: {e}")
@@ -1133,6 +1229,8 @@ def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STR
                 try:
                     binance.sell_market("BTCUSDT", binance_btc_bal)
                     binance_order_history.append(f"✅ 바이낸스 BTC 청산: ${val:,.2f} USDT ({binance_btc_bal:.6f} BTC)")
+                    if not is_dry_run:
+                        record_trade_history(kst_now.strftime("%Y-%m-%d %H:%M:%S"), "BINANCE", "BTC", "SELL", "TREND_SELL", bin_btc_price, binance_btc_bal, val, "USDT", (binance_usdt + val) if 'binance_usdt' in locals() else val)
                     binance_btc_bal = 0.0
                 except Exception as e:
                     binance_order_history.append(f"❌ 바이낸스 BTC 매도 실패: {e}")
@@ -1144,6 +1242,8 @@ def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STR
                 try:
                     binance.sell_market("ETHUSDT", binance_eth_bal)
                     binance_order_history.append(f"✅ 바이낸스 ETH 청산: ${val:,.2f} USDT ({binance_eth_bal:.4f} ETH)")
+                    if not is_dry_run:
+                        record_trade_history(kst_now.strftime("%Y-%m-%d %H:%M:%S"), "BINANCE", "ETH", "SELL", "TREND_SELL", bin_eth_price, binance_eth_bal, val, "USDT", (binance_usdt + val) if 'binance_usdt' in locals() else val)
                     binance_eth_bal = 0.0
                 except Exception as e:
                     binance_order_history.append(f"❌ 바이낸스 ETH 매도 실패: {e}")
@@ -1171,6 +1271,8 @@ def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STR
                         try:
                             binance.sell_market("BTCUSDT", excess_qty)
                             binance_order_history.append(f"⚖️ 바이낸스 BTC 비중 축소: ${excess:,.2f} USDT")
+                            if not is_dry_run:
+                                record_trade_history(kst_now.strftime("%Y-%m-%d %H:%M:%S"), "BINANCE", "BTC", "SELL", "REBALANCE_SELL", bin_btc_price, excess_qty, excess, "USDT", total_binance_value)
                             binance_btc_bal -= excess_qty
                             binance_usdt += excess
                         except Exception as e:
@@ -1185,6 +1287,8 @@ def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STR
                         try:
                             binance.sell_market("ETHUSDT", excess_qty)
                             binance_order_history.append(f"⚖️ 바이낸스 ETH 비중 축소: ${excess:,.2f} USDT")
+                            if not is_dry_run:
+                                record_trade_history(kst_now.strftime("%Y-%m-%d %H:%M:%S"), "BINANCE", "ETH", "SELL", "REBALANCE_SELL", bin_eth_price, excess_qty, excess, "USDT", total_binance_value)
                             binance_eth_bal -= excess_qty
                             binance_usdt += excess
                         except Exception as e:
@@ -1203,6 +1307,8 @@ def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STR
                         try:
                             binance.buy_market("BTCUSDT", buy_amt)
                             binance_order_history.append(f"✅ 바이낸스 BTC 매수: ${buy_amt:,.2f} USDT")
+                            if not is_dry_run:
+                                record_trade_history(kst_now.strftime("%Y-%m-%d %H:%M:%S"), "BINANCE", "BTC", "BUY", "TREND_BUY" if not is_holding_bin_btc else "REBALANCE_BUY", bin_btc_price, buy_amt / bin_btc_price, buy_amt, "USDT", total_binance_value)
                             binance_usdt -= buy_amt
                         except Exception as e:
                             binance_order_history.append(f"❌ 바이낸스 BTC 매수 실패: {e}")
@@ -1216,6 +1322,8 @@ def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STR
                         try:
                             binance.buy_market("ETHUSDT", buy_amt)
                             binance_order_history.append(f"✅ 바이낸스 ETH 매수: ${buy_amt:,.2f} USDT")
+                            if not is_dry_run:
+                                record_trade_history(kst_now.strftime("%Y-%m-%d %H:%M:%S"), "BINANCE", "ETH", "BUY", "TREND_BUY" if not is_holding_bin_eth else "REBALANCE_BUY", bin_eth_price, buy_amt / bin_eth_price, buy_amt, "USDT", total_binance_value)
                             binance_usdt -= buy_amt
                         except Exception as e:
                             binance_order_history.append(f"❌ 바이낸스 ETH 매수 실패: {e}")

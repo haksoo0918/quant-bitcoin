@@ -259,3 +259,43 @@
 
 
 
+
+---
+
+## 7. 거래 체결 내역 누적 장부 (`data/trade_history.csv`) 요구사항
+- **개념**: 거래소나 디스코드 외부 의존 없이, 봇 자체적으로 매매 체결 이력을 단일 표준 CSV 파일에 실시간 누적 기록하여 영구 보존하고 사후 성과 분석 및 대시보드 연동을 지원합니다.
+- **파일 경로**: `data/trade_history.csv` (UTF-8 인코딩)
+- **컬럼 스키마**:
+  1. `timestamp`: 체결 일시 (`YYYY-MM-DD HH:MM:SS` KST)
+  2. `exchange`: 거래소 구분 (`UPBIT`, `BITHUMB`, `BINANCE`)
+  3. `symbol`: 거래 코인 심볼 (`BTC`, `ETH` 등)
+  4. `side`: 주문 방향 (`BUY`, `SELL`)
+  5. `reason`: 체결 사유 (`TREND_BUY`, `TREND_SELL`, `REBALANCE_BUY`, `REBALANCE_SELL`)
+  6. `price`: 체결 단가 (KRW 또는 USDT)
+  7. `quantity`: 체결 수량
+  8. `amount`: 총 거래 대금 (KRW 또는 USDT)
+  9. `currency`: 결제 통화 (`KRW`, `USDT`)
+  10. `portfolio_total`: 체결 직후 해당 거래소 총 자산 평가액
+- **기록 원칙**:
+  - 매일 09:05 정기 매매 시 실제 주문이 체결(FILLED)된 건만 1행씩 Append 방식으로 기록.
+  - 주문 실패나 최소 주문 금액 미만 스킵 건은 기록하지 않음.
+- **PWA 대시보드 연동 (`status.json`)**:
+  - `src/main.py` 실행 시 `trade_history.csv`에서 최근 N건(기본 20건)을 읽어 `docs/data/status.json`의 `"trade_history"` 필드에 자동 포함하여 배포.
+
+---
+
+## 8. PWA 웹 대시보드 3대 거래소 확장 및 체결 내역 뷰 요구사항
+- **개념**: 기존 업비트 + 빗썸 2대 거래소 구조에서 **바이낸스(Binance) 메인 전략을 포함한 3대 거래소 통합 대시보드**로 확장하고, 하단에 **최근 거래 체결 내역 테이블**을 신설하여 모바일 및 데스크톱에서 원스톱 모니터링을 제공합니다.
+- **주요 UI/UX 변경 사항**:
+  1. **종합 행동 가이드 배너 3대 거래소 확장**:
+     - `업비트`: BTC(220d SMA) / ETH(50d SMA ATR) 상태
+     - `빗썸`: 이더리움 SuperTrend 상태
+     - `바이낸스`: BTC(200d SMA 2%) / ETH(40d SMA 1.2 ATR) 글로벌 USDT 상태
+  2. **바이낸스 글로벌 메인 전략 전용 카드 신설**:
+     - 바이낸스 BTC/ETH 신호 상태 뱃지, 현재가(USDT), 이동평균선(SMA), 당일 행동 가이드
+     - 실시간 환율(USD/KRW) 및 USDT 환산 정보 시각화
+     - 업비트(원화 메인: 220d/50d) vs 바이낸스(달러 메인: 200d/40d) 전략 파라미터 차이점 직관적 설명
+  3. **최근 거래 체결 내역(Trade History) 테이블 신설**:
+     - `docs/data/status.json`의 `trade_history` 데이터를 읽어 최근 체결된 거래 이력을 테이블 형태로 동적 렌더링.
+     - 표시 항목: 일시, 거래소 뱃지(`업비트`, `빗썸`, `바이낸스`), 코인, 매수/매도 뱃지, 체결금액, 거래사유.
+     - 모바일 화면에서는 카드형 리스트로 자동 반응형 전환.
