@@ -486,10 +486,132 @@ def load_recent_trade_history(limit: int = 20, csv_path: str = None) -> list:
         return []
 
 
+def record_asset_history(
+    date_str: str = None,
+    grand_total_krw: float = 0.0,
+    upbit_total_krw: float = 0.0,
+    bithumb_total_krw: float = 0.0,
+    binance_total_usdt: float = 0.0,
+    binance_total_krw: float = 0.0,
+    usd_krw_rate: float = 1380.0,
+    csv_path: str = None
+):
+    """일별 3대 거래소 통합 총자산 및 거래소별 자산 현황을 data/asset_history.csv에 기록(동일 일자 Upsert)합니다."""
+    try:
+        if not date_str:
+            date_str = get_kst_now().strftime("%Y-%m-%d")
+
+        if not csv_path:
+            csv_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
+            os.makedirs(csv_dir, exist_ok=True)
+            csv_path = os.path.join(csv_dir, "asset_history.csv")
+        else:
+            os.makedirs(os.path.dirname(os.path.abspath(csv_path)), exist_ok=True)
+
+        headers = [
+            "date",
+            "grand_total_krw",
+            "upbit_total_krw",
+            "bithumb_total_krw",
+            "binance_total_usdt",
+            "binance_total_krw",
+            "usd_krw_rate"
+        ]
+
+        rows = []
+        if os.path.exists(csv_path) and os.path.getsize(csv_path) > 0:
+            with open(csv_path, mode="r", encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                for r in reader:
+                    if r.get("date"):
+                        rows.append(r)
+
+        if binance_total_krw <= 0 and binance_total_usdt > 0:
+            binance_total_krw = binance_total_usdt * usd_krw_rate
+        if grand_total_krw <= 0:
+            grand_total_krw = upbit_total_krw + bithumb_total_krw + binance_total_krw
+
+        new_row = {
+            "date": date_str,
+            "grand_total_krw": f"{grand_total_krw:.0f}",
+            "upbit_total_krw": f"{upbit_total_krw:.0f}",
+            "bithumb_total_krw": f"{bithumb_total_krw:.0f}",
+            "binance_total_usdt": f"{binance_total_usdt:.2f}",
+            "binance_total_krw": f"{binance_total_krw:.0f}",
+            "usd_krw_rate": f"{usd_krw_rate:.2f}"
+        }
+
+        updated = False
+        for i, r in enumerate(rows):
+            if r.get("date") == date_str:
+                rows[i] = new_row
+                updated = True
+                break
+        if not updated:
+            rows.append(new_row)
+
+        rows.sort(key=lambda x: x.get("date", ""))
+
+        with open(csv_path, mode="w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=headers)
+            writer.writeheader()
+            writer.writerows(rows)
+
+        logging.info(f"일별 자산 현황 기록 완료: [{date_str}] 통합 총자산 {grand_total_krw:,.0f}원")
+    except Exception as e:
+        logging.warning(f"asset_history.csv 저장 실패: {e}")
+
+
+def load_asset_history(limit: int = 60, csv_path: str = None) -> list:
+    """data/asset_history.csv 에서 최근 limit일간의 일자별 자산 추이 데이터를 오름차순으로 조회합니다."""
+    if not csv_path:
+        csv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "asset_history.csv")
+    if not os.path.exists(csv_path):
+        return []
+    records = []
+    try:
+        with open(csv_path, mode="r", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                records.append({
+                    "date": row.get("date", ""),
+                    "grand_total_krw": float(row.get("grand_total_krw", 0) or 0),
+                    "upbit_total_krw": float(row.get("upbit_total_krw", 0) or 0),
+                    "bithumb_total_krw": float(row.get("bithumb_total_krw", 0) or 0),
+                    "binance_total_usdt": float(row.get("binance_total_usdt", 0) or 0),
+                    "binance_total_krw": float(row.get("binance_total_krw", 0) or 0),
+                    "usd_krw_rate": float(row.get("usd_krw_rate", 1380.0) or 1380.0)
+                })
+        return records[-limit:]
+    except Exception as e:
+        logging.warning(f"asset_history.csv 읽기 실패: {e}")
+        return []
+
+
 def export_web_status_json(data_dict, file_path="docs/data/status.json"):
-    """PWA 웹 대시보드 연동용 status.json 파일 저장 (최근 거래 이력 자동 포함)"""
+    """PWA 웹 대시보드 연동용 status.json 파일 저장 (최근 거래 이력 및 일별 자산 추이 자동 포함)"""
     try:
         data_dict["trade_history"] = load_recent_trade_history(limit=20)
+        asset_hist = load_asset_history(limit=60)
+        data_dict["asset_history"] = asset_hist
+
+        if "portfolio" not in data_dict and asset_hist:
+            latest = asset_hist[-1]
+            prev = asset_hist[-2] if len(asset_hist) >= 2 else latest
+            diff_krw = latest["grand_total_krw"] - prev["grand_total_krw"]
+            diff_pct = (diff_krw / prev["grand_total_krw"] * 100.0) if prev["grand_total_krw"] > 0 else 0.0
+            data_dict["portfolio"] = {
+                "date": latest["date"],
+                "grand_total_krw": latest["grand_total_krw"],
+                "upbit_total_krw": latest["upbit_total_krw"],
+                "bithumb_total_krw": latest["bithumb_total_krw"],
+                "binance_total_usdt": latest["binance_total_usdt"],
+                "binance_total_krw": latest["binance_total_krw"],
+                "usd_krw_rate": latest["usd_krw_rate"],
+                "daily_change_krw": round(diff_krw, 0),
+                "daily_change_pct": round(diff_pct, 2)
+            }
+
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
         with open(file_path, "w", encoding="utf-8") as f:
             json.dump(data_dict, f, ensure_ascii=False, indent=2)
@@ -500,7 +622,7 @@ def export_web_status_json(data_dict, file_path="docs/data/status.json"):
 
 def auto_push_status_json(target_file="docs/data/status.json", skip_push=False):
     """
-    PWA 웹 대시보드 데이터(status.json) 및 trade_history.csv를 GitHub에 자동 커밋 & 푸시.
+    PWA 웹 대시보드 데이터(status.json) 및 trade_history.csv, asset_history.csv를 GitHub에 자동 커밋 & 푸시.
     오류가 발생하더라도 매매 봇 프로세스가 중단되지 않도록 안전하게 예외 처리.
     """
     if skip_push:
@@ -509,9 +631,9 @@ def auto_push_status_json(target_file="docs/data/status.json", skip_push=False):
 
     try:
         import subprocess
-        # 1. git add (status.json 및 trade_history.csv 동반 추가)
+        # 1. git add (status.json, trade_history.csv, asset_history.csv 동반 추가)
         add_res = subprocess.run(
-            ["git", "add", target_file, "data/trade_history.csv"],
+            ["git", "add", target_file, "data/trade_history.csv", "data/asset_history.csv"],
             capture_output=True,
             text=True,
             encoding="utf-8",
@@ -1529,6 +1651,17 @@ def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STR
     
     send_discord_message("\n".join(report))
     logging.info("매매 및 잔고 리포팅이 무사히 완료되었습니다.")
+
+    if not is_dry_run:
+        record_asset_history(
+            date_str=kst_now.strftime("%Y-%m-%d"),
+            grand_total_krw=grand_total_val,
+            upbit_total_krw=total_upbit_fin,
+            bithumb_total_krw=total_bithumb_fin if use_alt_strategy else 0.0,
+            binance_total_usdt=total_binance_usdt_fin if use_binance_strategy else 0.0,
+            binance_total_krw=total_binance_krw_fin if use_binance_strategy else 0.0,
+            usd_krw_rate=usd_krw_rate
+        )
 
     # PWA 웹 대시보드용 status.json 파일 내보내기
     live_status_data = {

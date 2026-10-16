@@ -745,7 +745,7 @@
       display: block;
     }
 
-    /* 최근 거래 체결 내역 스타일 */
+    /* 거래 내역 및 자산 현황 스타일 */
     .trade-card {
       background: var(--bg-card);
       border: 1px solid var(--border-card);
@@ -754,6 +754,128 @@
       box-shadow: var(--card-shadow);
       margin-bottom: 24px;
       overflow: hidden;
+    }
+
+    .asset-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .asset-summary-item {
+      background: var(--bg-card-sub);
+      border: 1px solid var(--border-color);
+      border-left: 3px solid var(--accent-primary);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .asset-summary-item.grand {
+      background: var(--banner-bg);
+      border-color: var(--banner-border);
+      border-left: 4px solid var(--accent-primary);
+    }
+
+    .asset-summary-item.binance {
+      border-left-color: var(--accent-amber);
+    }
+
+    .asset-summary-item.bithumb {
+      border-left-color: var(--accent-green);
+    }
+
+    .asset-item-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .asset-item-val {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text-primary);
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.3px;
+    }
+
+    .asset-summary-item.grand .asset-item-val {
+      font-size: 20px;
+      color: var(--accent-primary);
+    }
+
+    .asset-item-sub {
+      font-size: 11.5px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .asset-sub-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 16px 0 10px 0;
+      padding-top: 14px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .asset-sub-header:first-of-type {
+      margin-top: 4px;
+    }
+
+    .asset-sub-title {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .asset-tabs {
+      display: flex;
+      gap: 6px;
+      background: var(--bg-card-sub);
+      padding: 3px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-color);
+    }
+
+    .asset-tab {
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 11.5px;
+      font-weight: 600;
+      padding: 5px 10px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-family: var(--font-family);
+      transition: all 0.15s ease;
+    }
+
+    .asset-tab.active {
+      background: var(--accent-primary);
+      color: var(--on-primary);
+    }
+
+    .asset-chart-wrapper {
+      position: relative;
+      height: 240px;
+      width: 100%;
+      margin-bottom: 8px;
     }
 
     .trade-table-wrapper {
@@ -1361,16 +1483,78 @@
       </div>
     </div>
 
-    <!-- 전략 섹션 6: 최근 실거래 체결 내역 -->
+    <!-- 전략 섹션 6: 거래 내역 및 자산 현황 -->
     <div class="section-title">
-      <svg class="icon icon-cyan" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-      <span>최근 실거래 체결 내역 (최근 20건 장부)</span>
+      <svg class="icon icon-cyan" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      <span>거래 내역 및 자산 현황</span>
     </div>
     <div class="section-desc">
-      업비트, 빗썸, 바이낸스 3대 거래소에서 봇이 실제 집행한 매매 체결 이력(trade_history.csv)을 투명하게 공개합니다.
+      업비트, 빗썸, 바이낸스 3대 거래소의 일자별 총자산 추이 그래프와 봇이 실제 집행한 매매 체결 장부(trade_history.csv)를 실시간으로 제공합니다.
     </div>
 
     <div class="trade-card" id="trade-history-container">
+      <!-- 1. 3대 거래소 자산 현황 요약 그리드 -->
+      <div class="asset-summary-grid">
+        <div class="asset-summary-item grand">
+          <div class="asset-item-label">
+            <span>💰 통합 총자산 (원화 환산)</span>
+          </div>
+          <div id="asset-grand-total" class="asset-item-val">17,865,492 원</div>
+          <div id="asset-grand-sub" class="asset-item-sub">전일 대비 +193,356 원 (+1.09%)</div>
+        </div>
+
+        <div class="asset-summary-item">
+          <div class="asset-item-label">
+            <span>🔵 업비트 메인 (KRW)</span>
+            <span id="asset-upbit-weight" class="coin-badge">33.8%</span>
+          </div>
+          <div id="asset-upbit-total" class="asset-item-val">6,039,812 원</div>
+          <div id="asset-upbit-sub" class="asset-item-sub">BTC 50% · KRW 현금 50%</div>
+        </div>
+
+        <div class="asset-summary-item binance">
+          <div class="asset-item-label">
+            <span>🟡 바이낸스 글로벌 (USDT)</span>
+            <span id="asset-binance-weight" class="coin-badge">55.9%</span>
+          </div>
+          <div id="asset-binance-total" class="asset-item-val">$7,438.15</div>
+          <div id="asset-binance-sub" class="asset-item-sub">약 9,987,510 원 | BTC 50% · USDT 50%</div>
+        </div>
+
+        <div class="asset-summary-item bithumb">
+          <div class="asset-item-label">
+            <span>🟢 빗썸 서브 (KRW)</span>
+            <span id="asset-bithumb-weight" class="coin-badge">10.3%</span>
+          </div>
+          <div id="asset-bithumb-total" class="asset-item-val">1,838,170 원</div>
+          <div id="asset-bithumb-sub" class="asset-item-sub">100% 원화 현금 관망</div>
+        </div>
+      </div>
+
+      <!-- 2. 일자별 총자산 추이 그래프 -->
+      <div class="asset-sub-header" style="border-top: none; padding-top: 0;">
+        <div class="asset-sub-title">
+          <svg class="icon icon-sm icon-cyan" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          <span>일자별 총자산 추이</span>
+        </div>
+        <div class="asset-tabs">
+          <button class="asset-tab active" id="tab-asset-total" onclick="switchAssetChartTab('total')">통합 총자산 추이</button>
+          <button class="asset-tab" id="tab-asset-exchange" onclick="switchAssetChartTab('exchange')">거래소별 자산 비교</button>
+        </div>
+      </div>
+
+      <div class="asset-chart-wrapper">
+        <canvas id="assetTrendChart"></canvas>
+      </div>
+
+      <!-- 3. 최근 실거래 체결 내역 테이블 -->
+      <div class="asset-sub-header">
+        <div class="asset-sub-title">
+          <svg class="icon icon-sm icon-cyan" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          <span>최근 실거래 체결 내역 (최근 20건 장부)</span>
+        </div>
+      </div>
+
       <div class="trade-table-wrapper">
         <table class="trade-table">
           <thead>
@@ -1414,8 +1598,10 @@
   <script>
     // 전역 상태 및 차트 인스턴스 변수 선언 (TDZ 방지)
     let currentChartInstance = null;
+    let assetChartInstance = null;
     let globalStrategyData = null;
     let activeChartTab = 'btc';
+    let activeAssetChartTab = 'total';
 
     // ==========================================================================
     // 1. 테마 전환 로직
@@ -1598,7 +1784,7 @@
       const yyyy = refDate.getFullYear();
       const mm = String(refDate.getMonth() + 1).padStart(2, '0');
       const dd = String(refDate.getDate()).padStart(2, '0');
-      return `quant_chart_v5_${yyyy}-${mm}-${dd}`;
+      return `quant_chart_v6_${yyyy}-${mm}-${dd}`;
     }
 
     async function fetchJsonSafe(url) {
@@ -1670,7 +1856,7 @@
           const parsed = JSON.parse(cached);
           if (parsed && parsed.chart && parsed.chart.btc && parsed.chart.btc.closes) {
             globalStrategyData = parsed;
-            document.getElementById('cache-status-badge').textContent = `⚡ 스마트 로컬 캐싱 활성 (${cacheKey.replace('quant_chart_v5_', '')})`;
+            document.getElementById('cache-status-badge').textContent = `⚡ 스마트 로컬 캐싱 활성 (${cacheKey.replace('quant_chart_v6_', '')})`;
             return parsed;
           }
         } catch (e) {
@@ -1892,6 +2078,8 @@
         if (globalStrategyData) {
           if (!computedData.binance && globalStrategyData.binance) computedData.binance = globalStrategyData.binance;
           if (globalStrategyData.trade_history) computedData.trade_history = globalStrategyData.trade_history;
+          if (globalStrategyData.asset_history) computedData.asset_history = globalStrategyData.asset_history;
+          if (globalStrategyData.portfolio) computedData.portfolio = globalStrategyData.portfolio;
           if (globalStrategyData.guides) computedData.guides = globalStrategyData.guides;
         }
 
@@ -1908,7 +2096,7 @@
         }
 
         globalStrategyData = computedData;
-        document.getElementById('cache-status-badge').textContent = `⚡ 스마트 로컬 캐싱 활성 (${cacheKey.replace('quant_chart_v5_', '')})`;
+        document.getElementById('cache-status-badge').textContent = `⚡ 스마트 로컬 캐싱 활성 (${cacheKey.replace('quant_chart_v6_', '')})`;
         return computedData;
       } catch (err) {
         console.warn('Compute failed, using fallback status:', err);
@@ -1920,6 +2108,11 @@
     // ==========================================================================
     // 4. 대시보드 렌더링 및 실시간 시세 동기화
     // ==========================================================================
+    const defaultAssetHistory = [
+      { date: "2026-10-15", grand_total_krw: 17672136, upbit_total_krw: 6002450, bithumb_total_krw: 1835978, binance_total_usdt: 7339.62, binance_total_krw: 9833708, usd_krw_rate: 1339.81 },
+      { date: "2026-10-16", grand_total_krw: 17865492, upbit_total_krw: 6039812, bithumb_total_krw: 1838170, binance_total_usdt: 7438.15, binance_total_krw: 9987510, usd_krw_rate: 1342.74 }
+    ];
+
     function renderStrategyView(data) {
       if (!data) return;
 
@@ -2128,7 +2321,55 @@
         }
       }
 
-      // 4. 최근 실거래 체결 내역 테이블 렌더링
+      // 4. 자산 현황 카드 및 일자별 총자산 추이 차트 렌더링
+      const assetHistory = (Array.isArray(data.asset_history) && data.asset_history.length > 0)
+        ? data.asset_history
+        : defaultAssetHistory;
+
+      if (assetHistory.length > 0) {
+        const latestAsset = assetHistory[assetHistory.length - 1];
+        const prevAsset = assetHistory.length >= 2 ? assetHistory[assetHistory.length - 2] : latestAsset;
+
+        const grandTotal = Number(latestAsset.grand_total_krw || 0);
+        const upbitTotal = Number(latestAsset.upbit_total_krw || 0);
+        const bithumbTotal = Number(latestAsset.bithumb_total_krw || 0);
+        const binanceUsdt = Number(latestAsset.binance_total_usdt || 0);
+        const binanceKrw = Number(latestAsset.binance_total_krw || 0);
+
+        const diffKrw = grandTotal - Number(prevAsset.grand_total_krw || grandTotal);
+        const diffPct = prevAsset.grand_total_krw > 0 ? (diffKrw / prevAsset.grand_total_krw) * 100 : 0;
+
+        const grandEl = document.getElementById('asset-grand-total');
+        if (grandEl) grandEl.textContent = formatKRW(grandTotal);
+
+        const grandSubEl = document.getElementById('asset-grand-sub');
+        if (grandSubEl) {
+          const sign = diffKrw >= 0 ? '+' : '';
+          grandSubEl.textContent = `전일 대비 ${sign}${Math.round(diffKrw).toLocaleString('ko-KR')} 원 (${sign}${diffPct.toFixed(2)}%)`;
+          grandSubEl.style.color = diffKrw >= 0 ? 'var(--accent-green)' : '#ef4444';
+        }
+
+        const upbitEl = document.getElementById('asset-upbit-total');
+        if (upbitEl) upbitEl.textContent = formatKRW(upbitTotal);
+        const upbitWeightEl = document.getElementById('asset-upbit-weight');
+        if (upbitWeightEl && grandTotal > 0) upbitWeightEl.textContent = `${((upbitTotal / grandTotal) * 100).toFixed(1)}%`;
+
+        const binEl = document.getElementById('asset-binance-total');
+        if (binEl) binEl.textContent = formatUSDT(binanceUsdt);
+        const binSubEl = document.getElementById('asset-binance-sub');
+        if (binSubEl) binSubEl.textContent = `약 ${formatKRW(binanceKrw)} | BTC 50% · USDT 50%`;
+        const binWeightEl = document.getElementById('asset-binance-weight');
+        if (binWeightEl && grandTotal > 0) binWeightEl.textContent = `${((binanceKrw / grandTotal) * 100).toFixed(1)}%`;
+
+        const bitEl = document.getElementById('asset-bithumb-total');
+        if (bitEl) bitEl.textContent = formatKRW(bithumbTotal);
+        const bitWeightEl = document.getElementById('asset-bithumb-weight');
+        if (bitWeightEl && grandTotal > 0) bitWeightEl.textContent = `${((bithumbTotal / grandTotal) * 100).toFixed(1)}%`;
+      }
+
+      renderAssetChart(assetHistory);
+
+      // 5. 최근 실거래 체결 내역 테이블 렌더링
       const defaultRecentTrades = [
         { timestamp: "2026-10-16 09:05:07", exchange: "BINANCE", symbol: "BTC", side: "BUY", reason: "TREND_BUY", price: "82100.00", quantity: "0.04443552", amount: "3648.16", currency: "USDT", total_asset: "7382.71" },
         { timestamp: "2026-10-16 09:05:05", exchange: "BINANCE", symbol: "ETH", side: "SELL", reason: "TREND_SELL", price: "2378.60", quantity: "0.02120000", amount: "50.43", currency: "USDT", total_asset: "7382.71" },
@@ -2301,6 +2542,159 @@
       const activeBtn = document.getElementById(`tab-${tabName}`);
       if (activeBtn) activeBtn.classList.add('active');
       renderCurrentChart();
+    }
+
+    function switchAssetChartTab(tabName) {
+      activeAssetChartTab = tabName;
+      document.querySelectorAll('.asset-tab').forEach(t => t.classList.remove('active'));
+      const activeBtn = document.getElementById(`tab-asset-${tabName}`);
+      if (activeBtn) activeBtn.classList.add('active');
+      const assetHistory = (globalStrategyData && Array.isArray(globalStrategyData.asset_history) && globalStrategyData.asset_history.length > 0)
+        ? globalStrategyData.asset_history
+        : defaultAssetHistory;
+      renderAssetChart(assetHistory);
+    }
+
+    function renderAssetChart(assetHistoryData) {
+      const canvasEl = document.getElementById('assetTrendChart');
+      if (!canvasEl) return;
+      if (typeof Chart === 'undefined') {
+        setTimeout(() => renderAssetChart(assetHistoryData), 200);
+        return;
+      }
+
+      const history = (Array.isArray(assetHistoryData) && assetHistoryData.length > 0)
+        ? assetHistoryData
+        : defaultAssetHistory;
+
+      const ctx = canvasEl.getContext('2d');
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)';
+      const tickColor = isDark ? '#8b92a9' : '#6b7280';
+      const mainTeal = isDark ? '#2dd4bf' : '#0d9488';
+
+      if (assetChartInstance) {
+        assetChartInstance.destroy();
+      }
+
+      const labels = history.map(item => (item.date || '').substring(5));
+      let datasets = [];
+
+      if (activeAssetChartTab === 'total') {
+        const totals = history.map(item => Number(item.grand_total_krw || 0));
+        datasets = [
+          {
+            label: '3대 거래소 통합 총자산 (원화 환산)',
+            data: totals,
+            borderColor: mainTeal,
+            backgroundColor: isDark ? 'rgba(45, 212, 191, 0.16)' : 'rgba(13, 148, 136, 0.12)',
+            borderWidth: 2.5,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            pointBackgroundColor: mainTeal,
+            fill: true,
+            tension: 0.25
+          }
+        ];
+      } else {
+        datasets = [
+          {
+            label: '바이낸스 (원화 환산)',
+            data: history.map(item => Number(item.binance_total_krw || 0)),
+            borderColor: '#f59e0b',
+            backgroundColor: '#f59e0b',
+            borderWidth: 2.2,
+            pointRadius: 3.5,
+            pointHoverRadius: 5,
+            fill: false,
+            tension: 0.25
+          },
+          {
+            label: '업비트 (KRW)',
+            data: history.map(item => Number(item.upbit_total_krw || 0)),
+            borderColor: mainTeal,
+            backgroundColor: mainTeal,
+            borderWidth: 2.2,
+            pointRadius: 3.5,
+            pointHoverRadius: 5,
+            fill: false,
+            tension: 0.25
+          },
+          {
+            label: '빗썸 (KRW)',
+            data: history.map(item => Number(item.bithumb_total_krw || 0)),
+            borderColor: '#10b981',
+            backgroundColor: '#10b981',
+            borderWidth: 2.2,
+            pointRadius: 3.5,
+            pointHoverRadius: 5,
+            fill: false,
+            tension: 0.25
+          }
+        ];
+      }
+
+      assetChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: datasets
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            mode: 'index',
+            intersect: false
+          },
+          plugins: {
+            legend: {
+              display: true,
+              position: 'top',
+              labels: {
+                boxWidth: 12,
+                boxHeight: 2,
+                color: tickColor,
+                font: { size: 11, family: 'Pretendard' }
+              }
+            },
+            tooltip: {
+              backgroundColor: isDark ? 'rgba(26, 31, 58, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+              titleColor: isDark ? '#f0f4f8' : '#1a1d2e',
+              bodyColor: isDark ? '#f0f4f8' : '#1a1d2e',
+              borderColor: isDark ? '#2d3548' : '#e5e7eb',
+              borderWidth: 1,
+              padding: 10,
+              boxPadding: 4,
+              callbacks: {
+                label: (context) => {
+                  const label = context.dataset.label || '';
+                  const val = context.parsed.y;
+                  return `${label}: ${val !== null && val !== undefined ? Math.round(val).toLocaleString('ko-KR') : '-'} 원`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: gridColor },
+              ticks: { color: tickColor, font: { size: 11 } }
+            },
+            y: {
+              grid: { color: gridColor },
+              ticks: {
+                color: tickColor,
+                font: { size: 10 },
+                callback: (v) => {
+                  if (v >= 1000000) return (v / 1000000).toFixed(1) + 'M';
+                  if (v >= 1000) return (v / 1000).toFixed(0) + 'K';
+                  return v;
+                }
+              }
+            }
+          }
+        }
+      });
     }
 
     function switchBacktestTab(tabName) {
@@ -2554,8 +2948,11 @@
     }
 
     function updateChartTheme() {
-      if (!currentChartInstance) return;
-      renderCurrentChart();
+      if (currentChartInstance) renderCurrentChart();
+      const assetHistory = (globalStrategyData && Array.isArray(globalStrategyData.asset_history) && globalStrategyData.asset_history.length > 0)
+        ? globalStrategyData.asset_history
+        : defaultAssetHistory;
+      renderAssetChart(assetHistory);
     }
 
     // ==========================================================================
@@ -2584,6 +2981,8 @@
             if (statusData) {
               parsed.binance = statusData.binance;
               parsed.trade_history = statusData.trade_history;
+              parsed.asset_history = statusData.asset_history;
+              parsed.portfolio = statusData.portfolio;
               parsed.guides = statusData.guides;
             }
             globalStrategyData = parsed;
@@ -2600,6 +2999,8 @@
         if (statusData) {
           data.binance = statusData.binance;
           data.trade_history = statusData.trade_history;
+          data.asset_history = statusData.asset_history;
+          data.portfolio = statusData.portfolio;
           data.guides = statusData.guides;
         }
         globalStrategyData = data;

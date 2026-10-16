@@ -14,7 +14,9 @@ from main import (
     export_web_status_json,
     auto_push_status_json,
     record_trade_history,
-    load_recent_trade_history
+    load_recent_trade_history,
+    record_asset_history,
+    load_asset_history
 )
 
 
@@ -97,6 +99,9 @@ class TestStatusPipeline(unittest.TestCase):
             self.assertEqual(loaded["chart"]["btc"]["closes"], [100000000])
             self.assertIn("trade_history", loaded)
             self.assertIsInstance(loaded["trade_history"], list)
+            self.assertIn("asset_history", loaded)
+            self.assertIsInstance(loaded["asset_history"], list)
+            self.assertIn("portfolio", loaded)
         finally:
             if os.path.exists(temp_path):
                 os.remove(temp_path)
@@ -144,6 +149,51 @@ class TestStatusPipeline(unittest.TestCase):
             self.assertEqual(history[1]["exchange"], "UPBIT")
             self.assertEqual(history[1]["side"], "BUY")
             self.assertEqual(history[1]["reason"], "TREND_BUY")
+        finally:
+            if os.path.exists(temp_csv):
+                os.remove(temp_csv)
+
+    def test_asset_history_recording_and_loading(self):
+        with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as tf:
+            temp_csv = tf.name
+
+        try:
+            # 1. Record two days and upsert the second day
+            record_asset_history(
+                upbit_total_krw=6000000,
+                bithumb_total_krw=1800000,
+                binance_total_usdt=7300.0,
+                usd_krw_rate=1340.0,
+                date_str="2026-10-15",
+                csv_path=temp_csv
+            )
+            record_asset_history(
+                upbit_total_krw=6020000,
+                bithumb_total_krw=1830000,
+                binance_total_usdt=7400.0,
+                usd_krw_rate=1340.0,
+                date_str="2026-10-16",
+                csv_path=temp_csv
+            )
+            # Upsert same date (2026-10-16) with updated balance
+            record_asset_history(
+                upbit_total_krw=6039812,
+                bithumb_total_krw=1838170,
+                binance_total_usdt=7438.15,
+                usd_krw_rate=1342.74,
+                date_str="2026-10-16",
+                csv_path=temp_csv
+            )
+
+            history = load_asset_history(limit=60, csv_path=temp_csv)
+            self.assertEqual(len(history), 2)
+            self.assertEqual(history[0]["date"], "2026-10-15")
+            self.assertEqual(history[1]["date"], "2026-10-16")
+            self.assertEqual(history[1]["upbit_total_krw"], 6039812)
+            self.assertEqual(history[1]["bithumb_total_krw"], 1838170)
+            self.assertAlmostEqual(history[1]["binance_total_usdt"], 7438.15, places=2)
+            expected_grand = round(6039812 + 1838170 + (7438.15 * 1342.74))
+            self.assertEqual(history[1]["grand_total_krw"], expected_grand)
         finally:
             if os.path.exists(temp_csv):
                 os.remove(temp_csv)

@@ -924,5 +924,36 @@
       "currency": "USDT",
       "total_asset": "7339.62"
     }
-  ]
+  ],
+  "asset_history": [
+    {
+      "date": "2026-10-15",
+      "grand_total_krw": 17672136.0,
+      "upbit_total_krw": 6002450.0,
+      "bithumb_total_krw": 1835978.0,
+      "binance_total_usdt": 7339.62,
+      "binance_total_krw": 9833708.0,
+      "usd_krw_rate": 1339.81
+    },
+    {
+      "date": "2026-10-16",
+      "grand_total_krw": 17865492.0,
+      "upbit_total_krw": 6039812.0,
+      "bithumb_total_krw": 1838170.0,
+      "binance_total_usdt": 7438.15,
+      "binance_total_krw": 9987510.0,
+      "usd_krw_rate": 1342.74
+    }
+  ],
+  "portfolio": {
+    "date": "2026-10-16",
+    "grand_total_krw": 17865492.0,
+    "upbit_total_krw": 6039812.0,
+    "bithumb_total_krw": 1838170.0,
+    "binance_total_usdt": 7438.15,
+    "binance_total_krw": 9987510.0,
+    "usd_krw_rate": 1342.74,
+    "daily_change_krw": 193356.0,
+    "daily_change_pct": 1.09
+  }
 }

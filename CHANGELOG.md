@@ -3,6 +3,29 @@
 이 프로젝트의 모든 중요한 변경 사항은 이 파일에 기록됩니다.
 이 프로젝트는 유의적 버전(Semantic Versioning)을 준수합니다.
 
+## [1.12.0] - 2026-10-16
+
+### Added (추가됨)
+- **일별 3대 거래소 통합 총자산 추이 원장 신설 및 자동 기록 파이프라인 구축 (`data/asset_history.csv`, `src/main.py`, `.gitignore`, `tests/test_status_pipeline.py`)**:
+  - 업비트(KRW), 빗썸(KRW), 바이낸스(USDT 및 원화 환산액) 3대 거래소의 일별 평가액과 원화 환산 통합 총자산을 누적 보존하는 `data/asset_history.csv` 원장 신설 (`.gitignore` 예외 추적 추가).
+  - 실제 3대 거래소 검증 잔고(`2026-10-15` 통합 `17,672,136`원, `2026-10-16` 통합 `17,865,492`원) 초기 시계열 데이터 반영.
+  - `src/main.py`에 `record_asset_history`(동일 일자 재실행 시 Upsert 갱신 및 날짜순 정렬) 및 `load_asset_history` 함수 구현.
+  - 실거래(`--live`) 실행 시 일별 총자산 스냅샷을 자동 기록하고, `export_web_status_json` 실행 시 `docs/data/status.json`에 최근 60일 `asset_history` 배열과 최신 `portfolio` 요약 객체를 자동 포함하도록 연동.
+  - `tests/test_status_pipeline.py`에 `test_asset_history_recording_and_loading` 단위 테스트 추가 및 검증 완료.
+- **PWA 웹 대시보드 「거래 내역 및 자산 현황」 섹션 개편 및 일자별 총자산 추이 그래프 탑재 (`docs/index.html`)**:
+  - 대시보드 하단 섹션 타이틀을 **`거래 내역 및 자산 현황`**으로 개편.
+  - **3대 거래소 포트폴리오 요약 카드 (4종)**: 통합 총자산(원화 환산 + 전일 대비 증감액/증감률 표시), 업비트 메인(KRW 및 비중%), 바이낸스 글로벌(USDT + 원화 환산액 및 비중%), 빗썸 서브(KRW 및 비중%) KPI 카드 신설.
+  - **일자별 총자산 추이 인터랙티브 차트 (`#assetTrendChart`)**:
+    - `통합 총자산 추이` 탭과 `거래소별 자산 비교` 탭을 제공하여 일별 총자산 성장 곡선과 거래소별 평가액 추이를 Chart.js Canvas로 실시간 시각화(다크/라이트 테마 연동).
+  - 로컬 스토리지 캐시 키를 `quant_chart_v6_`로 상향하여 신규 자산 추이 데이터가 즉시 반영되도록 개선.
+
+### Changed (변경됨)
+- **에이전트 Git 워크플로우 규칙 및 문서 최신화 (`AGENTS.md`, `PRD.md`, `README.md`)**:
+  - `AGENTS.md`에 로컬 `git commit`과 원격 `git push`를 엄격히 분리하여, 명시적 푸시 지시 없이는 절대 임의 푸시하지 않도록 원칙 명문화.
+  - `PRD.md` 및 `README.md`에 `data/asset_history.csv` 규격과 대시보드 `거래 내역 및 자산 현황` 섹션 명세 반영.
+
+---
+
 ## [1.11.0] - 2026-10-16
 
 ### Added (추가됨)
