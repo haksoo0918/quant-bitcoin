@@ -11,17 +11,20 @@ on:
   workflow_dispatch: # 수동 원클릭 배포 지원
     inputs:
       run_mode:
-        description: '오라클 VM 배포 직후 실행 모드 (live: 실거래 및 리포팅, dry-run: 모의매매)'
+        description: '오라클 VM 배포 직후 실행 모드 (none: 실행 안 함, live: 실거래, dry-run: 모의매매)'
         required: true
-        default: 'live'
+        default: 'none'
         type: choice
         options:
+          - none
           - live
           - dry-run
 
 jobs:
   test-and-deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
     - name: Checkout Repository
@@ -53,8 +56,31 @@ jobs:
           pip install -r requirements.txt --break-system-packages
           (crontab -l 2>/dev/null | grep -v 'quant-bitcoin'; echo "5 9 * * * cd /home/ubuntu/quant-bitcoin && git pull origin main >> /home/ubuntu/quant-bitcoin/cron.log 2>&1; /usr/bin/python3 src/main.py --live >> /home/ubuntu/quant-bitcoin/cron.log 2>&1") | crontab -
           RUN_MODE="${{ github.event.inputs.run_mode }}"
-          if [ -z "$RUN_MODE" ]; then
-            RUN_MODE="live"
+          if [ -n "$RUN_MODE" ] && [ "$RUN_MODE" != "none" ]; then
+            echo "Executing: python3 src/main.py --$RUN_MODE"
+            python3 src/main.py --$RUN_MODE
           fi
-          echo "Executing: python3 src/main.py --$RUN_MODE"
-          python3 src/main.py --$RUN_MODE
+
+    - name: Sync updated data files from Oracle VM
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.ORACLE_SSH_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H "${{ secrets.ORACLE_HOST }}" >> ~/.ssh/known_hosts
+        mkdir -p ./docs/data ./data
+        scp -i ~/.ssh/id_rsa ${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }}:/home/ubuntu/quant-bitcoin/docs/data/status.json ./docs/data/status.json || true
+        scp -i ~/.ssh/id_rsa ${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }}:/home/ubuntu/quant-bitcoin/data/trade_history.csv ./data/trade_history.csv || true
+        scp -i ~/.ssh/id_rsa ${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }}:/home/ubuntu/quant-bitcoin/data/asset_history.csv ./data/asset_history.csv || true
+
+    - name: Commit and push updated dashboard data
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add docs/data/status.json data/trade_history.csv data/asset_history.csv
+        if ! git diff --staged --quiet; then
+          today_str=$(date +'%Y-%m-%d')
+          git commit -m "data: 오라클 VM 실거래 장부 및 대시보드 자동 동기화 ($today_str)"
+          git push origin main
+        else
+          echo "No changes to commit from Oracle VM data."
+        fi

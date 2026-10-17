@@ -9,7 +9,9 @@
 - **오라클 클라우드 VM 크론탭 스케줄러 내결함성(Fault-tolerance) 확보 및 무조건 실행 보장 (`.github/workflows/deploy.yml`, `docs/ORACLE_CLOUD_GUIDE.md`, `PRD.md`)**:
   - 어제 배포된 크론탭 명령어에서 `git pull`과 파이썬 매매 봇 사이의 `&&` (AND) 결합으로 인해 비대화형 크론 환경에서 Git 동기화 오류 발생 시 봇 프로세스가 실행조차 되지 않던 결함 해결.
   - `git pull origin main` 실패 여부와 무관하게 세미콜론(`;`) 격리를 통해 실거래 봇(`/usr/bin/python3 src/main.py --live`)이 100% 무조건 실행되도록 개선.
-  - 배포 워크플로우(`.github/workflows/deploy.yml`)에 `workflow_dispatch`의 `run_mode`(live/dry-run) 입력 옵션을 신설하고, 배포 완료 즉시 오라클 VM에서 오늘자 실거래 및 디스코드 리포팅이 자동 집행되도록 연동.
+  - 배포 워크플로우(`.github/workflows/deploy.yml`)에 `workflow_dispatch`의 `run_mode`(live/dry-run/none) 입력 옵션을 신설하고, 배포 완료 즉시 오라클 VM에서 오늘자 실거래 및 디스코드 리포팅이 자동 집행되도록 연동.
+  - **오라클 VM 실거래 장부(trade_history/asset_history/status.json) GitHub Actions 러너 SCP 수거 및 자동 푸시 파이프라인 탑재 (`.github/workflows/deploy.yml`)**:
+    - 오라클 VM의 Git 푸시 권한 문제로 인한 웹 대시보드 미반영을 원천 해결하기 위해, 배포 워크플로우에 `permissions: contents: write`를 부여하고 SSH/SCP로 오라클 VM의 최신 장부 파일을 러너가 자동 다운로드하여 저장소에 대신 커밋&푸시하도록 양방향 동기화 연동.
 
 ### Changed (변경됨)
 - **PWA 웹 상태 내보내기 및 Git 자동 푸시 작업 디렉토리 절대경로화 (`src/main.py`)**:
