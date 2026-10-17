@@ -1,14 +1,14 @@
 {
-  "updated_at": "2026-10-17T10:47:39.076037+00:00",
-  "updated_at_formatted": "2026-10-17 10:47:39 KST",
-  "mode": "signal",
+  "updated_at": "2026-10-17T10:54:58.043820+00:00",
+  "updated_at_formatted": "2026-10-17 10:54:58 KST",
+  "mode": "live",
   "upbit": {
     "btc": {
-      "current_price": 110039000.0,
-      "sma": 104421900.0,
+      "current_price": 110041000.0,
+      "sma": 104421909.0909091,
       "sma_len": 220,
-      "upper_buffer": 106510338.0,
-      "lower_buffer": 102333462.0,
+      "upper_buffer": 106510347.27272728,
+      "lower_buffer": 102333470.9090909,
       "status": "bull",
       "status_label": "상승 추세 돌파",
       "guide": "BTC 50% 비중 매수 또는 보유 유지"
@@ -28,20 +28,38 @@
   "bithumb": {
     "enabled": true,
     "strategy_name": "이더리움 SuperTrend + 50일 SMA 추세 추종",
-    "target_coin": "KRW",
-    "target_coin_name": "원화 현금 (KRW)",
-    "target_signal": "🔴 **[100% 원화 현금화 관망]** (SuperTrend 하락 또는 50일 SMA 이탈)",
-    "current_price": 3266000.0,
+    "current_price": 3267000.0,
     "sma50": 3477800.0,
     "supertrend_val": 3634000.0,
     "supertrend_trend": "BEAR",
     "is_above_sma": false,
     "action": "SELL",
-    "guide": "보유 이더리움 전량 매도 후 100% 현금(KRW) 보존"
+    "guide": "100% 원화 현금화 안전 관망 🔴"
+  },
+  "binance": {
+    "enabled": true,
+    "strategy_name": "바이낸스 BTC/ETH 50:50 동적 리밸런싱",
+    "usd_krw_rate": 1334.892169,
+    "btc": {
+      "current_price": 81568.01,
+      "sma": 72464.855,
+      "status": "bull",
+      "status_label": "상승 추세 돌파",
+      "target_state": "hold"
+    },
+    "eth": {
+      "current_price": 2420.28,
+      "sma": 2576.04375,
+      "status": "bear",
+      "status_label": "하락 밴드 이탈",
+      "target_state": "cash"
+    },
+    "guide": "BTC 50% 매수/보유 / ETH 현금화(USDT)"
   },
   "guides": {
     "upbit": "BTC 50% 비중 매수 또는 보유 유지 / ETH 전량 매도 및 현금(KRW) 확보",
-    "bithumb": "보유 이더리움 전량 매도 후 100% 현금(KRW) 보존"
+    "bithumb": "100% 원화 현금화 안전 관망 🔴",
+    "binance": "BTC 50% 매수/보유 / ETH 현금화(USDT)"
   },
   "chart": {
     "dates": [
@@ -167,7 +185,7 @@
         110338000.0,
         110883000.0,
         110276000.0,
-        110039000.0
+        110041000.0
       ],
       "sma": [
         null,
@@ -229,7 +247,7 @@
         104305422.73,
         104352959.09,
         104388681.82,
-        104421900.0
+        104421909.09
       ],
       "upper": [
         null,
@@ -291,7 +309,7 @@
         106391531.18,
         106440018.27,
         106476455.45,
-        106510338.0
+        106510347.27
       ],
       "lower": [
         null,
@@ -353,7 +371,7 @@
         102219314.27,
         102265899.91,
         102300908.18,
-        102333462.0
+        102333470.91
       ]
     },
     "eth": {
@@ -859,6 +877,30 @@
   },
   "trade_history": [
     {
+      "timestamp": "2026-10-17 10:54:58",
+      "exchange": "BINANCE",
+      "symbol": "BTC",
+      "side": "BUY",
+      "reason": "REBALANCE_BUY",
+      "price": "81568.01",
+      "quantity": "0.00023094",
+      "amount": "18.84",
+      "currency": "USDT",
+      "total_asset": "7410.62"
+    },
+    {
+      "timestamp": "2026-10-17 10:54:58",
+      "exchange": "UPBIT",
+      "symbol": "BTC",
+      "side": "BUY",
+      "reason": "REBALANCE_BUY",
+      "price": "110041000",
+      "quantity": "0.00010794",
+      "amount": "11878",
+      "currency": "KRW",
+      "total_asset": "6016042"
+    },
+    {
       "timestamp": "2026-10-16 09:05:07",
       "exchange": "BINANCE",
       "symbol": "BTC",
@@ -925,17 +967,26 @@
       "binance_total_usdt": 7438.15,
       "binance_total_krw": 9987510.0,
       "usd_krw_rate": 1342.74
+    },
+    {
+      "date": "2026-10-17",
+      "grand_total_krw": 17746542.0,
+      "upbit_total_krw": 6016036.0,
+      "bithumb_total_krw": 1838152.0,
+      "binance_total_usdt": 7410.6,
+      "binance_total_krw": 9892353.0,
+      "usd_krw_rate": 1334.89
     }
   ],
   "portfolio": {
-    "date": "2026-10-16",
-    "grand_total_krw": 17865492.0,
-    "upbit_total_krw": 6039812.0,
-    "bithumb_total_krw": 1838170.0,
-    "binance_total_usdt": 7438.15,
-    "binance_total_krw": 9987510.0,
-    "usd_krw_rate": 1342.74,
-    "daily_change_krw": 193356.0,
-    "daily_change_pct": 1.09
+    "date": "2026-10-17",
+    "grand_total_krw": 17746542.0,
+    "upbit_total_krw": 6016036.0,
+    "bithumb_total_krw": 1838152.0,
+    "binance_total_usdt": 7410.6,
+    "binance_total_krw": 9892353.0,
+    "usd_krw_rate": 1334.89,
+    "daily_change_krw": -118950.0,
+    "daily_change_pct": -0.67
   }
 }
