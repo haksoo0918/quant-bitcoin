@@ -1688,10 +1688,38 @@ def run_live_trading(kst_now, is_dry_run=False, use_alt_strategy=USE_ALTCOIN_STR
         )
 
     # PWA 웹 대시보드용 status.json 파일 내보내기
+    total_btc_qty = btc_bal_fin + (binance_btc_bal_fin if use_binance_strategy else 0.0)
+    total_eth_qty = eth_bal_fin + (bithumb_eth_bal_fin if use_alt_strategy else 0.0) + (binance_eth_bal_fin if use_binance_strategy else 0.0)
+    total_cash_krw = upbit_krw_fin + (bithumb_krw_fin if use_alt_strategy else 0.0) + ((binance_usdt_fin * usd_krw_rate) if use_binance_strategy else 0.0)
+    total_btc_val_krw = btc_val_fin + ((binance_btc_val_fin * usd_krw_rate) if use_binance_strategy else 0.0)
+    total_eth_val_krw = eth_val_fin + (bithumb_eth_val_fin if use_alt_strategy else 0.0) + ((binance_eth_val_fin * usd_krw_rate) if use_binance_strategy else 0.0)
+
     live_status_data = {
         "updated_at": kst_now.isoformat(),
         "updated_at_formatted": kst_now.strftime("%Y-%m-%d %H:%M:%S KST"),
         "mode": "dry-run" if is_dry_run else "live",
+        "holdings": {
+            "btc": {
+                "total_quantity": round(total_btc_qty, 8),
+                "total_val_krw": round(total_btc_val_krw, 0),
+                "upbit_quantity": round(btc_bal_fin, 8),
+                "binance_quantity": round(binance_btc_bal_fin if use_binance_strategy else 0.0, 8)
+            },
+            "eth": {
+                "total_quantity": round(total_eth_qty, 8),
+                "total_val_krw": round(total_eth_val_krw, 0),
+                "upbit_quantity": round(eth_bal_fin, 8),
+                "bithumb_quantity": round(bithumb_eth_bal_fin if use_alt_strategy else 0.0, 8),
+                "binance_quantity": round(binance_eth_bal_fin if use_binance_strategy else 0.0, 8)
+            },
+            "cash": {
+                "total_krw": round(total_cash_krw, 0),
+                "upbit_krw": round(upbit_krw_fin, 0),
+                "bithumb_krw": round(bithumb_krw_fin if use_alt_strategy else 0.0, 0),
+                "binance_usdt": round(binance_usdt_fin if use_binance_strategy else 0.0, 2),
+                "binance_krw": round((binance_usdt_fin * usd_krw_rate) if use_binance_strategy else 0.0, 0)
+            }
+        },
         "upbit": {
             "btc": {
                 "current_price": float(btc_current_price),

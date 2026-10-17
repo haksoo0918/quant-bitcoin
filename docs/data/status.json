@@ -2,6 +2,28 @@
   "updated_at": "2026-10-17T10:54:58.043820+00:00",
   "updated_at_formatted": "2026-10-17 10:54:58 KST",
   "mode": "live",
+  "holdings": {
+    "btc": {
+      "total_quantity": 0.07276134,
+      "total_val_krw": 7954194,
+      "upbit_quantity": 0.02733544,
+      "binance_quantity": 0.04542590
+    },
+    "eth": {
+      "total_quantity": 0.0,
+      "total_val_krw": 0,
+      "upbit_quantity": 0.0,
+      "bithumb_quantity": 0.0,
+      "binance_quantity": 0.0
+    },
+    "cash": {
+      "total_krw": 9792348,
+      "upbit_krw": 3008018,
+      "bithumb_krw": 1838152,
+      "binance_usdt": 3705.30,
+      "binance_krw": 4946178
+    }
+  },
   "upbit": {
     "btc": {
       "current_price": 110041000.0,

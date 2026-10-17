@@ -202,6 +202,49 @@ class TestStatusPipeline(unittest.TestCase):
         success = auto_push_status_json(target_file="docs/data/status.json", skip_push=True)
         self.assertTrue(success)
 
+    def test_holdings_structure_in_export_json(self):
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tf:
+            temp_path = tf.name
+
+        try:
+            payload = {
+                "updated_at": "2026-10-17T10:54:58+09:00",
+                "mode": "live",
+                "holdings": {
+                    "btc": {
+                        "total_quantity": 0.07276134,
+                        "total_val_krw": 7954194,
+                        "upbit_quantity": 0.02733544,
+                        "binance_quantity": 0.04542590
+                    },
+                    "eth": {
+                        "total_quantity": 0.0,
+                        "total_val_krw": 0,
+                        "upbit_quantity": 0.0,
+                        "bithumb_quantity": 0.0,
+                        "binance_quantity": 0.0
+                    },
+                    "cash": {
+                        "total_krw": 9792348,
+                        "upbit_krw": 3008018,
+                        "bithumb_krw": 1838152,
+                        "binance_usdt": 3705.30,
+                        "binance_krw": 4946178
+                    }
+                }
+            }
+            export_web_status_json(payload, file_path=temp_path)
+            with open(temp_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            self.assertIn("holdings", data)
+            self.assertIn("btc", data["holdings"])
+            self.assertIn("eth", data["holdings"])
+            self.assertIn("cash", data["holdings"])
+            self.assertEqual(data["holdings"]["btc"]["total_quantity"], 0.07276134)
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+
 
 if __name__ == "__main__":
     unittest.main()
