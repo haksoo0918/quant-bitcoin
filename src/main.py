@@ -588,9 +588,13 @@ def load_asset_history(limit: int = 60, csv_path: str = None) -> list:
         return []
 
 
-def export_web_status_json(data_dict, file_path="docs/data/status.json"):
+def export_web_status_json(data_dict, file_path=None):
     """PWA 웹 대시보드 연동용 status.json 파일 저장 (최근 거래 이력 및 일별 자산 추이 자동 포함)"""
     try:
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        if not file_path:
+            file_path = os.path.join(base_dir, "docs", "data", "status.json")
+
         data_dict["trade_history"] = load_recent_trade_history(limit=20)
         asset_hist = load_asset_history(limit=60)
         data_dict["asset_history"] = asset_hist
@@ -620,7 +624,7 @@ def export_web_status_json(data_dict, file_path="docs/data/status.json"):
         logging.error(f"PWA 대시보드 상태 데이터 저장 실패: {e}")
 
 
-def auto_push_status_json(target_file="docs/data/status.json", skip_push=False):
+def auto_push_status_json(target_file=None, skip_push=False):
     """
     PWA 웹 대시보드 데이터(status.json) 및 trade_history.csv, asset_history.csv를 GitHub에 자동 커밋 & 푸시.
     오류가 발생하더라도 매매 봇 프로세스가 중단되지 않도록 안전하게 예외 처리.
@@ -629,11 +633,16 @@ def auto_push_status_json(target_file="docs/data/status.json", skip_push=False):
         logging.info("status.json GitHub 자동 푸시 스킵")
         return True
 
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if not target_file:
+        target_file = os.path.join(base_dir, "docs", "data", "status.json")
+
     try:
         import subprocess
         # 1. git add (status.json, trade_history.csv, asset_history.csv 동반 추가)
         add_res = subprocess.run(
-            ["git", "add", target_file, "data/trade_history.csv", "data/asset_history.csv"],
+            ["git", "add", "docs/data/status.json", "data/trade_history.csv", "data/asset_history.csv"],
+            cwd=base_dir,
             capture_output=True,
             text=True,
             encoding="utf-8",
@@ -648,6 +657,7 @@ def auto_push_status_json(target_file="docs/data/status.json", skip_push=False):
         today_str = datetime.now().strftime("%Y-%m-%d")
         commit_res = subprocess.run(
             ["git", "commit", "-m", f"data: 일일 대시보드 상태 및 차트 시계열 자동 갱신 ({today_str})"],
+            cwd=base_dir,
             capture_output=True,
             text=True,
             encoding="utf-8",
@@ -665,6 +675,7 @@ def auto_push_status_json(target_file="docs/data/status.json", skip_push=False):
         # 3. 원격 최신 변경사항 동기화 (PC에서 문서/대시보드만 푸시한 경우 충돌 방지)
         pull_res = subprocess.run(
             ["git", "pull", "--rebase", "-X", "theirs", "origin", "main"],
+            cwd=base_dir,
             capture_output=True,
             text=True,
             encoding="utf-8",
@@ -677,6 +688,7 @@ def auto_push_status_json(target_file="docs/data/status.json", skip_push=False):
         # 4. git push
         push_res = subprocess.run(
             ["git", "push", "origin", "main"],
+            cwd=base_dir,
             capture_output=True,
             text=True,
             encoding="utf-8",

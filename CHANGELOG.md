@@ -3,6 +3,20 @@
 이 프로젝트의 모든 중요한 변경 사항은 이 파일에 기록됩니다.
 이 프로젝트는 유의적 버전(Semantic Versioning)을 준수합니다.
 
+## [1.12.2] - 2026-10-17
+
+### Fixed (수정됨)
+- **오라클 클라우드 VM 크론탭 스케줄러 내결함성(Fault-tolerance) 확보 및 무조건 실행 보장 (`.github/workflows/deploy.yml`, `docs/ORACLE_CLOUD_GUIDE.md`, `PRD.md`)**:
+  - 어제 배포된 크론탭 명령어에서 `git pull`과 파이썬 매매 봇 사이의 `&&` (AND) 결합으로 인해 비대화형 크론 환경에서 Git 동기화 오류 발생 시 봇 프로세스가 실행조차 되지 않던 결함 해결.
+  - `git pull origin main` 실패 여부와 무관하게 세미콜론(`;`) 격리를 통해 실거래 봇(`/usr/bin/python3 src/main.py --live`)이 100% 무조건 실행되도록 개선.
+  - 배포 워크플로우(`.github/workflows/deploy.yml`)에 `workflow_dispatch`의 `run_mode`(live/dry-run) 입력 옵션을 신설하고, 배포 완료 즉시 오라클 VM에서 오늘자 실거래 및 디스코드 리포팅이 자동 집행되도록 연동.
+
+### Changed (변경됨)
+- **PWA 웹 상태 내보내기 및 Git 자동 푸시 작업 디렉토리 절대경로화 (`src/main.py`)**:
+  - `export_web_status_json` 및 `auto_push_status_json`에 `base_dir` 절대경로를 적용하여 실행 CWD 환경과 무관하게 `docs/data/status.json`, `data/trade_history.csv`, `data/asset_history.csv`가 정상 갱신·커밋·푸시되도록 안정화.
+
+---
+
 ## [1.12.1] - 2026-10-16
 
 ### Changed (변경됨)
