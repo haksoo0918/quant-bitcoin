@@ -3,6 +3,17 @@
 이 프로젝트의 모든 중요한 변경 사항은 이 파일에 기록됩니다.
 이 프로젝트는 유의적 버전(Semantic Versioning)을 준수합니다.
 
+## [1.13.1] - 2026-10-18
+
+### Fixed (수정됨)
+- **오라클 클라우드 VM 크론탭 및 Git 동기화 내결함성(Fault-tolerance) 강화 (`src/main.py`, `.github/workflows/deploy.yml`, `docs/ORACLE_CLOUD_GUIDE.md`, `PRD.md`)**:
+  - `src/main.py` (`auto_push_status_json`): 매매 완료 후 장부 파일 커밋 및 푸시 직전, 이전 비정상 종료로 인한 잔여 rebase/merge 충돌 상태(`git rebase --abort`)를 자동 정리하는 안전장치 추가.
+  - 원격 저장소에 선행 커밋이 존재하더라도 rebase 충돌 시 abort 후 비파괴 병합(`pull --no-rebase -X theirs`)을 수행하여 `git push origin main`이 중단 없이 안전하게 완료되도록 보강.
+  - `.github/workflows/deploy.yml`: 오라클 VM 배포 시 로컬에 작성된 당일 실거래 장부(`status.json`, `trade_history.csv`, `asset_history.csv`)를 선행 보존한 뒤 원격 코드와 안전하게 동기화하도록 스크립트 개선.
+  - 크론탭(Crontab) 동기화 구문을 `(git fetch origin main && git rebase -X theirs origin/main || git pull --no-rebase -X theirs origin main --no-edit)`로 교체하여 매일 아침 09:05 실행 시 코드 충돌 없는 무중단 실행 및 실거래 장부 자동 푸시 보장.
+
+---
+
 ## [1.13.0] - 2026-10-17
 
 ### Added (추가됨)

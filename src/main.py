@@ -639,6 +639,10 @@ def auto_push_status_json(target_file=None, skip_push=False):
 
     try:
         import subprocess
+        # 0. 이전 비정상 종료로 인한 rebase/merge 잔여 상태 정리
+        subprocess.run(["git", "rebase", "--abort"], cwd=base_dir, capture_output=True, check=False)
+        subprocess.run(["git", "merge", "--abort"], cwd=base_dir, capture_output=True, check=False)
+
         # 1. git add (status.json, trade_history.csv, asset_history.csv 동반 추가)
         add_res = subprocess.run(
             ["git", "add", "docs/data/status.json", "data/trade_history.csv", "data/asset_history.csv"],
@@ -668,13 +672,13 @@ def auto_push_status_json(target_file=None, skip_push=False):
             # nothing to commit인 경우는 정상 상태로 간주
             if "nothing to commit" in commit_res.stdout or "clean" in commit_res.stdout:
                 logging.info("status.json 변경 사항 없음 (이미 최신 상태)")
-                return True
-            logging.warning(f"git commit 실패: {commit_res.stderr.strip()}")
-            return False
+            else:
+                logging.warning(f"git commit 실패: {commit_res.stderr.strip()}")
 
         # 3. 원격 최신 변경사항 동기화 (PC에서 문서/대시보드만 푸시한 경우 충돌 방지)
+        subprocess.run(["git", "fetch", "origin", "main"], cwd=base_dir, capture_output=True, check=False)
         pull_res = subprocess.run(
-            ["git", "pull", "--rebase", "-X", "theirs", "origin", "main"],
+            ["git", "rebase", "-X", "theirs", "origin/main"],
             cwd=base_dir,
             capture_output=True,
             text=True,
@@ -683,7 +687,9 @@ def auto_push_status_json(target_file=None, skip_push=False):
             check=False
         )
         if pull_res.returncode != 0:
-            logging.warning(f"git pull --rebase 경고 (푸시 계속 시도): {pull_res.stderr.strip()}")
+            logging.warning(f"git rebase 경고: {pull_res.stderr.strip()}, rebase 중단 후 병합 시도")
+            subprocess.run(["git", "rebase", "--abort"], cwd=base_dir, capture_output=True, check=False)
+            subprocess.run(["git", "pull", "--no-rebase", "-X", "theirs", "origin", "main", "--no-edit"], cwd=base_dir, capture_output=True, check=False)
 
         # 4. git push
         push_res = subprocess.run(

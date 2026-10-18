@@ -106,8 +106,8 @@
 - **오라클 클라우드 Always Free (실거래 24시간 무인 운영)**:
   - 인스턴스: `VM.Standard.E2.1.Micro` (Ubuntu 24.04, 1GB RAM + 1GB Swap)
   - 네트워크: 평생 고정 예약 공인 IP 발급 및 업비트/빗썸/바이낸스 API 화이트리스트 등록
-  - 자동화 스케줄러: Crontab (매일 09:05 KST 일봉 종가 확정 후 `git pull` 선행 및 `/usr/bin/python3 src/main.py --live` 자동 실행, 동기화 오류 발생 시에도 세미콜론(;) 분리를 통해 봇 프로세스가 중단 없이 100% 실행되도록 내결함성 보장 및 `cron.log` 실시간 기록)
-  - GitHub Actions CD 배포 연동: 수동 배포(`workflow_dispatch`) 시 `run_mode`(live/dry-run) 선택 실행 지원 및 긴급 즉시 매매 복구 트리거 지원
+  - 자동화 스케줄러: Crontab (매일 09:05 KST 일봉 종가 확정 후 `git fetch` 및 충돌 없는 동기화 선행, `/usr/bin/python3 src/main.py --live` 자동 실행, 매매 완료 후 장부 파일 커밋 및 `git push origin main` 자동 수행, 실패 시에도 세미콜론 분리와 `--abort` 안전장치를 통해 봇 프로세스와 Git 상태 무결성 100% 보장 및 `cron.log` 실시간 기록)
+  - GitHub Actions CD 배포 연동: 수동 배포(`workflow_dispatch`) 시 `run_mode`(none/live/dry-run) 선택 실행 지원 및 배포 직후 오라클 VM의 실거래 장부(`status.json`, `trade_history.csv`, `asset_history.csv`) 자동 수거(`scp`) 및 대시보드 커밋&푸시 동기화 연동
   - 상세 구축 매뉴얼: [docs/ORACLE_CLOUD_GUIDE.md](file:///c:/Users/hakso/_work/quant-bitcoin/docs/ORACLE_CLOUD_GUIDE.md) 참조
 - **로컬 PC 환경 (개발, 모의매매 및 백테스트)**:
   - `.env` 파일에 API Key 및 `DISCORD_WEBHOOK_URL` 설정

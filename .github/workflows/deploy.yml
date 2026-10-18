@@ -52,9 +52,17 @@ jobs:
         key: ${{ secrets.ORACLE_SSH_KEY }}
         script: |
           cd /home/ubuntu/quant-bitcoin
-          git pull origin main
+          # 이전 잔여 rebase/merge 충돌 상태 정리
+          git rebase --abort 2>/dev/null || true
+          git merge --abort 2>/dev/null || true
+          # 로컬 실거래 장부 데이터 보존 커밋
+          git add docs/data/status.json data/trade_history.csv data/asset_history.csv 2>/dev/null || true
+          git commit -m "data: local ledger snapshot before pull" 2>/dev/null || true
+          # 최신 원격 main 브랜치와 안전하게 동기화
+          git fetch origin main
+          git rebase -X theirs origin/main || (git rebase --abort; git pull --no-rebase -X theirs origin main --no-edit) || true
           pip install -r requirements.txt --break-system-packages
-          (crontab -l 2>/dev/null | grep -v 'quant-bitcoin'; echo "5 9 * * * cd /home/ubuntu/quant-bitcoin && git pull origin main >> /home/ubuntu/quant-bitcoin/cron.log 2>&1; /usr/bin/python3 src/main.py --live >> /home/ubuntu/quant-bitcoin/cron.log 2>&1") | crontab -
+          (crontab -l 2>/dev/null | grep -v 'quant-bitcoin'; echo "5 9 * * * cd /home/ubuntu/quant-bitcoin && (git fetch origin main && git rebase -X theirs origin/main || git pull --no-rebase -X theirs origin main --no-edit) >> /home/ubuntu/quant-bitcoin/cron.log 2>&1; /usr/bin/python3 src/main.py --live >> /home/ubuntu/quant-bitcoin/cron.log 2>&1") | crontab -
           RUN_MODE="${{ github.event.inputs.run_mode }}"
           if [ -n "$RUN_MODE" ] && [ "$RUN_MODE" != "none" ]; then
             echo "Executing: python3 src/main.py --$RUN_MODE"
