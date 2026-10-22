@@ -2415,9 +2415,9 @@
     }
 
     // ==========================================================================
-    // 3.5 포트폴리오 보안 잠금 (PIN: 4020) & 프라이버시 마스킹
+    // 3.5 포트폴리오 보안 잠금 & 프라이버시 마스킹
     // ==========================================================================
-    const PIN_HASH_4020 = '5050b689091595363d9f6e5ee240e13a965ec6a53e5d32ea6054b5bc07821a35';
+    const PORTFOLIO_PIN_HASH = '6b32c01a019bd349ff3c659b6206000b1f29e39bda71e3ac47c0006a033d93cc';
     let isPortfolioUnlocked = false;
     let isPrivacyMasked = false;
 
@@ -2435,7 +2435,7 @@
       const pin = (inputEl.value || '').trim();
 
       const hashed = await sha256(pin);
-      if (hashed === PIN_HASH_4020) {
+      if (hashed === PORTFOLIO_PIN_HASH) {
         if (errorEl) errorEl.style.display = 'none';
         unlockPortfolio(rememberEl && rememberEl.checked);
       } else {
