@@ -3,6 +3,23 @@
 이 프로젝트의 모든 중요한 변경 사항은 이 파일에 기록됩니다.
 이 프로젝트는 유의적 버전(Semantic Versioning)을 준수합니다.
 
+## [1.13.3] - 2026-10-23
+
+### Removed (제거됨)
+- **과거 배포 인프라 및 레거시 파일 정리 (`AGENT_ROLES_EXAMPLE.md`, `cloud_run_main.py`, `termux_setup.sh`, `run_bot.example.bat`, `src/test_monday.py`)**:
+  - `AGENT_ROLES_EXAMPLE.md`: 에이전트 룰 분리 가이드 예시 문서 삭제 (`AGENTS.md` 체제 정착).
+  - `cloud_run_main.py`: 과거 GCP Cloud Run 시절 올인원 스크립트 삭제 (오라클 VM 체제 완전 이전).
+  - `termux_setup.sh`: 과거 안드로이드(Termux) 무인 가동 시절 스크립트 삭제.
+  - `run_bot.example.bat`: `run_bot.bat`과 동일한 중복 예제 배치 파일 삭제.
+  - `src/test_monday.py`: 과거 8월 월요일 알트코인 로테이션 시절 임시 스크립트 삭제.
+
+### Changed (변경됨)
+- **상품 요구사항 정의서 및 리드미 구조 정돈 (`PRD.md`, `README.md`)**:
+  - `PRD.md`: 분리 서술되어 있던 PWA 대시보드 사양(섹션 6, 섹션 8)을 『7. PWA 웹 대시보드 (`docs/`)』 단일 섹션으로 깔끔하게 통합하고, 과거 후보 전략 백테스트 4종을 `(연구 아카이브)` 요약 블록으로 압축 정돈.
+  - `README.md`: 프로젝트 파일 구조도 내 GitHub Actions 워크플로우 명칭을 실제 파일(`main.yml`)과 일치하도록 정돈.
+
+---
+
 ## [1.13.2] - 2026-10-22
 
 ### Security (보안 강화)

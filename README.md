@@ -47,7 +47,7 @@ quant-bitcoin/
 ├── backtest/                     # 백테스트 결과물 폴더 (main/, sub_eth/, binance/)
 ├── .github/workflows/
 │   ├── deploy.yml                # push 연동 오라클 클라우드 VM 무인 자동 배포 CD
-│   └── signal_bot.yml            # GitHub Actions 일일 방향성 보조 시그널 브리핑
+│   └── main.yml                  # GitHub Actions 일일 방향성 보조 시그널 브리핑
 ├── docs/ORACLE_CLOUD_GUIDE.md    # 오라클 클라우드 Always Free 24시간 무인 인프라 구축 매뉴얼
 ├── PRD.md                        # 상품 요구사항 정의서
 ├── CHANGELOG.md                  # 버전별 변경 이력
